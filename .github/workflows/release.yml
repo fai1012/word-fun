@@ -64,7 +64,7 @@ jobs:
       - name: Fetch env.yaml from Secret Manager
         run: |
           # Fetching secret "word-fun-env" into backend directory
-          gcloud secrets versions access latest --secret="word-fun-secrets" --project="${{ secrets.GCP_PROJECT_ID }}" > word-fun-backend/env.yaml
+          gcloud secrets versions access latest --secret="word-fun-backend-env" --project="${{ secrets.GCP_PROJECT_ID }}" > word-fun-backend/env.yaml
 
       - name: Deploy Backend to Cloud Run
         run: |
@@ -96,7 +96,7 @@ jobs:
       - name: Fetch env.yaml from Secret Manager
         run: |
           # Fetching secret "word-fun-env" into frontend directory if needed, or reusing the same secret structure
-          gcloud secrets versions access latest --secret="word-fun-secrets" --project="${{ secrets.GCP_PROJECT_ID }}" > word-fun-frontend/env.yaml
+          gcloud secrets versions access latest --secret="word-fun-frontend-env" --project="${{ secrets.GCP_PROJECT_ID }}" > word-fun-frontend/env.yaml
 
       - name: Deploy Frontend to Cloud Run
         run: |
