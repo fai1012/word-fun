@@ -102,6 +102,7 @@ jobs:
         run: |
           cd word-fun-frontend
           # Append the version to the env.yaml file to avoid conflict between --env-vars-file and --set-env-vars
+          echo "" >> env.yaml
           echo "VITE_APP_VERSION: \"${{ needs.release.outputs.new_tag }}\"" >> env.yaml
           gcloud run deploy word-fun-frontend \
             --source . \
