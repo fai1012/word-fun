@@ -1,0 +1,110 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.tag_version.outputs.new_tag }}
+      sanitized_version: ${{ steps.sanitize_version.outputs.sanitized_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch
+          default_prerelease_bump: false
+          release_branches: main
+          initial_version: 1.0.0
+
+      - name: Create a GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
+
+      - name: Sanitize version for label
+        id: sanitize_version
+        run: |
+          VERSION="${{ steps.tag_version.outputs.new_tag }}"
+          SANITIZED_VERSION=$(echo "$VERSION" | tr '.' '-' | tr '[:upper:]' '[:lower:]')
+          echo "sanitized_version=$SANITIZED_VERSION" >> $GITHUB_OUTPUT
+
+  deploy-backend:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Fetch env.yaml from Secret Manager
+        run: |
+          # Fetching secret "word-fun-env" into backend directory
+          gcloud secrets versions access latest --secret="word-fun-secrets" --project="${{ secrets.GCP_PROJECT_ID }}" > word-fun-backend/env.yaml
+
+      - name: Deploy Backend to Cloud Run
+        run: |
+          cd word-fun-backend
+          gcloud run deploy word-fun-backend \
+            --source . \
+            --platform managed \
+            --region asia-southeast1 \
+            --allow-unauthenticated \
+            --env-vars-file env.yaml \
+            --labels version=${{ needs.release.outputs.sanitized_version }}
+
+  deploy-frontend:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Fetch env.yaml from Secret Manager
+        run: |
+          # Fetching secret "word-fun-env" into frontend directory if needed, or reusing the same secret structure
+          gcloud secrets versions access latest --secret="word-fun-secrets" --project="${{ secrets.GCP_PROJECT_ID }}" > word-fun-frontend/env.yaml
+
+      - name: Deploy Frontend to Cloud Run
+        run: |
+          cd word-fun-frontend
+          gcloud run deploy word-fun-frontend \
+            --source . \
+            --platform managed \
+            --region asia-southeast1 \
+            --allow-unauthenticated \
+            --env-vars-file env.yaml \
+            --labels version=${{ needs.release.outputs.sanitized_version }}
