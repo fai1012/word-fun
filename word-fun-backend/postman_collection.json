@@ -1,0 +1,161 @@
+{
+    "info": {
+        "_postman_id": "word-fun-backend-v1",
+        "name": "Word Fun Backend",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Profiles",
+            "item": [
+                {
+                    "name": "Sync User & Get Profiles",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/profiles",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "profiles"
+                            ]
+                        },
+                        "description": "Syncs user account and returns list of profiles."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Profile",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"displayName\": \"Player 1\",\n    \"avatarId\": \"avatar_01\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/profiles/create",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "profiles",
+                                "create"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Flashcards",
+            "item": [
+                {
+                    "name": "Get Words",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/profiles/:profileId/words",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "profiles",
+                                ":profileId",
+                                "words"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "profileId",
+                                    "value": "YOUR_PROFILE_ID"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Add Word",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"text\": \"Example Word\",\n    \"examples\": [\"This is an example sentence.\"]\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/profiles/:profileId/words",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "profiles",
+                                ":profileId",
+                                "words"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "profileId",
+                                    "value": "YOUR_PROFILE_ID"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8080"
+        },
+        {
+            "key": "jwt_token",
+            "value": "REPLACE_WITH_YOUR_TOKEN"
+        }
+    ]
+}

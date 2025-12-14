@@ -1,0 +1,5 @@
+{
+  "name": "認字繽紛樂",
+  "description": "A smart flashcard generator for learning Chinese. Input words, and let AI generate Pinyin, definitions, and examples.",
+  "requestFramePermissions": []
+}

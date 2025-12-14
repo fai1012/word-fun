@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  api:
+    image: node:20-alpine
+    working_dir: /app
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    environment:
+      - PORT=8080
+      - JWT_SECRET=dev-secret
+      # - GOOGLE_CLIENT_ID=...
+    command: sh -c "npm install && npm run dev"
