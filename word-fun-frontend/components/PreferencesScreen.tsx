@@ -1,5 +1,6 @@
 import React from 'react';
 import { Volume2, VolumeX, Settings, Target, Layers, Minus, Plus, AlertTriangle } from 'lucide-react';
+import { getEnv } from '../constants';
 
 interface PreferencesScreenProps {
     autoPlaySound: boolean;
@@ -227,7 +228,7 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
 
             <div className="mt-8 text-center">
                 <p className="text-xs text-slate-400">
-                    認字繽紛樂 v1.2
+                    認字繽紛樂 {getEnv('VITE_APP_VERSION') || 'v1.0.0'}
                 </p>
             </div>
         </div>

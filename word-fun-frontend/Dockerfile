@@ -8,9 +8,7 @@ RUN npm ci
 
 COPY . .
 
-# Build with a placeholder API key to prevent build failure if the code expects it
-# The real key will be injected at runtime via window._env_
-ENV API_KEY=PLACEHOLDER_FOR_BUILD
+
 RUN npm run build
 
 # Stage 2: Serve

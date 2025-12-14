@@ -107,4 +107,5 @@ jobs:
             --region asia-southeast1 \
             --allow-unauthenticated \
             --env-vars-file env.yaml \
+            --set-env-vars VITE_APP_VERSION=${{ needs.release.outputs.new_tag }} \
             --labels version=${{ needs.release.outputs.sanitized_version }}
