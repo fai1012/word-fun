@@ -62,6 +62,7 @@ const App: React.FC = () => {
 
     // Stats Tracking for Session
     const [revisionRoundCount, setRevisionRoundCount] = useState(0);
+    const [pendingScore, setPendingScore] = useState<boolean | null>(null);
 
     // Calculate stars based on performance
     const calculateStars = () => {
@@ -429,6 +430,7 @@ const App: React.FC = () => {
         setCurrentIndex(0);
         setIsRevisionMode(false);
         setIsCardFlipped(false);
+        setPendingScore(null);
         setRevisionRoundCount(0);
         setIsSessionCompleted(false);
 
@@ -499,10 +501,24 @@ const App: React.FC = () => {
 
         if (currentIndex < sessionQueue.length - 1) {
             setIsCardFlipped(false);
+            setPendingScore(null);
             setTimeout(() => setCurrentIndex(prev => prev + 1), 150);
         } else {
             handleEndOfQueue(nextMissedQueue);
         }
+    };
+
+    const handleRate = (correct: boolean) => {
+        setPendingScore(correct);
+        if (!isCardFlipped) {
+            setIsCardFlipped(true);
+        }
+    };
+
+    const handleNextCard = () => {
+        if (pendingScore === null) return;
+        handleGrade(pendingScore);
+        setPendingScore(null);
     };
 
     const handleEndOfQueue = (finalMissedQueue: FlashcardData[]) => {
@@ -707,30 +723,30 @@ const App: React.FC = () => {
 
                         <div className="w-full max-w-md shrink-0 py-4 flex items-center justify-center gap-3 h-24">
                             {!isCardFlipped ? (
-                                <button
-                                    onClick={handleFlip}
-                                    className="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold shadow-xl hover:bg-slate-800 transition-all"
-                                >
-                                    Reveal
-                                </button>
-                            ) : (
                                 <>
                                     <button
-                                        onClick={() => handleGrade(false)}
-                                        className="flex-1 py-4 rounded-2xl bg-white border-2 border-rose-100 text-rose-500 font-bold shadow-lg hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
+                                        onClick={() => handleRate(false)}
+                                        className={`flex-1 py-4 rounded-2xl border-2 font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${pendingScore === false ? 'bg-rose-100 border-rose-500 text-rose-600 ring-2 ring-rose-300' : 'bg-white border-rose-100 text-rose-500 hover:bg-rose-50'}`}
                                     >
                                         <X className="w-6 h-6" />
                                         Forgot
                                     </button>
 
                                     <button
-                                        onClick={() => handleGrade(true)}
-                                        className="flex-1 py-4 rounded-2xl bg-green-500 text-white font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-all flex items-center justify-center gap-2"
+                                        onClick={() => handleRate(true)}
+                                        className={`flex-1 py-4 rounded-2xl font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${pendingScore === true ? 'bg-green-600 text-white ring-4 ring-green-200 shadow-green-900/20' : 'bg-green-500 text-white shadow-green-200 hover:bg-green-600'}`}
                                     >
                                         <Check className="w-6 h-6" />
                                         Got it
                                     </button>
                                 </>
+                            ) : (
+                                <button
+                                    onClick={handleNextCard}
+                                    className="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                                >
+                                    Next Card <ArrowLeft className="w-5 h-5 rotate-180" />
+                                </button>
                             )}
                         </div>
                     </div>

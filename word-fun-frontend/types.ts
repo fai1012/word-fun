@@ -61,3 +61,18 @@ export interface FlashcardData {
   lastReviewedAt?: Date;
   masteredAt?: Date;
 }
+
+export enum AppState {
+  LOADING = 'LOADING',
+  ERROR = 'ERROR',
+  HOME = 'HOME',
+  MANAGE = 'MANAGE',
+  FLASHCARDS = 'FLASHCARDS',
+  COMPLETED = 'COMPLETED'
+}
+
+export enum AppTab {
+  STUDY = 'STUDY',
+  STATS = 'STATS',
+  SETTINGS = 'SETTINGS'
+}

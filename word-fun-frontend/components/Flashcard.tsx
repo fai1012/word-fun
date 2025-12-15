@@ -82,10 +82,24 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
     return "text-[4rem] sm:text-[5.5rem]"; // 5+ chars
   };
 
+  const [expandedExample, setExpandedExample] = React.useState<string | null>(null);
+
+  // ... (previous handlers)
+
+  const handleExampleClick = (e: React.MouseEvent, text: string) => {
+    e.stopPropagation();
+    setExpandedExample(text);
+  };
+
+  const handleCloseExpanded = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedExample(null);
+  };
+
   return (
     <div
-      className="relative h-full w-auto aspect-[3/4] max-w-full perspective-1000 cursor-pointer group mx-auto"
-      onClick={onFlip}
+      className={`relative h-full w-auto aspect-[3/4] max-w-full perspective-1000 group mx-auto ${isFlipped ? 'cursor-pointer' : 'cursor-default'}`}
+      onClick={() => isFlipped && onFlip()}
     >
       <div
         className={`w-full h-full relative transition-all duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''
@@ -116,9 +130,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
               </h2>
             </div>
 
-            <div className="mt-6 sm:mt-8 text-rose-500 animate-bounce opacity-50">
-              <span className="text-[10px] sm:text-xs font-bold uppercase">Tap to Flip</span>
-            </div>
+            {/* Removed Tap to Flip hint */}
           </div>
 
           {/* Stats indicator on Front */}
@@ -189,7 +201,11 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
               {displayExamples.length > 0 ? (
                 <div className="flex flex-col gap-3 pb-2">
                   {displayExamples.map((ex, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-white/5 p-3 rounded-lg group/ex">
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between bg-white/5 p-3 rounded-lg group/ex hover:bg-white/10 cursor-pointer active:scale-[0.98] transition-all"
+                      onClick={(e) => handleExampleClick(e, ex.chinese)}
+                    >
                       <p className="text-2xl sm:text-3xl font-noto-serif-hk font-medium leading-normal text-slate-100 flex-1">{ex.chinese}</p>
                       {onRegenerateExample && (
                         <button
@@ -210,6 +226,23 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
               )}
             </div>
           </div>
+
+          {/* Expanded Example Overlay */}
+          {expandedExample && (
+            <div
+              className="absolute inset-0 z-50 bg-slate-900/95 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200"
+              onClick={handleCloseExpanded}
+            >
+              <div className="text-center">
+                <p className="text-4xl sm:text-5xl font-noto-serif-hk font-bold leading-relaxed text-white drop-shadow-lg">
+                  {expandedExample}
+                </p>
+                <div className="mt-8 text-slate-400 text-sm uppercase tracking-widest animate-pulse">
+                  Tap to close
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
