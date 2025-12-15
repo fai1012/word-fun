@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { FlashcardData } from '../types';
-import { Volume2, Check, Target, RefreshCw, Crown } from 'lucide-react';
+import { Volume2, Check, Target, RefreshCw, Crown, Trash2 } from 'lucide-react';
 
 interface FlashcardProps {
   data: FlashcardData;
@@ -14,6 +14,7 @@ interface FlashcardProps {
 
 export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, autoPlaySound, onRegenerate, onRegenerateExample, masteryThreshold }) => {
   const [regeneratingIndex, setRegeneratingIndex] = React.useState<number | null>(null);
+  const [swipedIndex, setSwipedIndex] = React.useState<number | null>(null);
 
   // Auto-play audio when flipped if enabled
   useEffect(() => {
@@ -35,23 +36,60 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
     window.speechSynthesis.speak(utterance);
   };
 
-  const handleRegenerateClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onRegenerate) {
-      onRegenerate();
-    }
-  };
-
-  const handleExampleRegenerate = async (e: React.MouseEvent, index: number) => {
-    e.stopPropagation();
+  const executeRegeneration = async (index: number) => {
     if (onRegenerateExample && regeneratingIndex === null) {
       setRegeneratingIndex(index);
+      setSwipedIndex(null); // Close swipe on action
       try {
         await onRegenerateExample(index);
       } finally {
         setRegeneratingIndex(null);
       }
     }
+  };
+
+  // Swipe Logic
+  const touchStartRef = React.useRef<{ x: number, y: number } | null>(null);
+  const [currentSwipeOffset, setCurrentSwipeOffset] = React.useState<number>(0);
+  const [activeSwipeIndex, setActiveSwipeIndex] = React.useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent, index: number) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    };
+    setActiveSwipeIndex(index);
+    setCurrentSwipeOffset(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || activeSwipeIndex === null) return;
+
+    const currentX = e.touches[0].clientX;
+    const deltaX = currentX - touchStartRef.current.x;
+
+    // Only allow swiping left (negative values), clamp at -100px
+    if (deltaX < 0 && deltaX > -100) {
+      setCurrentSwipeOffset(deltaX);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent, index: number) => {
+    if (!touchStartRef.current) return;
+
+    const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+
+    // Threshold to snap open: -50px
+    if (deltaX < -50) {
+      setSwipedIndex(index); // Snap open
+    } else if (activeSwipeIndex === index && deltaX > -50) {
+      setSwipedIndex(null); // Snap close if not far enough
+    }
+
+    // Reset tracking
+    touchStartRef.current = null;
+    setActiveSwipeIndex(null);
+    setCurrentSwipeOffset(0);
   };
 
   // Calculate generic accuracy for display
@@ -88,6 +126,11 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
 
   const handleExampleClick = (e: React.MouseEvent, text: string) => {
     e.stopPropagation();
+    // If we are currently swiping or viewing a swiped state, close it instead of expanding
+    if (swipedIndex !== null) {
+      setSwipedIndex(null);
+      return;
+    }
     setExpandedExample(text);
   };
 
@@ -166,15 +209,6 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {onRegenerate && (
-                  <button
-                    onClick={handleRegenerateClick}
-                    className="p-2 bg-white/10 rounded-full hover:bg-blue-500 hover:text-white transition-colors group/regen"
-                    title="Regenerate Content"
-                  >
-                    <RefreshCw className="w-4 h-4 text-slate-400 group-hover/regen:text-white" />
-                  </button>
-                )}
                 <button
                   onClick={handleAudioClick}
                   className="p-2 bg-white/10 rounded-full hover:bg-rose-500 hover:text-white transition-colors"
@@ -200,24 +234,72 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
 
               {displayExamples.length > 0 ? (
                 <div className="flex flex-col gap-3 pb-2">
-                  {displayExamples.map((ex, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between bg-white/5 p-3 rounded-lg group/ex hover:bg-white/10 cursor-pointer active:scale-[0.98] transition-all"
-                      onClick={(e) => handleExampleClick(e, ex.chinese)}
-                    >
-                      <p className="text-2xl sm:text-3xl font-noto-serif-hk font-medium leading-normal text-slate-100 flex-1">{ex.chinese}</p>
-                      {onRegenerateExample && (
-                        <button
-                          onClick={(e) => handleExampleRegenerate(e, idx)}
-                          disabled={regeneratingIndex !== null}
-                          className={`ml-3 p-2 rounded-full hover:bg-white/10 transition-all ${regeneratingIndex === idx ? 'opacity-100' : 'opacity-0 group-hover/ex:opacity-100'}`}
+                  {displayExamples.map((ex, idx) => {
+                    // Determine current offset for swipe animation
+                    let translateX = 0;
+                    if (activeSwipeIndex === idx) {
+                      translateX = currentSwipeOffset;
+                    } else if (swipedIndex === idx) {
+                      translateX = -64; // Fixed open width (4rem)
+                    }
+
+                    return (
+                      <div key={idx} className="relative mb-3 h-auto"> {/* Wrapper */}
+
+                        {/* Action Layer (Behind Content) */}
+                        <div className={`absolute inset-0 flex items-center justify-end rounded-lg pr-4 transition-colors ${swipedIndex === idx || activeSwipeIndex === idx ? 'bg-green-500/20' : ''}`}>
+                          <button
+                            className={`p-2 bg-green-500 text-white rounded-full shadow-lg transition-all active:scale-95 ${swipedIndex === idx ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              executeRegeneration(idx);
+                            }}
+                          >
+                            <RefreshCw className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        {/* Content Layer (Draggable) */}
+                        <div
+                          className={`relative z-10 overflow-hidden flex items-center justify-between bg-white/5 p-3 rounded-lg border border-slate-700/50 backdrop-blur-sm transition-transform ease-out
+                           ${activeSwipeIndex === idx ? 'duration-0' : 'duration-300'}
+                          ${swipedIndex !== null && swipedIndex !== idx ? 'opacity-50' : 'opacity-100'} 
+                        `}
+                          onClick={(e) => handleExampleClick(e, ex.chinese)}
+                          onTouchStart={(e) => handleTouchStart(e, idx)}
+                          onTouchMove={handleTouchMove}
+                          onTouchEnd={(e) => handleTouchEnd(e, idx)}
+                          style={{
+                            backgroundColor: '#1e293b',
+                            transform: `translateX(${translateX}px)`
+                          }}
                         >
-                          <RefreshCw className={`w-4 h-4 text-slate-400 hover:text-white ${regeneratingIndex === idx ? 'animate-spin text-rose-400' : ''}`} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                          <p className={`text-2xl sm:text-3xl font-noto-serif-hk font-medium leading-normal text-slate-100 flex-1 ${regeneratingIndex === idx ? 'opacity-30 blur-sm' : ''}`}>{ex.chinese}</p>
+
+                          {/* Loading Indicator for Regeneration */}
+                          {regeneratingIndex === idx && (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/50">
+                              <RefreshCw className="w-6 h-6 text-green-400 animate-spin" />
+                            </div>
+                          )}
+
+                          {/* Desktop Hover Refresh Button */}
+                          {!regeneratingIndex && onRegenerateExample && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                executeRegeneration(idx);
+                              }}
+                              className="ml-4 p-2 rounded-full hover:bg-white/20 text-slate-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 hidden sm:block"
+                              title="Regenerate Example"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-slate-600 text-xs italic">
