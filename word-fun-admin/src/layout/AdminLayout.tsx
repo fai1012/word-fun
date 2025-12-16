@@ -1,7 +1,9 @@
-import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const AdminLayout: React.FC = () => {
+    const { user, logout } = useAuth();
+
     return (
         <div className="admin-layout">
             <aside className="sidebar">
@@ -17,8 +19,19 @@ const AdminLayout: React.FC = () => {
                 </nav>
             </aside>
             <main className="main-content">
-                <header className="top-bar">
+                <header className="top-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h1>Administration</h1>
+                    <div className="user-info" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        {user && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                {user.picture && <img src={user.picture} alt={user.name} style={{ width: 32, height: 32, borderRadius: '50%' }} />}
+                                <span>{user.name}</span>
+                            </div>
+                        )}
+                        <button onClick={logout} style={{ padding: '0.5rem 1rem', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                            Sign Out
+                        </button>
+                    </div>
                 </header>
                 <div className="content-area">
                     <Outlet />
