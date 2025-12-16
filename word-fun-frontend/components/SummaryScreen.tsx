@@ -46,23 +46,23 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
     }
 
     return (
-        <div className="w-full max-w-lg mx-auto px-4 pb-24 pt-8">
-            <h1 className="text-2xl font-bold text-slate-800 mb-6 flex items-center justify-between">
+        <div className="w-full max-w-lg mx-auto px-4 pb-24 pt-8 font-rounded text-coffee">
+            <h1 className="text-2xl font-black text-coffee mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <TrendingUp className="w-6 h-6 text-rose-600" />
-                    <span>Progress</span>
+                    <TrendingUp className="w-7 h-7 text-salmon stroke-[3]" />
+                    <span className="tracking-tight">Progress</span>
                 </div>
             </h1>
 
             {/* Language Toggle */}
-            <div className="flex p-1 bg-slate-200/50 rounded-xl mb-6">
+            <div className="flex p-1.5 bg-coffee/10 rounded-2xl mb-8">
                 {(['all', 'zh', 'en'] as const).map(lang => (
                     <button
                         key={lang}
                         onClick={() => setLanguageFilter(lang)}
-                        className={`flex-1 py-2 text-xs font-bold rounded-lg capitalize transition-all ${languageFilter === lang
-                            ? 'bg-white text-slate-800 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
+                        className={`flex-1 py-2.5 text-xs font-bold rounded-xl capitalize transition-all ${languageFilter === lang
+                            ? 'bg-white text-coffee shadow-[2px_2px_0px_0px_rgba(93,64,55,0.2)] border border-coffee/10'
+                            : 'text-coffee/50 hover:text-coffee/70'
                             }`}
                     >
                         {lang === 'all' ? 'All' : lang === 'zh' ? 'Chinese' : 'English'}
@@ -72,51 +72,53 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
 
             {/* Stat Cards */}
             <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Words</div>
-                    <div className="text-3xl font-black text-slate-800">{totalCards}</div>
+                <div className="bg-white p-5 rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee flex flex-col justify-center items-center text-center">
+                    <div className="text-coffee/50 text-[10px] font-black uppercase tracking-widest mb-1">Total Words</div>
+                    <div className="text-4xl font-black text-coffee">{totalCards}</div>
                 </div>
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Mastery</div>
-                    <div className="text-3xl font-black text-rose-500">{masteryRate}%</div>
+                <div className="bg-white p-5 rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee flex flex-col justify-center items-center text-center">
+                    <div className="text-coffee/50 text-[10px] font-black uppercase tracking-widest mb-1">Mastery</div>
+                    <div className="text-4xl font-black text-salmon">{masteryRate}%</div>
                 </div>
             </div>
 
             {/* Progress Bar */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 mb-8">
-                <h3 className="text-sm font-bold text-slate-700 mb-4">Deck Status</h3>
+            <div className="bg-white p-6 rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee mb-8">
+                <h3 className="text-sm font-black text-coffee mb-4 uppercase tracking-wide opacity-80">Deck Status</h3>
 
-                <div className="flex h-4 rounded-full overflow-hidden bg-slate-100 mb-4">
-                    <div className="bg-green-500 transition-all duration-1000" style={{ width: `${totalCards > 0 ? (masteredCards.length / totalCards) * 100 : 0}%` }}></div>
-                    <div className="bg-orange-400 transition-all duration-1000" style={{ width: `${totalCards > 0 ? (learningCards.length / totalCards) * 100 : 0}%` }}></div>
+                <div className="flex h-5 rounded-full overflow-hidden bg-coffee/10 mb-5 border-2 border-coffee/10">
+                    <div className="bg-matcha transition-all duration-1000 border-r-2 border-white/20" style={{ width: `${totalCards > 0 ? (masteredCards.length / totalCards) * 100 : 0}%` }}></div>
+                    <div className="bg-yolk transition-all duration-1000 border-r-2 border-white/20" style={{ width: `${totalCards > 0 ? (learningCards.length / totalCards) * 100 : 0}%` }}></div>
                 </div>
 
-                <div className="flex justify-between text-xs text-slate-500">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                <div className="flex justify-between text-xs font-bold text-coffee/60">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-matcha border border-coffee/20"></div>
                         <span>Mastered ({masteredCards.length})</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-yolk border border-coffee/20"></div>
                         <span>Learning ({learningCards.length})</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-slate-200"></div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-coffee/20"></div>
                         <span>New ({newCards.length})</span>
                     </div>
                 </div>
             </div>
 
             {/* Recent Activity Section */}
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Recent Activity</h3>
+            <h3 className="text-lg font-black text-coffee mb-4 flex items-center gap-2">
+                Recent Activity
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 {/* Mastered Stats */}
-                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                <div className="bg-white p-4 rounded-3xl border-2 border-coffee shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]">
                     <div className="flex items-center gap-2 mb-3">
-                        <div className="p-1.5 bg-green-100 text-green-600 rounded-lg">
+                        <div className="p-1.5 bg-matcha/20 text-matcha rounded-lg border border-matcha/30">
                             <Trophy className="w-4 h-4" />
                         </div>
-                        <h4 className="font-bold text-slate-700 text-sm">Newly Mastered</h4>
+                        <h4 className="font-bold text-coffee text-sm">Newly Mastered</h4>
                     </div>
                     <div className="flex justify-between items-start">
                         <button
@@ -129,10 +131,10 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                                 });
                                 setFilteredModalAttributes({ title: 'Newly Mastered (Last 7 Days)', cards: list });
                             }}
-                            className="text-left group cursor-pointer hover:bg-slate-50 p-2 -ml-2 rounded-lg transition-colors"
+                            className="text-left group cursor-pointer hover:bg-slate-50 p-2 -ml-2 rounded-xl transition-colors"
                         >
-                            <div className="text-xs text-slate-400 font-medium uppercase mb-0.5 group-hover:text-rose-500 transition-colors">Last 7 Days</div>
-                            <div className="text-2xl font-black text-slate-800 group-hover:text-rose-600 transition-colors">
+                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-salmon transition-colors">Last 7 Days</div>
+                            <div className="text-2xl font-black text-coffee group-hover:text-salmon transition-colors">
                                 {filteredCards.filter(c => {
                                     if (!c.masteredAt) return false;
                                     const d = new Date(c.masteredAt);
@@ -151,10 +153,10 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                                 });
                                 setFilteredModalAttributes({ title: 'Newly Mastered (Today)', cards: list });
                             }}
-                            className="text-right group cursor-pointer hover:bg-slate-50 p-2 -mr-2 rounded-lg transition-colors"
+                            className="text-right group cursor-pointer hover:bg-slate-50 p-2 -mr-2 rounded-xl transition-colors"
                         >
-                            <div className="text-xs text-slate-400 font-medium uppercase mb-0.5 group-hover:text-rose-500 transition-colors">Today</div>
-                            <div className="text-2xl font-black text-slate-800 group-hover:text-rose-600 transition-colors">
+                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-salmon transition-colors">Today</div>
+                            <div className="text-2xl font-black text-coffee group-hover:text-salmon transition-colors">
                                 {filteredCards.filter(c => {
                                     if (!c.masteredAt) return false;
                                     const d = new Date(c.masteredAt);
@@ -167,12 +169,12 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                 </div>
 
                 {/* Reviewed Stats */}
-                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                <div className="bg-white p-4 rounded-3xl border-2 border-coffee shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]">
                     <div className="flex items-center gap-2 mb-3">
-                        <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
+                        <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg border border-indigo-200">
                             <BookOpen className="w-4 h-4" />
                         </div>
-                        <h4 className="font-bold text-slate-700 text-sm">Words Reviewed</h4>
+                        <h4 className="font-bold text-coffee text-sm">Words Reviewed</h4>
                     </div>
                     <div className="flex justify-between items-start">
                         <button
@@ -185,10 +187,10 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                                 });
                                 setFilteredModalAttributes({ title: 'Reviewed (Last 7 Days)', cards: list });
                             }}
-                            className="text-left group cursor-pointer hover:bg-slate-50 p-2 -ml-2 rounded-lg transition-colors"
+                            className="text-left group cursor-pointer hover:bg-slate-50 p-2 -ml-2 rounded-xl transition-colors"
                         >
-                            <div className="text-xs text-slate-400 font-medium uppercase mb-0.5 group-hover:text-blue-500 transition-colors">Last 7 Days</div>
-                            <div className="text-2xl font-black text-slate-800 group-hover:text-blue-600 transition-colors">
+                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-indigo-500 transition-colors">Last 7 Days</div>
+                            <div className="text-2xl font-black text-coffee group-hover:text-indigo-500 transition-colors">
                                 {filteredCards.filter(c => {
                                     if (!c.lastReviewedAt) return false;
                                     const d = new Date(c.lastReviewedAt);
@@ -207,10 +209,10 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                                 });
                                 setFilteredModalAttributes({ title: 'Reviewed (Today)', cards: list });
                             }}
-                            className="text-right group cursor-pointer hover:bg-slate-50 p-2 -mr-2 rounded-lg transition-colors"
+                            className="text-right group cursor-pointer hover:bg-slate-50 p-2 -mr-2 rounded-xl transition-colors"
                         >
-                            <div className="text-xs text-slate-400 font-medium uppercase mb-0.5 group-hover:text-blue-500 transition-colors">Today</div>
-                            <div className="text-2xl font-black text-slate-800 group-hover:text-blue-600 transition-colors">
+                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-indigo-500 transition-colors">Today</div>
+                            <div className="text-2xl font-black text-coffee group-hover:text-indigo-500 transition-colors">
                                 {filteredCards.filter(c => {
                                     if (!c.lastReviewedAt) return false;
                                     const d = new Date(c.lastReviewedAt);
@@ -225,10 +227,10 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
 
             {/* Most Difficult (Last 7 Days) */}
             <div className="mb-8">
-                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <span className="w-2 h-6 bg-red-500 rounded-full"></span>
+                <h3 className="text-lg font-black text-coffee mb-4 flex items-center gap-2">
+                    <span className="w-1.5 h-6 bg-salmon rounded-full"></span>
                     Needs Attention
-                    <span className="text-xs font-normal text-slate-400 ml-auto bg-slate-100 px-2 py-1 rounded">Last 7 Days Activity</span>
+                    <span className="text-[10px] font-bold text-coffee/40 ml-auto bg-white border border-coffee/10 px-2 py-1 rounded-full">Last 7 Days</span>
                 </h3>
 
                 {(() => {
@@ -252,8 +254,8 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
 
                     if (recentDifficult.length === 0) {
                         return (
-                            <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-6 text-center text-slate-400 text-sm">
-                                No difficult words found in recent activity. Great job!
+                            <div className="bg-coffee/5 border-2 border-dashed border-coffee/20 rounded-3xl p-8 text-center text-coffee/40 text-sm font-bold">
+                                No difficult words found recently. You're doing great! ✨
                             </div>
                         );
                     }
@@ -263,17 +265,17 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                             {recentDifficult.map((card, i) => {
                                 const masteryPercent = Math.min(100, Math.round(((card.correctCount || 0) / masteryThreshold) * 100));
                                 return (
-                                    <div key={card.id || i} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">
+                                    <div key={card.id || i} className="bg-white p-3 rounded-2xl border-2 border-coffee/5 shadow-sm flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-8 h-8 rounded-xl bg-salmon/10 text-salmon border border-salmon/20 flex items-center justify-center text-sm font-black">
                                                 {i + 1}
                                             </div>
-                                            <div className="text-lg font-bold text-slate-700">{card.character}</div>
+                                            <div className="text-xl font-bold text-coffee font-noto-serif-hk">{card.character}</div>
                                         </div>
 
                                         <div className="text-right">
-                                            <div className="text-xs font-bold text-red-500">{masteryPercent}% Mastery</div>
-                                            <div className="text-[10px] text-slate-400">Seen {card.revisedCount} times</div>
+                                            <div className="text-xs font-black text-salmon">{masteryPercent}% Mastery</div>
+                                            <div className="text-[10px] font-bold text-coffee/30">Seen {card.revisedCount} times</div>
                                         </div>
                                     </div>
                                 );
@@ -284,12 +286,12 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
             </div>
 
             {/* Filter Tabs - unchanged logic, just layout adjust if needed */}
-            <div className="flex p-1 bg-slate-200/50 rounded-xl mb-6">
+            <div className="flex p-1.5 bg-coffee/10 rounded-2xl mb-6">
                 <button
                     onClick={() => setActiveTab('MASTERED')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${activeTab === 'MASTERED'
-                        ? 'bg-white text-green-600 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
+                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${activeTab === 'MASTERED'
+                        ? 'bg-white text-matcha shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]'
+                        : 'text-coffee/50 hover:text-coffee/70'
                         }`}
                 >
                     <Trophy className="w-3.5 h-3.5" />
@@ -297,9 +299,9 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                 </button>
                 <button
                     onClick={() => setActiveTab('LEARNING')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${activeTab === 'LEARNING'
-                        ? 'bg-white text-orange-500 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
+                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${activeTab === 'LEARNING'
+                        ? 'bg-white text-yolk shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]'
+                        : 'text-coffee/50 hover:text-coffee/70'
                         }`}
                 >
                     <BookOpen className="w-3.5 h-3.5" />
@@ -307,9 +309,9 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                 </button>
                 <button
                     onClick={() => setActiveTab('NEW')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${activeTab === 'NEW'
-                        ? 'bg-white text-slate-700 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
+                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${activeTab === 'NEW'
+                        ? 'bg-white text-coffee shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]'
+                        : 'text-coffee/50 hover:text-coffee/70'
                         }`}
                 >
                     <Sparkles className="w-3.5 h-3.5" />
@@ -318,12 +320,15 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
             </div>
 
             {/* Word List */}
-            <h3 className="text-lg font-bold text-slate-800 mb-4 capitalize">{activeTab.toLowerCase()} Words</h3>
+            <h3 className="text-lg font-black text-coffee mb-4 capitalize flex items-center gap-2">
+                {activeTab.toLowerCase()} Words
+                <span className="text-xs font-bold text-coffee/30 bg-coffee/5 px-2 py-0.5 rounded-full">{currentList.length}</span>
+            </h3>
 
             {currentList.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                    <Circle className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm font-medium">No {activeTab.toLowerCase()} words found.</p>
+                <div className="text-center py-12 text-coffee/30 bg-coffee/5 rounded-3xl border-2 border-dashed border-coffee/10">
+                    <Circle className="w-10 h-10 mx-auto mb-3 opacity-30 stroke-[3]" />
+                    <p className="text-sm font-bold">No {activeTab.toLowerCase()} words found.</p>
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -331,28 +336,28 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                         // Calculate percentage based on dynamic threshold
                         const progressPercent = Math.min(100, Math.round(((card.correctCount || 0) / masteryThreshold) * 100));
 
-                        let colorClass = 'text-slate-400';
+                        let colorClass = 'text-coffee/40';
                         if (activeTab !== 'NEW') {
-                            if (progressPercent < 50) colorClass = 'text-red-500';
-                            else if (progressPercent < 80) colorClass = 'text-orange-500';
-                            else colorClass = 'text-green-500';
+                            if (progressPercent < 50) colorClass = 'text-salmon';
+                            else if (progressPercent < 80) colorClass = 'text-yolk';
+                            else colorClass = 'text-matcha';
                         }
 
                         return (
-                            <div key={idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between">
+                            <div key={idx} className="bg-white p-4 rounded-2xl border-2 border-coffee/10 shadow-sm flex items-center justify-between group hover:border-coffee/30 hover:shadow-md transition-all">
                                 <div className="flex items-center gap-4 overflow-hidden">
-                                    <div className={`min-w-[2.5rem] h-10 px-2 rounded-full flex items-center justify-center text-lg font-bold text-slate-700 font-noto-serif-hk whitespace-nowrap ${activeTab === 'NEW' ? 'bg-slate-100' : 'bg-slate-50 border border-slate-100'}`}>
+                                    <div className={`min-w-[3rem] h-12 rounded-xl flex items-center justify-center text-xl font-bold text-coffee font-noto-serif-hk whitespace-nowrap shadow-inner ${activeTab === 'NEW' ? 'bg-coffee/5' : 'bg-cream border-2 border-coffee/10'}`}>
                                         {card.character}
                                     </div>
                                 </div>
 
                                 <div className="text-right shrink-0">
                                     {activeTab === 'NEW' ? (
-                                        <div className="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-1 rounded">New</div>
+                                        <div className="text-[10px] font-black tracking-wider text-coffee/40 bg-coffee/5 px-2 py-1 rounded-lg uppercase">New</div>
                                     ) : (
                                         <>
-                                            <div className={`text-sm font-bold ${colorClass}`}>{progressPercent}%</div>
-                                            <div className="text-[10px] text-slate-400">{card.revisedCount} reviews</div>
+                                            <div className={`text-sm font-black ${colorClass}`}>{progressPercent}%</div>
+                                            <div className="text-[10px] font-bold text-coffee/30 group-hover:text-coffee/50">{card.revisedCount} reviews</div>
                                         </>
                                     )}
                                 </div>
@@ -363,29 +368,29 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
             )}
             {/* Modal for filtered lists */}
             {filteredModalAttributes && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                            <h3 className="font-bold text-slate-800">{filteredModalAttributes.title}</h3>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-coffee/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 border-4 border-coffee">
+                        <div className="flex items-center justify-between p-5 border-b-2 border-coffee/10">
+                            <h3 className="font-black text-coffee text-lg">{filteredModalAttributes.title}</h3>
                             <button
                                 onClick={() => setFilteredModalAttributes(null)}
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                className="p-2 hover:bg-salmon hover:text-white rounded-xl transition-colors text-coffee/40"
                             >
-                                <X className="w-5 h-5 text-slate-500" />
+                                <X className="w-6 h-6 stroke-[3]" />
                             </button>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-cream/50">
                             {filteredModalAttributes.cards.length === 0 ? (
-                                <div className="text-center py-8 text-slate-400 text-sm">
+                                <div className="text-center py-8 text-coffee/40 text-sm font-bold">
                                     No words found for this period.
                                 </div>
                             ) : (
                                 filteredModalAttributes.cards.map((card, idx) => {
                                     const masteryPercent = Math.min(100, Math.round(((card.correctCount || 0) / masteryThreshold) * 100));
                                     return (
-                                        <div key={idx} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl">
-                                            <div className="font-bold text-slate-700">{card.character}</div>
-                                            <div className="text-xs font-bold text-slate-500">
+                                        <div key={idx} className="flex items-center justify-between bg-white p-3 rounded-xl border border-coffee/10 shadow-sm">
+                                            <div className="font-bold text-coffee font-noto-serif-hk text-lg">{card.character}</div>
+                                            <div className="text-xs font-bold text-coffee/60">
                                                 {masteryPercent}% Mastery
                                             </div>
                                         </div>
