@@ -122,6 +122,14 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
 
   const [expandedExample, setExpandedExample] = React.useState<string | null>(null);
 
+  // Reset all interactive states when the card changes (e.g. next card)
+  useEffect(() => {
+    setSwipedIndex(null);
+    setActiveSwipeIndex(null);
+    setCurrentSwipeOffset(0);
+    setExpandedExample(null);
+  }, [data.character]);
+
   // ... (previous handlers)
 
   const handleExampleClick = (e: React.MouseEvent, text: string) => {
