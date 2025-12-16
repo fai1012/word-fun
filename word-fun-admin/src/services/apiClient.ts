@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { getEnv } from '../utils/env';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = getEnv('VITE_API_URL') || 'http://localhost:3000/api';
 
 const apiClient = axios.create({
     baseURL: API_URL,
@@ -8,6 +9,7 @@ const apiClient = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
 
 // Add request interceptor if we need to attach tokens later (for now, admin might not need auth or we'll assume local/public for MVP as per "viewing data" request without auth specs)
 // However, the backend middleware checks for `authenticateToken`.

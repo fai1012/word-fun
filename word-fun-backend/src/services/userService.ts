@@ -22,6 +22,7 @@ class UserService {
                 name,
                 createdAt: now,
                 lastLoginAt: now,
+                isAdmin: false,
             };
             await userRef.set(newUser);
             return newUser;
