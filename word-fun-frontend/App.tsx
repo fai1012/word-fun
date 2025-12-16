@@ -770,8 +770,14 @@ const App: React.FC = () => {
 
     if (isInitializing) {
         return (
-            <div className="h-screen w-full flex items-center justify-center bg-slate-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600"></div>
+            <div className="h-screen w-full flex flex-col items-center justify-center bg-cream font-rounded gap-4">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-salmon/20 rounded-full blur-xl animate-pulse"></div>
+                    <div className="relative w-16 h-16 border-4 border-coffee border-t-salmon rounded-full animate-spin"></div>
+                </div>
+                <div className="text-coffee font-black text-xl animate-pulse">
+                    Loading Fun...
+                </div>
             </div>
         );
     }

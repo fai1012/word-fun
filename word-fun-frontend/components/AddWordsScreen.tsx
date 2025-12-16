@@ -56,50 +56,50 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50">
+        <div className="flex flex-col h-full bg-cream font-rounded">
             {/* Header Removed */}
 
             {/* Content */}
             <div className="flex-1 p-4 overflow-y-auto">
-                <div className="max-w-md mx-auto space-y-4">
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                <div className="max-w-md mx-auto space-y-6">
+                    <div className="bg-white p-6 rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-4 border-coffee">
+                        <label className="block text-xs font-black text-coffee uppercase tracking-wider opacity-60 mb-3">
                             Paste words here (one per line)
                         </label>
                         <textarea
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                             placeholder={`apple\nbanana\ncherry`}
-                            className="w-full h-64 p-3 rounded-lg border border-slate-200 focus:border-rose-300 focus:ring-4 focus:ring-rose-50 text-slate-700 font-medium font-mono text-base resize-none"
+                            className="w-full h-64 p-4 rounded-2xl bg-coffee/5 border-2 border-coffee/10 focus:border-salmon focus:outline-none focus:ring-4 focus:ring-salmon/20 text-coffee font-bold font-mono text-base resize-none placeholder:text-coffee/20 transition-all"
                             disabled={isSubmitting}
                         />
-                        <p className="mt-2 text-xs text-slate-400">
+                        <p className="mt-3 text-xs font-bold text-coffee/40">
                             Duplicates will be automatically skipped.
                         </p>
                     </div>
 
                     {error && (
-                        <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-3 border border-red-100">
-                            <AlertCircle className="w-5 h-5 shrink-0" />
-                            <p className="text-sm font-medium">{error}</p>
+                        <div className="bg-salmon/10 text-salmon p-4 rounded-2xl flex items-center gap-3 border-2 border-salmon/20 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                            <AlertCircle className="w-6 h-6 shrink-0 stroke-[2.5]" />
+                            <p className="text-sm font-bold">{error}</p>
                         </div>
                     )}
 
                     {result && (
-                        <div className="bg-green-50 text-green-700 p-4 rounded-xl border border-green-100 animate-in fade-in slide-in-from-bottom-2">
-                            <div className="flex items-center gap-3 mb-1">
-                                <CheckCircle className="w-5 h-5 shrink-0" />
-                                <p className="font-bold">Proceesed!</p>
+                        <div className="bg-matcha/10 text-matcha p-5 rounded-2xl border-2 border-matcha/20 animate-in fade-in slide-in-from-bottom-2 shadow-sm">
+                            <div className="flex items-center gap-3 mb-2">
+                                <CheckCircle className="w-6 h-6 shrink-0 stroke-[2.5]" />
+                                <p className="font-black text-lg">Processed!</p>
                             </div>
-                            <p className="text-sm opacity-90 ml-8">
+                            <p className="text-sm font-medium ml-9 opacity-80 leading-relaxed">
                                 Added {result.added} new words.<br />
                                 Skipped {result.skipped} duplicates.
                             </p>
                             <button
                                 onClick={() => navigate(`/profiles/${profileId}/study`)}
-                                className="mt-3 ml-8 text-xs font-bold text-green-800 underline decoration-2 underline-offset-2 hover:text-green-900"
+                                className="mt-3 ml-9 text-xs font-black text-matcha underline decoration-2 underline-offset-4 hover:opacity-80 transition-opacity"
                             >
-                                Go to Study
+                                Go to Study →
                             </button>
                         </div>
                     )}
@@ -107,11 +107,11 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                     <button
                         onClick={handleSubmit}
                         disabled={isSubmitting || !text.trim()}
-                        className="w-full bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-rose-200 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
+                        className="w-full bg-salmon text-white font-black text-lg py-4 rounded-2xl border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:active:transform-none"
                     >
                         {isSubmitting ? (
                             <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 Adding...
                             </>
                         ) : (

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers } from 'lucide-react';
+import { Layers, Sparkles, Plus } from 'lucide-react';
 import { AvatarPicker, AVATAR_MAP } from './AvatarPicker';
 
 interface HomeScreenProps {
@@ -84,11 +84,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </>
       ) : (
         <>
-          <h1 className="text-4xl font-extrabold text-slate-800 mb-2 tracking-tight">
+          <h1 className="text-4xl font-black text-slate-800 mb-2 tracking-tight">
             Haven't started yet?
           </h1>
-          <p className="text-slate-500 text-lg mb-10 max-w-xs mx-auto leading-relaxed">
-            Challenge today
+          <p className="text-coffee/60 text-lg mb-10 max-w-xs mx-auto leading-relaxed font-bold">
+            Time for a Challenge!
           </p>
         </>
       )}
@@ -131,14 +131,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </div>
           </div>
         ) : (
-          <div className="bg-slate-100 rounded-2xl p-6 mb-6 border border-slate-200 border-dashed">
-            <p className="text-slate-500 mb-4">No cards loaded yet.</p>
-            <button
-              onClick={onManage}
-              className="text-rose-600 font-semibold hover:text-rose-700 flex items-center justify-center gap-2 mx-auto"
-            >
-              Add new words to start →
-            </button>
+          <div className="w-full p-8 bg-white rounded-[2rem] shadow-[6px_6px_0px_0px_rgba(93,64,55,1)] border-4 border-coffee mb-6 flex flex-col items-center text-center relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+            <div className="absolute top-0 left-0 w-full h-full bg-cream opacity-50 pointer-events-none"></div>
+
+            {/* Decorative Background */}
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-yolk/20 rounded-full blur-2xl animate-pulse"></div>
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-salmon/10 rounded-full blur-2xl animate-pulse delay-700"></div>
+
+            <div className="relative z-10 w-full">
+              <h3 className="text-2xl font-black text-coffee mb-2">Start Your Journey!</h3>
+              <p className="text-coffee/70 font-bold text-sm mb-8 max-w-[200px] mx-auto leading-relaxed">
+                Your deck is empty. Add your first words to begin learning.
+              </p>
+
+              <button
+                onClick={onManage}
+                className="w-full py-4 bg-salmon text-white rounded-2xl font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 group-hover:bg-salmon/90"
+              >
+                <Plus className="w-6 h-6 stroke-[4]" />
+                Add New Words
+              </button>
+            </div>
           </div>
         )}
 

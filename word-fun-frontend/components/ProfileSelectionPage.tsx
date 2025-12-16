@@ -120,9 +120,14 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
-                <div className="w-12 h-12 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin mb-4"></div>
-                <p className="text-slate-500">Loading...</p>
+            <div className="h-screen w-full flex flex-col items-center justify-center bg-cream font-rounded gap-4">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-salmon/20 rounded-full blur-xl animate-pulse"></div>
+                    <div className="relative w-16 h-16 border-4 border-coffee border-t-salmon rounded-full animate-spin"></div>
+                </div>
+                <div className="text-coffee font-black text-xl animate-pulse">
+                    Loading Profiles...
+                </div>
             </div>
         );
     }
