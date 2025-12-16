@@ -42,6 +42,9 @@ import profileRoutes from './routes/profileRoutes';
 // I will mount it at /api/profiles as discussed in plan.
 app.use('/api/profiles', profileRoutes);
 
+import adminRoutes from './routes/adminRoutes';
+app.use('/api/admin', adminRoutes);
+
 
 // Protected Routes (example)
 app.get('/api/protected', authenticateToken, (req: AuthenticatedRequest, res: Response) => {

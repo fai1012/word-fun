@@ -542,7 +542,7 @@ const App: React.FC = () => {
 
     const handleLoginSuccess = async (googleResponse: any) => {
         try {
-            console.log("Google Login Response:", googleResponse);
+
             if (!googleResponse.credential) {
                 throw new Error("No credential received from Google");
             }
