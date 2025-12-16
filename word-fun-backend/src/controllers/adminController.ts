@@ -24,8 +24,11 @@ class AdminController {
 
     async getAllWords(req: Request, res: Response): Promise<void> {
         try {
-            const words = await adminService.getAllWords();
-            res.status(200).json(words);
+            const search = req.query.search as string | undefined;
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 50;
+            const result = await adminService.getAllWords(search, page, limit);
+            res.status(200).json(result);
         } catch (error) {
             console.error('Error fetching words:', error);
             res.status(500).json({ error: 'Internal server error' });

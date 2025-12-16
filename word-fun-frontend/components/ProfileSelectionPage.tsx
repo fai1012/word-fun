@@ -21,12 +21,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
     isLoading: isExternalLoading = false,
     user
 }) => {
-    // Retry loading profiles on mount if empty (handle refresh race condition)
-    useEffect(() => {
-        if (profiles.length === 0 && !isExternalLoading) {
-            onProfilesChange();
-        }
-    }, [profiles.length, isExternalLoading, onProfilesChange]);
+
 
     const [isLocalLoading, setIsLocalLoading] = useState(false);
     const [isCreatingAvatarSelection, setIsCreatingAvatarSelection] = useState(false);

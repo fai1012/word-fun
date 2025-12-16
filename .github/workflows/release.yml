@@ -112,3 +112,38 @@ jobs:
             --allow-unauthenticated \
             --env-vars-file env.yaml \
             --labels version=${{ needs.release.outputs.sanitized_version }}
+
+  deploy-admin:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Fetch env.yaml from Secret Manager
+        run: |
+          # Fetching secret "word-fun-admin-env" into admin directory
+          gcloud secrets versions access latest --secret="word-fun-admin-env" --project="${{ secrets.GCP_PROJECT_ID }}" > word-fun-admin/env.yaml
+
+      - name: Deploy Admin to Cloud Run
+        run: |
+          cd word-fun-admin
+          # Append the version to the env.yaml file
+          echo "" >> env.yaml
+          echo "VITE_APP_VERSION: \"${{ needs.release.outputs.new_tag }}\"" >> env.yaml
+          gcloud run deploy word-fun-admin \
+            --source . \
+            --platform managed \
+            --region asia-southeast1 \
+            --allow-unauthenticated \
+            --env-vars-file env.yaml \
+            --labels version=${{ needs.release.outputs.sanitized_version }}
