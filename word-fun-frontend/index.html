@@ -1,39 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>認字繽紛樂 (Word Fun)</title>
-    <script src="/env-config.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+HK:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-    <style>
-      /* Register Custom Chinese Font */
-      .font-noto-serif-hk {
-        font-family: 'Noto Serif HK', serif;
-      }
+<html lang="en" class="overscroll-none">
 
-      /* Custom utilities for 3D card flip effects with Webkit prefixes for iOS support */
-      .perspective-1000 {
-        perspective: 1000px;
-        -webkit-perspective: 1000px;
-      }
-      .transform-style-3d {
-        transform-style: preserve-3d;
-        -webkit-transform-style: preserve-3d;
-      }
-      .backface-hidden {
-        backface-visibility: hidden;
-        -webkit-backface-visibility: hidden;
-      }
-      .rotate-y-180 {
-        transform: rotateY(180deg);
-        -webkit-transform: rotateY(180deg);
-      }
-    </style>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>認字繽紛樂 (Word Fun)</title>
+  <script src="/env-config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+HK:wght@400;500;600;700;900&display=swap"
+    rel="stylesheet">
+  <style>
+    /* Register Custom Chinese Font */
+    .font-noto-serif-hk {
+      font-family: 'Noto Serif HK', serif;
+    }
+
+    /* Custom utilities for 3D card flip effects with Webkit prefixes for iOS support */
+    .perspective-1000 {
+      perspective: 1000px;
+      -webkit-perspective: 1000px;
+    }
+
+    .transform-style-3d {
+      transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
+    }
+
+    .backface-hidden {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .rotate-y-180 {
+      transform: rotateY(180deg);
+      -webkit-transform: rotateY(180deg);
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -47,10 +52,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-slate-50 text-slate-900 antialiased">
-    <div id="root"></div>
+
+<body class="bg-slate-50 text-slate-900 antialiased overscroll-none">
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>
