@@ -27,11 +27,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [token, setToken] = useState<string | null>(localStorage.getItem('admin_token'));
     const [loading, setLoading] = useState(true);
 
-    // Helper to decode and set user from token
-    const processToken = async (googleParams: any) => {
+    const logout = () => {
+        googleLogout();
+        localStorage.removeItem('admin_token');
+        setToken(null);
+        setUser(null);
+        delete apiClient.defaults.headers.common['Authorization'];
+    };
+
+    // 1. Restore Session from existing Custom Token
+    const restoreSession = async (savedToken: string) => {
         try {
-            // 1. Exchange Google ID Token for Custom Access Token via Auth Service
-            // This matches the main Frontend flow.
+            const decoded: any = jwtDecode(savedToken);
+            // Check if token is expired
+            if (decoded.exp * 1000 < Date.now()) {
+                console.warn("Token expired");
+                logout();
+                return;
+            }
+
+            const userProfile = {
+                id: decoded.sub,
+                email: decoded.email,
+                name: decoded.name,
+                picture: decoded.picture,
+            };
+
+            // Set global header
+            apiClient.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+
+            // Allow basic access first
+            setUser(userProfile);
+            setToken(savedToken); // ensure state is synced
+
+            try {
+                // Determine if admin by checking 'me' or just try listing users (which is protected)
+                await apiClient.get('/admin/users?limit=1');
+                setUser({ ...userProfile, isAdmin: true });
+            } catch (e: any) {
+                if (e.response && e.response.status === 403) {
+                    console.error("Not an admin");
+                    logout();
+                    alert("Access Denied: You are not an administrator.");
+                }
+                // If network error, we stay logged in but might show error/loading later
+            }
+        } catch (e) {
+            console.error("Session restore failed", e);
+            logout();
+        }
+    };
+
+    // 2. Login: Exchange Google ID Token for Custom Token
+    const handleGoogleLogin = async (googleIdToken: string) => {
+        try {
             const authServiceUrl = (window as any)._env_?.VITE_AUTH_SERVICE_URL || import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:8081';
 
             const response = await fetch(`${authServiceUrl}/login`, {
@@ -39,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     provider: 'google',
-                    token: googleParams // This is the 'credential' string from Google
+                    token: googleIdToken
                 })
             });
 
@@ -50,37 +99,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const data = await response.json();
             const customToken = data.token;
 
-            // 2. Decode the CUSTOM token (signed by auth-service)
-            const decoded: any = jwtDecode(customToken);
-            const userProfile = {
-                id: decoded.sub,
-                email: decoded.email,
-                name: decoded.name,
-                picture: decoded.picture,
-            };
-
             localStorage.setItem('admin_token', customToken);
             setToken(customToken);
 
-            // Attach token to axios for this request
-            apiClient.defaults.headers.common['Authorization'] = `Bearer ${customToken}`;
+            // Initialize session with new token
+            await restoreSession(customToken);
 
-            try {
-                // Determine if admin by checking 'me' or just try listing users (which is protected)
-                // We'll try fetching /admin/users (limit 1) to test access.
-                await apiClient.get('/admin/users?limit=1');
-                setUser({ ...userProfile, isAdmin: true });
-            } catch (e: any) {
-                if (e.response && e.response.status === 403) {
-                    console.error("Not an admin");
-                    logout(); // Auto logout if not admin
-                    alert("Access Denied: You are not an administrator.");
-                } else {
-                    // Maybe other error, allow but might fail later. 
-                    // Or maybe network error.
-                    setUser(userProfile);
-                }
-            }
         } catch (e) {
             console.error("Login processing failed", e);
             logout();
@@ -88,18 +112,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const logout = () => {
-        googleLogout();
-        localStorage.removeItem('admin_token');
-        setToken(null);
-        setUser(null);
-        delete apiClient.defaults.headers.common['Authorization'];
-    };
-
     useEffect(() => {
         const init = async () => {
-            if (token) {
-                await processToken(token);
+            const savedToken = localStorage.getItem('admin_token');
+            if (savedToken) {
+                await restoreSession(savedToken);
             }
             setLoading(false);
         };
@@ -107,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login: () => { }, logout, setTokenFromLogin: processToken }}>
+        <AuthContext.Provider value={{ user, token, loading, login: () => { }, logout, setTokenFromLogin: handleGoogleLogin }}>
             {children}
         </AuthContext.Provider>
     );
