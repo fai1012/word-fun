@@ -741,12 +741,21 @@ const App: React.FC = () => {
                                     </button>
                                 </>
                             ) : (
-                                <button
-                                    onClick={handleNextCard}
-                                    className="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
-                                >
-                                    Next Card <ArrowLeft className="w-5 h-5 rotate-180" />
-                                </button>
+                                <>
+                                    <button
+                                        onClick={handleFlip}
+                                        className="flex-1 py-4 rounded-2xl bg-white text-slate-700 font-bold border-2 border-slate-200 shadow-lg hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <RotateCcw className="w-5 h-5" />
+                                        Flip Back
+                                    </button>
+                                    <button
+                                        onClick={handleNextCard}
+                                        className="flex-[2] py-4 rounded-2xl bg-slate-900 text-white font-bold shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        Next Card <ArrowLeft className="w-5 h-5 rotate-180" />
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>

@@ -141,8 +141,10 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
 
   return (
     <div
-      className={`relative h-full w-auto aspect-[3/4] max-w-full perspective-1000 group mx-auto ${isFlipped ? 'cursor-pointer' : 'cursor-default'}`}
-      onClick={() => isFlipped && onFlip()}
+      className={`relative h-full w-auto aspect-[3/4] max-w-full perspective-1000 group mx-auto cursor-default`}
+      onClick={() => {
+        if (swipedIndex !== null) setSwipedIndex(null);
+      }}
     >
       <div
         className={`w-full h-full relative transition-all duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''
