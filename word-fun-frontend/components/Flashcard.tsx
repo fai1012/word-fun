@@ -128,6 +128,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
     setActiveSwipeIndex(null);
     setCurrentSwipeOffset(0);
     setExpandedExample(null);
+    setRegeneratingIndex(null);
   }, [data.character]);
 
   // ... (previous handlers)
