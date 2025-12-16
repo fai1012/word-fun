@@ -677,23 +677,24 @@ const App: React.FC = () => {
 
         return (
             <>
-                <header className="sticky top-0 z-20 bg-slate-50/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex justify-between items-center shrink-0 h-14">
+                <header className="sticky top-0 z-20 bg-cream/90 backdrop-blur-sm border-b-2 border-coffee/10 px-4 py-3 flex justify-between items-center shrink-0 h-14 text-coffee">
                     <button
                         onClick={() => navigate(currentProfile ? `/profiles/${currentProfile.id}/study` : '/profiles')}
-                        className="text-slate-500 hover:text-rose-600 flex items-center gap-1 font-medium text-sm transition-colors"
+                        className="text-coffee/70 hover:text-salmon flex items-center gap-1 font-bold text-sm transition-colors rounded-full hover:bg-white/50 px-2 py-1"
                     >
-                        <ArrowLeft className="w-5 h-5" />
+                        <ArrowLeft className="w-5 h-5 stroke-[3]" />
                         Exit
                     </button>
 
                     {isRevisionMode ? (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">
-                            <Repeat className="w-3 h-3" />
+                        <div className="flex items-center gap-2 px-3 py-1 bg-yolk text-coffee rounded-xl text-xs font-bold border-2 border-coffee shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] transform -rotate-1">
+                            <Repeat className="w-3 h-3 stroke-[3]" />
                             Revision {revisionRoundCount}
                         </div>
                     ) : (
-                        <div className="font-bold text-slate-800">
-                            Card {currentIndex + 1} <span className="text-slate-400 text-sm font-normal">/ {sessionQueue.length}</span>
+                        <div className="font-bold text-coffee flex flex-col items-center leading-none">
+                            <span className="text-sm">Card {currentIndex + 1}</span>
+                            <span className="text-coffee/40 text-[10px] uppercase font-black tracking-widest">of {sessionQueue.length}</span>
                         </div>
                     )}
 
@@ -702,11 +703,14 @@ const App: React.FC = () => {
 
                 {sessionQueue.length > 0 && (
                     <div className="w-full h-full flex flex-col items-center pb-safe px-4">
-                        <div className="w-full max-w-xs bg-slate-200 h-1 rounded-full overflow-hidden shrink-0 mt-6 mb-4">
+                        <div className="w-full max-w-xs bg-coffee/10 h-4 rounded-full overflow-hidden shrink-0 mt-6 mb-4 border-2 border-white ring-2 ring-coffee/10 relative">
+                            <div className="absolute inset-0 w-full h-full opacity-20 bg-[radial-gradient(circle,_transparent_20%,_#fff_20%,_#fff_80%,_transparent_80%,_transparent),_radial-gradient(circle,_transparent_20%,_#fff_20%,_#fff_80%,_transparent_80%,_transparent)] bg-[length:10px_10px] bg-[position:0_0,_5px_5px] animate-[slide_2s_linear_infinite]"></div>
                             <div
-                                className={`h-full transition-all duration-300 ${isRevisionMode ? 'bg-orange-400' : 'bg-rose-500'}`}
+                                className={`h-full transition-all duration-300 relative ${isRevisionMode ? 'bg-yolk' : 'bg-salmon'}`}
                                 style={{ width: `${((currentIndex + 1) / sessionQueue.length) * 100}%` }}
-                            ></div>
+                            >
+                                <div className="absolute top-1 right-1 w-full h-[3px] bg-white/30 rounded-full"></div>
+                            </div>
                         </div>
 
                         <div className="flex-1 w-full flex items-center justify-center min-h-0 py-2">
@@ -726,17 +730,17 @@ const App: React.FC = () => {
                                 <>
                                     <button
                                         onClick={() => handleRate(false)}
-                                        className={`flex-1 py-4 rounded-2xl border-2 font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${pendingScore === false ? 'bg-rose-100 border-rose-500 text-rose-600 ring-2 ring-rose-300' : 'bg-white border-rose-100 text-rose-500 hover:bg-rose-50'}`}
+                                        className={`flex-1 py-4 rounded-3xl border-2 font-black text-lg shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.2)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 ${pendingScore === false ? 'bg-salmon text-white border-coffee ring-2 ring-salmon ring-offset-2' : 'bg-white border-coffee/20 text-coffee/60 hover:bg-salmon/10 hover:text-salmon hover:border-salmon'}`}
                                     >
-                                        <X className="w-6 h-6" />
+                                        <X className="w-6 h-6 stroke-[3]" />
                                         Forgot
                                     </button>
 
                                     <button
                                         onClick={() => handleRate(true)}
-                                        className={`flex-1 py-4 rounded-2xl font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${pendingScore === true ? 'bg-green-600 text-white ring-4 ring-green-200 shadow-green-900/20' : 'bg-green-500 text-white shadow-green-200 hover:bg-green-600'}`}
+                                        className={`flex-1 py-4 rounded-3xl font-black text-lg border-2 shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 ${pendingScore === true ? 'bg-matcha text-coffee border-coffee ring-2 ring-matcha ring-offset-2' : 'bg-matcha border-coffee text-coffee'}`}
                                     >
-                                        <Check className="w-6 h-6" />
+                                        <Check className="w-6 h-6 stroke-[3]" />
                                         Got it
                                     </button>
                                 </>
@@ -744,16 +748,16 @@ const App: React.FC = () => {
                                 <>
                                     <button
                                         onClick={handleFlip}
-                                        className="flex-1 py-4 rounded-2xl bg-white text-slate-700 font-bold border-2 border-slate-200 shadow-lg hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                                        className="flex-1 py-4 rounded-3xl bg-white text-coffee font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
                                     >
-                                        <RotateCcw className="w-5 h-5" />
+                                        <RotateCcw className="w-5 h-5 stroke-[3]" />
                                         Flip Back
                                     </button>
                                     <button
                                         onClick={handleNextCard}
-                                        className="flex-[2] py-4 rounded-2xl bg-slate-900 text-white font-bold shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                                        className="flex-[2] py-4 rounded-3xl bg-coffee text-cream font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
                                     >
-                                        Next Card <ArrowLeft className="w-5 h-5 rotate-180" />
+                                        Next Card <ArrowLeft className="w-5 h-5 rotate-180 stroke-[3]" />
                                     </button>
                                 </>
                             )}
@@ -773,7 +777,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="h-[100dvh] w-full bg-slate-50 flex flex-col font-sans overflow-hidden">
+        <div className="h-[100dvh] w-full bg-cream flex flex-col font-rounded overflow-hidden">
             {/* ... Global States ... */}
 
             <main className="flex-1 flex flex-col w-full max-w-screen-xl mx-auto relative min-h-0 overflow-hidden">

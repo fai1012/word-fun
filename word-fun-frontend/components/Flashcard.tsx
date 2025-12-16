@@ -161,17 +161,17 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
       >
         {/* FRONT OF CARD */}
         <div
-          className="absolute inset-0 w-full h-full bg-white rounded-3xl border border-slate-100 flex flex-col items-center justify-center p-1 sm:p-4 text-center overflow-hidden shadow-xl"
+          className="absolute inset-0 w-full h-full bg-cream rounded-4xl border-4 border-coffee flex flex-col items-center justify-center p-1 sm:p-4 text-center overflow-hidden shadow-[6px_6px_0px_0px_rgba(93,64,55,0.2)]"
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', zIndex: isFlipped ? 0 : 1 }}
         >
           {/* Decorative Corners */}
-          <div className="absolute top-0 left-0 w-12 h-12 sm:w-16 sm:h-16 border-t-4 border-l-4 border-rose-100 rounded-tl-3xl m-4"></div>
-          <div className="absolute bottom-0 right-0 w-12 h-12 sm:w-16 sm:h-16 border-b-4 border-r-4 border-rose-100 rounded-br-3xl m-4"></div>
+          <div className="absolute top-0 left-0 w-12 h-12 sm:w-16 sm:h-16 border-t-[6px] border-l-[6px] border-coffee/10 rounded-tl-4xl m-5"></div>
+          <div className="absolute bottom-0 right-0 w-12 h-12 sm:w-16 sm:h-16 border-b-[6px] border-r-[6px] border-coffee/10 rounded-br-4xl m-5"></div>
 
           {/* Mastery Indicator Crown */}
           {isMastered && (
             <div className="absolute top-4 right-4 z-20 animate-in zoom-in duration-300" title="Mastered">
-              <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-500 fill-yellow-400 drop-shadow-md" />
+              <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-yolk fill-yolk drop-shadow-md stroke-coffee stroke-2" />
             </div>
           )}
 
@@ -179,7 +179,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
 
             {/* Dynamic Font Size Container */}
             <div className="w-full flex items-center justify-center px-0">
-              <h2 className={`${getDynamicFontSize(data.character)} font-noto-serif-hk font-bold text-slate-800 leading-none whitespace-nowrap tracking-normal`}>
+              <h2 className={`${getDynamicFontSize(data.character)} font-noto-serif-hk font-bold text-coffee leading-none whitespace-nowrap tracking-normal drop-shadow-sm`}>
                 {data.character}
               </h2>
             </div>
@@ -189,12 +189,12 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
 
           {/* Stats indicator on Front */}
           {(data.revisedCount || 0) > 0 && (
-            <div className="absolute bottom-6 left-0 w-full flex justify-center gap-4 text-slate-300 text-xs font-mono z-10">
-              <div className="flex items-center gap-1">
+            <div className="absolute bottom-6 left-0 w-full flex justify-center gap-4 text-mocha/60 text-xs font-bold font-rounded z-10">
+              <div className="flex items-center gap-1 bg-latte/30 px-3 py-1 rounded-full">
                 <Target className="w-3 h-3" />
                 {data.revisedCount}
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 bg-latte/30 px-3 py-1 rounded-full">
                 <Check className="w-3 h-3" />
                 {masteryPercentage}%
               </div>
@@ -204,25 +204,25 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
 
         {/* BACK OF CARD */}
         <div
-          className="absolute inset-0 w-full h-full rotate-y-180 bg-slate-900 text-white rounded-3xl flex flex-col overflow-hidden shadow-xl"
+          className="absolute inset-0 w-full h-full rotate-y-180 bg-coffee text-cream rounded-4xl border-4 border-coffee flex flex-col overflow-hidden shadow-[6px_6px_0px_0px_rgba(93,64,55,0.2)]"
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', zIndex: isFlipped ? 1 : 0 }}
         >
           {/* Scrollable Container for Back Content */}
-          <div className="flex-1 flex flex-col w-full h-full overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+          <div className="flex-1 flex flex-col w-full h-full overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-mocha scrollbar-track-transparent">
 
             {/* Header */}
             <div className="flex justify-between items-start mb-2 shrink-0">
               <div className="flex flex-col">
-                <div className="text-rose-400 text-[10px] font-bold uppercase tracking-widest">Word</div>
-                <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
-                  <span className="bg-white/10 px-1.5 py-0.5 rounded">Rev: {data.revisedCount || 0}</span>
-                  <span className="bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">OK: {data.correctCount || 0}</span>
+                <div className="text-salmon text-[10px] font-black uppercase tracking-widest">Word</div>
+                <div className="flex items-center gap-2 mt-1 text-[10px] text-latte">
+                  <span className="bg-white/10 px-2 py-1 rounded-full font-bold">Rev: {data.revisedCount || 0}</span>
+                  <span className="bg-matcha/20 text-matcha px-2 py-1 rounded-full font-bold">OK: {data.correctCount || 0}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleAudioClick}
-                  className="p-2 bg-white/10 rounded-full hover:bg-rose-500 hover:text-white transition-colors"
+                  className="p-2 bg-white/10 rounded-full hover:bg-salmon hover:text-white transition-colors border-2 border-transparent hover:border-salmon"
                 >
                   <Volume2 className="w-4 h-4" />
                 </button>
@@ -231,17 +231,17 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
 
             {/* Main Word Info - Reduced size for mobile */}
             <div className="mb-4 shrink-0 flex flex-col items-center text-center">
-              <h3 className="text-4xl sm:text-6xl font-noto-serif-hk font-bold mb-1 leading-tight">{data.character}</h3>
+              <h3 className="text-4xl sm:text-6xl font-noto-serif-hk font-bold mb-1 leading-tight text-white drop-shadow-md">{data.character}</h3>
               {isMastered && (
-                <div className="mt-2 flex items-center gap-1 text-yellow-500 text-xs font-bold uppercase tracking-widest bg-yellow-500/10 px-2 py-1 rounded-full">
-                  <Crown className="w-3 h-3 fill-yellow-500" /> Mastered
+                <div className="mt-2 flex items-center gap-1 text-yolk text-xs font-bold uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-full border border-yolk/30">
+                  <Crown className="w-3 h-3 fill-yolk" /> Mastered
                 </div>
               )}
             </div>
 
             {/* Examples Section */}
-            <div className="mt-2 pt-4 border-t border-white/10 flex-1 flex flex-col min-h-0">
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-3 shrink-0">Examples</div>
+            <div className="mt-2 pt-4 border-t-2 border-white/10 flex-1 flex flex-col min-h-0">
+              <div className="text-[10px] text-latte/70 font-black uppercase tracking-widest mb-3 shrink-0">Examples</div>
 
               {displayExamples.length > 0 ? (
                 <div className="flex flex-col gap-3 pb-2">
@@ -259,9 +259,9 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
                       <div key={idx} className="relative mb-3 h-auto"> {/* Wrapper */}
 
                         {/* Action Layer (Behind Content) */}
-                        <div className={`absolute inset-0 flex items-center justify-end rounded-lg pr-4 transition-colors ${swipedIndex === idx || activeSwipeIndex === idx ? 'bg-green-500/20' : ''}`}>
+                        <div className={`absolute inset-0 flex items-center justify-end rounded-2xl pr-4 transition-colors ${swipedIndex === idx || activeSwipeIndex === idx ? 'bg-matcha/20' : ''}`}>
                           <button
-                            className={`p-2 bg-green-500 text-white rounded-full shadow-lg active:scale-95`}
+                            className={`p-2 bg-matcha text-coffee rounded-xl shadow-lg active:scale-95 border-2 border-coffee`}
                             style={{
                               opacity: progress,
                               transform: `scale(${progress})`,
@@ -278,7 +278,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
 
                         {/* Content Layer (Draggable) */}
                         <div
-                          className={`relative z-10 overflow-hidden flex items-center justify-between bg-white/5 p-3 rounded-lg border border-slate-700/50 backdrop-blur-sm transition-transform ease-out
+                          className={`relative z-10 overflow-hidden flex items-center justify-between bg-mocha/20 p-4 rounded-2xl border-2 border-white/5 backdrop-blur-sm transition-transform ease-out
                            ${activeSwipeIndex === idx ? 'duration-0' : 'duration-300'}
                           ${swipedIndex !== null && swipedIndex !== idx ? 'opacity-50' : 'opacity-100'} 
                         `}
@@ -287,11 +287,12 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
                           onTouchMove={handleTouchMove}
                           onTouchEnd={(e) => handleTouchEnd(e, idx)}
                           style={{
-                            backgroundColor: '#1e293b',
+                            backgroundColor: 'rgba(141, 110, 99, 0.2)', // mocha with opacity
                             transform: `translateX(${translateX}px)`
                           }}
                         >
-                          <p className={`text-2xl sm:text-3xl font-noto-serif-hk font-medium leading-normal text-slate-100 flex-1 ${regeneratingIndex === idx ? 'opacity-30 blur-sm' : ''}`}>{ex.chinese}</p>
+                          <p className={`text-2xl sm:text-3xl font-noto-serif-hk font-medium leading-normal text-cream flex-1 drop-shadow-sm ${regeneratingIndex === idx ? 'opacity-30 blur-sm' : ''}`}>{ex.chinese}</p>
+
 
                           {/* Loading Indicator for Regeneration */}
                           {regeneratingIndex === idx && (

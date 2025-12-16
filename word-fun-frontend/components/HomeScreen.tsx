@@ -95,18 +95,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       <div className="w-full space-y-4">
         {totalCards > 0 ? (
-          <div className="w-full p-6 bg-white rounded-2xl shadow-lg border border-slate-100 mb-6 relative overflow-hidden">
+          <div className="w-full p-6 bg-cream rounded-4xl shadow-[6px_6px_0px_0px_rgba(93,64,55,0.2)] border-4 border-coffee mb-6 relative overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-rose-100 text-rose-600 rounded-lg">
+                <div className="p-2 bg-salmon text-white border-2 border-coffee rounded-xl shadow-sm">
                   <Layers className="w-5 h-5" />
                 </div>
                 <div className="text-left">
-                  <div className="font-bold text-slate-800">Ready to Study</div>
-                  <div className="text-xs text-slate-500 flex items-center gap-2">
-                    <span className="font-medium text-rose-600">{cardCountZh} Chinese</span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                    <span className="font-medium text-indigo-600">{cardCountEn} English</span>
+                  <div className="font-bold text-coffee font-rounded text-lg">Ready to Study</div>
+                  <div className="text-xs text-coffee/60 flex items-center gap-2 font-bold">
+                    <span className="text-salmon">{cardCountZh} Chinese</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-coffee/20"></span>
+                    <span className="text-indigo-500">{cardCountEn} English</span>
                   </div>
                 </div>
               </div>
@@ -115,18 +115,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => onStart('zh')}
-                className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl font-bold shadow-lg shadow-rose-200 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-salmon text-white rounded-3xl font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
               >
                 <span className="text-lg">中文</span>
-                <span className="text-sm opacity-90">Start Chinese</span>
+                <span className="text-sm opacity-90 font-bold">Start Chinese</span>
               </button>
 
               <button
                 onClick={() => onStart('en')}
-                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-indigo-500 text-white rounded-3xl font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
               >
                 <span className="text-lg font-serif">Aa</span>
-                <span className="text-sm opacity-90">Start English</span>
+                <span className="text-sm opacity-90 font-bold">Start English</span>
               </button>
             </div>
           </div>

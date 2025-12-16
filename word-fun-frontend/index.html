@@ -10,10 +10,38 @@
   <title>認字繽紛樂 (Word Fun)</title>
   <script src="/env-config.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#FFF9F0',
+            coffee: '#5D4037',
+            mocha: '#8D6E63',
+            latte: '#D7CCC8',
+            matcha: '#C5E1A5',
+            yolk: '#FFECB3',
+            salmon: '#FFAB91',
+          },
+          fontFamily: {
+            rounded: ['"M PLUS Rounded 1c"', 'sans-serif'],
+            serif: ['"Noto Serif HK"', 'serif'],
+            hand: ['"Zhi Mang Xing"', 'cursive'],
+          },
+          borderRadius: {
+            '4xl': '2rem',
+            '5xl': '2.5rem',
+          }
+        }
+      }
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+HK:wght@400;500;600;700;900&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap"
     rel="stylesheet">
   <style>
     /* Register Custom Chinese Font */
@@ -58,7 +86,7 @@
   <link rel="stylesheet" href="/index.css">
 </head>
 
-<body class="bg-slate-50 text-slate-900 antialiased overscroll-none">
+<body class="bg-cream text-coffee font-rounded antialiased overscroll-none selection:bg-salmon selection:text-white">
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
