@@ -120,36 +120,41 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
-                <div className="w-12 h-12 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin mb-4"></div>
-                <p className="text-slate-500">Loading...</p>
+            <div className="h-screen w-full flex flex-col items-center justify-center bg-cream font-rounded gap-4">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-salmon/20 rounded-full blur-xl animate-pulse"></div>
+                    <div className="relative w-16 h-16 border-4 border-coffee border-t-salmon rounded-full animate-spin"></div>
+                </div>
+                <div className="text-coffee font-black text-xl animate-pulse">
+                    Loading Profiles...
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-4 font-rounded text-coffee">
             <div className="w-full max-w-md">
-                <h1 className="text-3xl font-bold text-slate-800 text-center mb-2">Who is learning?</h1>
-                <p className="text-slate-500 text-center mb-8">Select a profile to continue</p>
+                <h1 className="text-4xl font-black text-coffee text-center mb-2 tracking-tight">Who is learning?</h1>
+                <p className="text-coffee/60 text-center mb-10 font-medium">Select a profile to continue</p>
 
                 {errorMsg && (
-                    <div className="bg-red-100 text-red-700 p-3 rounded-xl mb-4 text-center text-sm">
+                    <div className="bg-salmon/10 text-salmon border-2 border-salmon p-3 rounded-2xl mb-6 text-center text-sm font-bold shadow-sm">
                         {errorMsg}
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-3 mb-6">
+                <div className="grid grid-cols-1 gap-4 mb-8">
                     {profiles.map(profile => (
                         <div key={profile.id} className="group relative">
                             <div
                                 onClick={() => onProfileSelect(profile)}
-                                className="w-full bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md hover:border-rose-100 transition-all text-left group-hover:pr-24 cursor-pointer"
+                                className="w-full bg-white p-4 rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee flex items-center gap-4 hover:shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all text-left group-hover:pr-24 cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                             >
                                 {/* Avatar Circle */}
                                 <div className="relative group/avatar">
                                     <div
-                                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl shrink-0 overflow-hidden ${AVATAR_MAP[profile.avatarId] ? 'bg-white' : 'bg-rose-100 text-rose-500'}`}
+                                        className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl shrink-0 overflow-hidden border-2 border-coffee ${AVATAR_MAP[profile.avatarId] ? 'bg-white' : 'bg-salmon/10 text-salmon'}`}
                                     >
                                         {AVATAR_MAP[profile.avatarId] ? (
                                             <img src={AVATAR_MAP[profile.avatarId]} alt="Avatar" className="w-full h-full object-cover" />
@@ -164,34 +169,34 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                             e.stopPropagation();
                                             setAvatarPickerProfile(profile);
                                         }}
-                                        className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-md border border-slate-200 opacity-0 group-hover:opacity-100 group-hover/avatar:opacity-100 transition-opacity hover:bg-slate-50"
+                                        className="absolute -bottom-1 -right-1 bg-white rounded-full p-1.5 shadow-md border-2 border-coffee opacity-0 group-hover:opacity-100 group-hover/avatar:opacity-100 transition-opacity hover:bg-salmon hover:text-white hover:border-salmon"
                                     >
-                                        <Pencil className="w-3 h-3 text-slate-500" />
+                                        <Pencil className="w-3 h-3" />
                                     </button>
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-slate-800 text-lg truncate">{profile.displayName}</h3>
-                                    <div className="flex items-center text-xs text-slate-400 mt-1 gap-2">
-                                        <span className="font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Lv {1 + Math.floor((profile.stats?.masteredWords || 0) / 10)}</span>
+                                    <h3 className="font-black text-coffee text-xl truncate">{profile.displayName}</h3>
+                                    <div className="flex items-center text-xs text-coffee/60 mt-1 gap-2 font-bold">
+                                        <span className="bg-coffee/5 px-2 py-0.5 rounded-lg border border-coffee/10">Lv {1 + Math.floor((profile.stats?.masteredWords || 0) / 10)}</span>
 
                                         {(profile.stats?.totalZh || 0) > 0 && (
                                             <span className="flex items-baseline gap-0.5">
-                                                <span className="font-bold text-rose-500">{profile.stats?.learningZh ?? 0}</span>
-                                                <span className="text-slate-300">/</span>
+                                                <span className="text-salmon">{profile.stats?.learningZh ?? 0}</span>
+                                                <span className="text-coffee/30">/</span>
                                                 <span>{profile.stats?.totalZh}</span>
-                                                <span className="ml-0.5 text-[10px] uppercase font-bold text-slate-400">Zh</span>
+                                                <span className="ml-0.5 text-[10px] uppercase text-coffee/40">Zh</span>
                                             </span>
                                         )}
 
                                         {(profile.stats?.totalEn || 0) > 0 && (
                                             <>
-                                                {(profile.stats?.totalZh || 0) > 0 && <span className="text-slate-200">|</span>}
+                                                {(profile.stats?.totalZh || 0) > 0 && <span className="text-coffee/20">|</span>}
                                                 <span className="flex items-baseline gap-0.5">
-                                                    <span className="font-bold text-indigo-500">{profile.stats?.learningEn ?? 0}</span>
-                                                    <span className="text-slate-300">/</span>
+                                                    <span className="text-indigo-500">{profile.stats?.learningEn ?? 0}</span>
+                                                    <span className="text-coffee/30">/</span>
                                                     <span>{profile.stats?.totalEn}</span>
-                                                    <span className="ml-0.5 text-[10px] uppercase font-bold text-slate-400">En</span>
+                                                    <span className="ml-0.5 text-[10px] uppercase text-coffee/40">En</span>
                                                 </span>
                                             </>
                                         )}
@@ -202,28 +207,28 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                         )}
                                     </div>
                                 </div>
-                                <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-rose-400 shrink-0" />
+                                <ChevronRight className="w-6 h-6 text-coffee/20 group-hover:text-salmon shrink-0 stroke-[3]" />
                             </div>
 
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setEditingProfile(profile);
                                         setEditName(profile.displayName);
                                     }}
-                                    className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                    className="p-2.5 text-coffee/60 bg-white border-2 border-coffee hover:text-white hover:bg-indigo-500 hover:border-indigo-500 rounded-xl transition-colors shadow-sm"
                                 >
-                                    <Pencil className="w-5 h-5" />
+                                    <Pencil className="w-5 h-5 stroke-[2.5]" />
                                 </button>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setDeletingProfile(profile);
                                     }}
-                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    className="p-2.5 text-coffee/60 bg-white border-2 border-coffee hover:text-white hover:bg-salmon hover:border-salmon rounded-xl transition-colors shadow-sm"
                                 >
-                                    <Trash2 className="w-5 h-5" />
+                                    <Trash2 className="w-5 h-5 stroke-[2.5]" />
                                 </button>
                             </div>
                         </div>
@@ -231,24 +236,24 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
 
                     <button
                         onClick={() => setIsCreating(true)}
-                        className="bg-slate-100 p-4 rounded-xl border-2 border-dashed border-slate-300 flex items-center gap-4 hover:bg-slate-200 hover:border-slate-400 transition-all text-left"
+                        className="bg-coffee/5 p-4 rounded-3xl border-2 border-dashed border-coffee/30 flex items-center gap-4 hover:bg-white hover:border-salmon hover:text-salmon transition-all text-left text-coffee/60 group"
                     >
-                        <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center text-slate-500 shrink-0">
-                            <Plus className="w-6 h-6" />
+                        <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-coffee/40 border-2 border-coffee/20 shrink-0 group-hover:border-salmon group-hover:bg-salmon group-hover:text-white transition-colors">
+                            <Plus className="w-7 h-7 stroke-[3]" />
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-bold text-slate-600 text-lg">Add New Profile</h3>
+                            <h3 className="font-bold text-lg">Add New Profile</h3>
                         </div>
                     </button>
                 </div>
 
-                <div className="text-center mt-8">
+                <div className="text-center mt-12">
                     {user && (
-                        <p className="text-slate-400 text-sm mb-2">
-                            Logged in as <span className="font-semibold text-slate-600">{user.email}</span>
+                        <p className="text-coffee/40 text-sm mb-3 font-medium">
+                            Logged in as <span className="font-bold text-coffee/70">{user.email}</span>
                         </p>
                     )}
-                    <button onClick={onLogout} className="text-slate-400 text-sm hover:text-slate-600 underline">
+                    <button onClick={onLogout} className="text-salmon font-bold text-sm hover:text-salmon/80 underline decoration-2 underline-offset-4">
                         Sign Out
                     </button>
                 </div>
@@ -256,36 +261,36 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
 
             {/* Create Profile Modal */}
             {isCreating && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold text-slate-800">Create Profile</h2>
-                            <button onClick={() => setIsCreating(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 bg-coffee/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-cream rounded-3xl w-full max-w-sm p-6 shadow-2xl border-4 border-coffee animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-black text-coffee">Create Profile</h2>
+                            <button onClick={() => setIsCreating(false)} className="text-coffee/40 hover:text-salmon transition-colors"><X className="w-6 h-6 stroke-[3]" /></button>
                         </div>
                         <form onSubmit={handleProceedToAvatarSelection}>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                            <div className="mb-6">
+                                <label className="block text-sm font-bold text-coffee/70 mb-2">Name</label>
                                 <input
                                     autoFocus
                                     type="text"
                                     value={newProfileName}
                                     onChange={e => setNewProfileName(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                                    placeholder="Enter name"
+                                    className="w-full px-4 py-3 rounded-xl bg-white border-2 border-coffee/20 focus:outline-none focus:ring-4 focus:ring-salmon/20 focus:border-salmon text-coffee font-bold placeholder:text-coffee/30"
+                                    placeholder="Enter your name"
                                 />
                             </div>
                             <div className="flex gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setIsCreating(false)}
-                                    className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+                                    className="flex-1 py-3 bg-white text-coffee/60 rounded-xl font-bold border-2 border-coffee/10 hover:bg-coffee/5 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={!newProfileName.trim() || isLoading}
-                                    className="flex-1 py-3 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition-colors disabled:opacity-50"
+                                    className="flex-1 py-3 bg-salmon text-white rounded-xl font-bold border-b-4 border-salmon/50 hover:border-salmon/70 hover:translate-y-[1px] active:border-b-0 active:translate-y-[4px] transition-all disabled:opacity-50 disabled:active:translate-y-0 disabled:active:border-b-4 shadow-sm"
                                 >
                                     Choose Avatar
                                 </button>
@@ -297,21 +302,21 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
 
             {/* Edit Profile Modal */}
             {editingProfile && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold text-slate-800">Edit Profile</h2>
-                            <button onClick={() => setEditingProfile(null)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 bg-coffee/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-cream rounded-3xl w-full max-w-sm p-6 shadow-2xl border-4 border-coffee animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-black text-coffee">Edit Profile</h2>
+                            <button onClick={() => setEditingProfile(null)} className="text-coffee/40 hover:text-salmon transition-colors"><X className="w-6 h-6 stroke-[3]" /></button>
                         </div>
                         <form onSubmit={handleUpdateProfile}>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                            <div className="mb-6">
+                                <label className="block text-sm font-bold text-coffee/70 mb-2">Name</label>
                                 <input
                                     autoFocus
                                     type="text"
                                     value={editName}
                                     onChange={e => setEditName(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-4 py-3 rounded-xl bg-white border-2 border-coffee/20 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 text-coffee font-bold placeholder:text-coffee/30"
                                     placeholder="Enter name"
                                 />
                             </div>
@@ -319,14 +324,14 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setEditingProfile(null)}
-                                    className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+                                    className="flex-1 py-3 bg-white text-coffee/60 rounded-xl font-bold border-2 border-coffee/10 hover:bg-coffee/5 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={!editName.trim() || isLoading}
-                                    className="flex-1 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors disabled:opacity-50"
+                                    className="flex-1 py-3 bg-indigo-500 text-white rounded-xl font-bold border-b-4 border-indigo-700/50 hover:border-indigo-700/70 hover:translate-y-[1px] active:border-b-0 active:translate-y-[4px] transition-all disabled:opacity-50 disabled:active:translate-y-0 disabled:active:border-b-4 shadow-sm"
                                 >
                                     {isLoading ? 'Saving...' : 'Save'}
                                 </button>
@@ -338,14 +343,14 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
 
             {/* Delete Confirmation Modal */}
             {deletingProfile && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-200 border-2 border-red-100">
+                <div className="fixed inset-0 bg-coffee/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-cream rounded-3xl w-full max-w-sm p-6 shadow-2xl border-4 border-coffee animate-in zoom-in-95 duration-200 border-b-8 border-b-salmon/20">
                         <div className="flex flex-col items-center text-center mb-6">
-                            <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center text-red-500 mb-4">
-                                <AlertTriangle className="w-8 h-8" />
+                            <div className="w-16 h-16 bg-salmon/10 rounded-full flex items-center justify-center text-salmon mb-4 border-2 border-salmon/20">
+                                <AlertTriangle className="w-8 h-8 stroke-[2.5]" />
                             </div>
-                            <h2 className="text-xl font-bold text-slate-800 mb-2">Delete {deletingProfile.displayName}?</h2>
-                            <p className="text-slate-500 text-sm">
+                            <h2 className="text-2xl font-black text-coffee mb-2">Delete {deletingProfile.displayName}?</h2>
+                            <p className="text-coffee/60 text-sm font-medium px-4 leading-relaxed">
                                 This will permanently delete this profile and all its progress. This action cannot be undone.
                             </p>
                         </div>
@@ -354,7 +359,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                             <button
                                 type="button"
                                 onClick={() => setDeletingProfile(null)}
-                                className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+                                className="flex-1 py-3 bg-white text-coffee/60 rounded-xl font-bold border-2 border-coffee/10 hover:bg-coffee/5 transition-colors"
                             >
                                 Cancel
                             </button>
@@ -362,7 +367,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                 type="button"
                                 onClick={handleDeleteProfile}
                                 disabled={isLoading}
-                                className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors disabled:opacity-50"
+                                className="flex-1 py-3 bg-salmon text-white rounded-xl font-bold border-b-4 border-salmon/50 hover:border-salmon/70 hover:translate-y-[1px] active:border-b-0 active:translate-y-[4px] transition-all disabled:opacity-50 disabled:active:translate-y-0 disabled:active:border-b-4 shadow-sm"
                             >
                                 {isLoading ? 'Deleting...' : 'Delete'}
                             </button>
