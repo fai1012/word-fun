@@ -141,8 +141,10 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
 
   return (
     <div
-      className={`relative h-full w-auto aspect-[3/4] max-w-full perspective-1000 group mx-auto ${isFlipped ? 'cursor-pointer' : 'cursor-default'}`}
-      onClick={() => isFlipped && onFlip()}
+      className={`relative h-full w-auto aspect-[3/4] max-w-full perspective-1000 group mx-auto cursor-default`}
+      onClick={() => {
+        if (swipedIndex !== null) setSwipedIndex(null);
+      }}
     >
       <div
         className={`w-full h-full relative transition-all duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''
@@ -242,6 +244,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
                     } else if (swipedIndex === idx) {
                       translateX = -64; // Fixed open width (4rem)
                     }
+                    const progress = Math.min(Math.abs(translateX) / 64, 1);
 
                     return (
                       <div key={idx} className="relative mb-3 h-auto"> {/* Wrapper */}
@@ -249,7 +252,12 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
                         {/* Action Layer (Behind Content) */}
                         <div className={`absolute inset-0 flex items-center justify-end rounded-lg pr-4 transition-colors ${swipedIndex === idx || activeSwipeIndex === idx ? 'bg-green-500/20' : ''}`}>
                           <button
-                            className={`p-2 bg-green-500 text-white rounded-full shadow-lg transition-all active:scale-95 ${swipedIndex === idx ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}
+                            className={`p-2 bg-green-500 text-white rounded-full shadow-lg active:scale-95`}
+                            style={{
+                              opacity: progress,
+                              transform: `scale(${progress})`,
+                              transition: activeSwipeIndex === idx ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            }}
                             onClick={(e) => {
                               e.stopPropagation();
                               executeRegeneration(idx);
