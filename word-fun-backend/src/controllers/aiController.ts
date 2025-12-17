@@ -21,14 +21,14 @@ export const generateSessionContent = async (req: Request, res: Response) => {
 
 export const generateSingleExample = async (req: Request, res: Response) => {
     try {
-        const { word, existingExamples } = req.body;
+        const { word, existingExamples, contextWords } = req.body;
 
         if (!word) {
             res.status(400).json({ error: "Missing 'word'" });
             return;
         }
 
-        const newExample = await aiService.generateSingleExample(word, existingExamples || []);
+        const newExample = await aiService.generateSingleExample(word, existingExamples || [], contextWords || []);
         res.json({ example: newExample });
     } catch (error: any) {
         console.error("AI Single Example Error:", error);

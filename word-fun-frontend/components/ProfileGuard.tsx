@@ -39,8 +39,14 @@ export const ProfileGuard: React.FC<ProfileGuardProps> = ({
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
-                <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div>
+            <div className="flex flex-col items-center justify-center h-full w-full bg-cream min-h-[50vh]">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-salmon/20 rounded-full blur-xl animate-pulse"></div>
+                    <div className="relative w-12 h-12 border-4 border-coffee border-t-salmon rounded-full animate-spin"></div>
+                </div>
+                <div className="mt-4 text-coffee font-black text-lg animate-pulse">
+                    Loading...
+                </div>
             </div>
         );
     }

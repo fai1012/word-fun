@@ -14,6 +14,7 @@ import { Flashcard } from './components/Flashcard';
 import { SignInPage } from './components/SignInPage';
 import { ProfileSelectionPage } from './components/ProfileSelectionPage';
 import { ProfileGuard } from './components/ProfileGuard';
+import { CooldownDialog } from './components/CooldownDialog';
 import { AddWordsScreen } from './components/AddWordsScreen';
 import { BottomNav } from './components/BottomNav';
 import { SummaryScreen } from './components/SummaryScreen';
@@ -43,6 +44,10 @@ const App: React.FC = () => {
     const [isInitializing, setIsInitializing] = useState(true); // New initialization state
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [isSessionCompleted, setIsSessionCompleted] = useState(false);
+    const [showCooldownDialog, setShowCooldownDialog] = useState(false);
+    const [cooldownMessage, setCooldownMessage] = useState('');
+    const [cooldownTitle, setCooldownTitle] = useState('Great Job!');
+    const [cooldownButtonText, setCooldownButtonText] = useState("Okay, I'll be back!");
 
     // Data State
     const [flashcards, setFlashcards] = useState<FlashcardData[]>([]);
@@ -253,7 +258,16 @@ const App: React.FC = () => {
         try {
             // Generate NEW example
             if (!currentProfile?.id) return;
-            const newChinese = await generateSingleExample(currentProfile.id, currentCard.character, contextExamples);
+
+            // Randomly pick context words from flashcards state
+            const targetLang = currentCard.language || 'zh';
+            const sameLangWords = flashcards
+                .filter(c => (c.language || 'zh') === targetLang)
+                .map(c => c.character);
+
+            const contextWords = [...sameLangWords].sort(() => 0.5 - Math.random()).slice(0, 30);
+
+            const newChinese = await generateSingleExample(currentProfile.id, currentCard.character, contextExamples, contextWords);
 
             // Update the specific example at 'index'
             const nextExamples = [...currentExamples];
@@ -300,12 +314,36 @@ const App: React.FC = () => {
         }
 
         if (pool.length === 0) {
-            alert(`No ${lang === 'zh' ? 'Chinese' : lang === 'en' ? 'English' : ''} cards available! Add some words first.`);
+            setCooldownTitle("Time to Add Words!");
+            setCooldownMessage(`No ${lang === 'zh' ? 'Chinese' : lang === 'en' ? 'English' : ''} cards available! Add some words first.`);
+            setCooldownButtonText("Go to Add Words");
+            setShowCooldownDialog(true);
+            return;
+        }
+
+        const now = new Date();
+        const COOLDOWN_HOURS = 4;
+        const cooldownMs = COOLDOWN_HOURS * 60 * 60 * 1000;
+
+        // Filter out cards that are on cooldown
+        const eligiblePool = pool.filter(c => {
+            if (!c.lastReviewedAt) return true; // Never reviewed
+            const diff = now.getTime() - new Date(c.lastReviewedAt).getTime();
+            return diff > cooldownMs;
+        });
+
+        // If no eligible cards but the original pool was not empty, it means all are on cooldown
+        if (eligiblePool.length === 0 && pool.length > 0) {
+            setCooldownTitle("Great Job!");
+            setCooldownMessage(`All your ${lang === 'all' ? '' : lang === 'zh' ? 'Chinese ' : 'English '}words have been reviewed recently.\nCome back in a few hours to let your memory settle!`);
+            setCooldownButtonText("Okay, I'll be back!");
+            setShowCooldownDialog(true);
             return;
         }
 
         // --- STEP 1: Learning Pool (Active Words) ---
-        const activeCandidates = pool.filter(c => (c.correctCount || 0) < masteryThreshold);
+        // Use eligiblePool instead of global pool
+        const activeCandidates = eligiblePool.filter(c => (c.correctCount || 0) < masteryThreshold);
 
         // Pick from fixed pool size of 30 oldest words
         const poolSize = DEFAULT_CONFIG.LEARNING_POOL_SIZE;
@@ -315,7 +353,8 @@ const App: React.FC = () => {
         const selectedLearning = shuffleArray(oldestPool).slice(0, learningBatchSize);
 
         // --- STEP 2: Review Pool (Mastered Words) ---
-        const masteredCandidates = flashcards.filter(c => (c.correctCount || 0) >= masteryThreshold);
+        // Use eligiblePool instead of global pool
+        const masteredCandidates = eligiblePool.filter(c => (c.correctCount || 0) >= masteryThreshold);
         const selectedReview: FlashcardData[] = [];
 
         if (masteredCandidates.length > 0) {
@@ -349,7 +388,11 @@ const App: React.FC = () => {
         let selection: FlashcardData[] = [...selectedLearning, ...selectedReview];
 
         if (selection.length === 0) {
-            alert("No cards available to study!");
+            // This case might happen if eligiblePool was small but logic didn't pick any (unlikely with above logic but safe to keep)
+            setCooldownTitle("Great Job!");
+            setCooldownMessage(`You've caught up with all your reviews for now!\nGreat job keeping your streak.`);
+            setCooldownButtonText("Okay, I'll be back!");
+            setShowCooldownDialog(true);
             return;
         }
 
@@ -788,6 +831,13 @@ const App: React.FC = () => {
 
     return (
         <div className="h-[100dvh] w-full bg-cream flex flex-col font-rounded overflow-hidden">
+            <CooldownDialog
+                isOpen={showCooldownDialog}
+                onClose={() => setShowCooldownDialog(false)}
+                message={cooldownMessage}
+                title={cooldownTitle}
+                buttonText={cooldownButtonText}
+            />
             {/* ... Global States ... */}
 
             <main className="flex-1 flex flex-col w-full max-w-screen-xl mx-auto relative min-h-0 overflow-hidden">
