@@ -33,7 +33,10 @@ export const loginWithGoogle = async (idToken: string): Promise<AuthResponse> =>
 
 export const refreshAccessToken = async (): Promise<string | null> => {
     const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-    if (!refreshToken) return null;
+    if (!refreshToken) {
+        console.warn("[authService] No refresh token found in localStorage.");
+        return null;
+    }
 
     try {
         const response = await fetch(`${AUTH_SERVICE_URL}/refresh`, {
@@ -45,6 +48,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
         });
 
         if (!response.ok) {
+            console.warn(`[authService] Refresh failed with status: ${response.status}`);
             throw new Error('Refresh failed');
         }
 

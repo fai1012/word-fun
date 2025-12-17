@@ -183,6 +183,7 @@ const App: React.FC = () => {
                     }
                 } else {
                     if (location.pathname !== '/login') {
+                        console.warn("[App] Redirecting to /login because 'word_fun_user' not found in localStorage.");
                         navigate('/login');
                     }
                 }
