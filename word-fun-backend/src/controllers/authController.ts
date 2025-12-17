@@ -5,7 +5,11 @@ import jwt from 'jsonwebtoken';
 import { db } from '../services/firestoreService';
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-do-not-use-in-prod'; // Fallback for dev
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not defined');
+}
 
 const client = new OAuth2Client(CLIENT_ID);
 
@@ -95,6 +99,16 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     }
 
     try {
+        // DEBUG LOGGING
+        try {
+            const decodedDebug = jwt.decode(refreshToken) as any;
+            const maskedToken = `${refreshToken.substring(0, 10)}...${refreshToken.substring(refreshToken.length - 5)}`;
+            const expTime = decodedDebug?.exp ? new Date(decodedDebug.exp * 1000).toLocaleString() : 'Unknown';
+            console.log(`[AuthRefresh] Verifying Refresh Token: ${maskedToken} | Expires: ${expTime}`);
+        } catch (e) {
+            console.log('[AuthRefresh] Error decoding token for debug log');
+        }
+
         // 1. Verify Refresh Token
         const decoded = jwt.verify(refreshToken, JWT_SECRET) as any;
 
