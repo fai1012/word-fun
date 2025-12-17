@@ -4,6 +4,9 @@ import { AuthenticatedRequest } from '../types';
 import { authService } from '../services/authService';
 import { db } from '../services/firestoreService';
 
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-do-not-use-in-prod';
+
 export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -14,9 +17,8 @@ export const authenticateToken = async (req: AuthenticatedRequest, res: Response
     }
 
     try {
-        const publicKey = await authService.getPublicKey();
-        const user = jwt.verify(token, publicKey, { algorithms: ['RS256'] });
-        req.user = user as any;
+        const user = jwt.verify(token, JWT_SECRET) as any;
+        req.user = user;
         next();
     } catch (error) {
         console.error('Token verification failed:', error);
@@ -25,9 +27,13 @@ export const authenticateToken = async (req: AuthenticatedRequest, res: Response
         const decoded = jwt.decode(token, { complete: true });
         console.log('Failed Token Header:', decoded?.header);
 
+        // Explicitly return 401 for expiration to align with frontend refresh logic mostly,
+        // but frontend also handles 403. Let's return 403 as "Forbidden/Invalid" is standard for bad token.
+        // However, standard JWT exp error is verified.
         res.status(403).json({ error: 'Invalid or expired token' });
     }
 };
+
 
 export const requireAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     // 1. Check if user is authenticated (req.user populated by authenticateToken)

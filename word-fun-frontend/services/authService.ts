@@ -4,26 +4,27 @@ import { STORAGE_KEYS } from '../constants';
 
 import { getEnv } from '../constants';
 
-const AUTH_SERVICE_URL = getEnv('VITE_AUTH_SERVICE_URL');
-if (!AUTH_SERVICE_URL) {
-    throw new Error("Missing VITE_AUTH_SERVICE_URL environment variable");
+
+const BACKEND_URL = getEnv('VITE_BACKEND_SERVICE_URL');
+if (!BACKEND_URL) {
+    throw new Error("Missing VITE_BACKEND_SERVICE_URL environment variable");
 }
 
 export const loginWithGoogle = async (idToken: string): Promise<AuthResponse> => {
-    const response = await fetch(`${AUTH_SERVICE_URL}/login`, {
+    const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            provider: 'google',
+            // provider: 'google', // Backend doesn't strictly need this based on my impl, but good to keep if flexible
             token: idToken,
         }),
     });
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Authentication failed');
+        throw new Error(errorData.error || 'Authentication failed');
     }
 
     const data = await response.json();
@@ -36,7 +37,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     if (!refreshToken) return null;
 
     try {
-        const response = await fetch(`${AUTH_SERVICE_URL}/refresh`, {
+        const response = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -63,6 +64,8 @@ export const refreshAccessToken = async (): Promise<string | null> => {
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         localStorage.removeItem('word_fun_user');
+        window.location.href = '/login'; // Force redirect
     }
     return null;
 };
+
