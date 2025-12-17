@@ -118,17 +118,19 @@ export const generateSessionContent = async (
 export const generateSingleExample = async (
   profileId: string,
   character: string,
-  existingExamples: string[]
+  existingExamples: string[],
+  contextWords: string[] = [] // Default to empty
 ): Promise<string> => {
   const startTime = performance.now();
-  console.log(`Requesting single example for ${character}...`);
+  console.log(`Requesting single example for ${character} with context...`);
 
   try {
     const response = await fetchWithAuth(`${API_BASE_URL}/api/profiles/${profileId}/ai/example`, {
       method: 'POST',
       body: JSON.stringify({
         word: character,
-        existingExamples
+        existingExamples,
+        contextWords
       })
     });
 

@@ -68,9 +68,12 @@ class AIService {
 
                 const batchCharacters = langWords.map(w => w.text);
 
+                const prompt = this.getPromptForLanguage(lang, batchCharacters);
+                console.log(`[AI] Generating Content for ${lang} with prompt:\n${prompt}`);
+
                 const aiResponse = await this.client.models.generateContent({
                     model: 'gemini-2.5-flash',
-                    contents: this.getPromptForLanguage(lang, batchCharacters),
+                    contents: prompt,
                     config: {
                         responseMimeType: "application/json",
                         responseSchema: {
@@ -145,9 +148,12 @@ class AIService {
 
                 const batchCharacters = langWords.map(w => w.text);
 
+                const prompt = this.getPromptForLanguage(lang, batchCharacters, contextWords);
+                console.log(`[AI] Generating Session Content for ${lang} with prompt:\n${prompt}`);
+
                 const aiResponse = await this.client.models.generateContent({
                     model: 'gemini-2.5-flash',
-                    contents: this.getPromptForLanguage(lang, batchCharacters, contextWords),
+                    contents: prompt,
                     config: {
                         responseMimeType: "application/json",
                         responseSchema: {
@@ -200,15 +206,21 @@ class AIService {
         }
     }
 
-    async generateSingleExample(word: string, existingExamples: string[]): Promise<string> {
-        console.log(`[AI] Generating single example for ${word}...`);
+    async generateSingleExample(word: string, existingExamples: string[], contextWords: string[] = []): Promise<string> {
+        console.log(`[AI] Generating single example for ${word} with ${contextWords.length} context words...`);
         const isChinese = /[\u4e00-\u9fa5]/.test(word);
+
+        const contextSection = contextWords.length > 0 ? `
+                EXISTING VOCABULARY CONTEXT (Try to use these words if natural):
+                ${contextWords.join(", ")}` : '';
 
         try {
             let prompt = '';
             if (isChinese) {
                 prompt = `Generate ONE new Chinese example sentence for the word "${word}".
                 
+                ${contextSection}
+
                 EXISTING EXAMPLES (Do not repeat these):
                 ${existingExamples.map(ex => `- ${ex}`).join('\n')}
                 
@@ -220,6 +232,8 @@ class AIService {
                 5. Output: JUST the sentence string. No JSON, no Pinyin, no English.`;
             } else {
                 prompt = `Generate ONE new English example sentence for the word "${word}".
+
+                ${contextSection}
                 
                 EXISTING EXAMPLES (Do not repeat these):
                 ${existingExamples.map(ex => `- ${ex}`).join('\n')}
@@ -231,6 +245,8 @@ class AIService {
                 4. Language: English.
                 5. Output: JUST the sentence string. No JSON.`;
             }
+
+            console.log(`[AI] Generating Single Example with prompt:\n${prompt}`);
 
             const aiResponse = await this.client.models.generateContent({
                 model: 'gemini-2.5-flash',
