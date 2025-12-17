@@ -18,7 +18,8 @@ import { AddWordsScreen } from './components/AddWordsScreen';
 import { BottomNav } from './components/BottomNav';
 import { SummaryScreen } from './components/SummaryScreen';
 import { PreferencesScreen } from './components/PreferencesScreen';
-import { CooldownDialog } from './components/CooldownDialog';
+// import { CooldownDialog } from './components/CooldownDialog';
+import { MessageDialog, MessageType } from './components/MessageDialog';
 import { ArrowLeft, Check, X, Repeat, Trophy, Home, RotateCcw, Star } from 'lucide-react';
 
 // Helper function for unbiased Fisher-Yates shuffle
@@ -49,9 +50,17 @@ const App: React.FC = () => {
     const [flashcards, setFlashcards] = useState<FlashcardData[]>([]);
 
     // UI State
-    const [cooldownDialog, setCooldownDialog] = useState<{ isOpen: boolean, message: string }>({
+    const [messageDialog, setMessageDialog] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: MessageType;
+        buttonText?: string;
+    }>({
         isOpen: false,
-        message: ''
+        title: '',
+        message: '',
+        type: 'info'
     });
 
     // Preferences State
@@ -243,7 +252,13 @@ const App: React.FC = () => {
             }
         } catch (e) {
             console.error("Failed to regenerate card", e);
-            alert("Failed to load examples. Please try again.");
+            setMessageDialog({
+                isOpen: true,
+                title: 'Error',
+                message: 'Failed to load examples. Please try again.',
+                type: 'error',
+                buttonText: 'Got it'
+            });
         }
     };
 
@@ -330,7 +345,13 @@ const App: React.FC = () => {
         }
 
         if (pool.length === 0) {
-            alert(`No ${lang === 'zh' ? 'Chinese' : lang === 'en' ? 'English' : ''} cards available! Add some words first.`);
+            setMessageDialog({
+                isOpen: true,
+                title: 'No Cards Found',
+                message: `No ${lang === 'zh' ? 'Chinese' : lang === 'en' ? 'English' : ''} cards available! Add some words first.`,
+                type: 'error',
+                buttonText: 'Got it'
+            });
             return;
         }
 
@@ -346,9 +367,12 @@ const App: React.FC = () => {
         });
 
         if (availablePool.length === 0) {
-            setCooldownDialog({
+            setMessageDialog({
                 isOpen: true,
-                message: "You have done so well, no more words to review now, come challenge later!"
+                title: 'Great Job!',
+                message: "You've reviewed all available words in the last 4 hours.\nTake a break and come back later!",
+                type: 'success',
+                buttonText: "Okay, I'll be back!"
             });
             return;
         }
@@ -401,7 +425,13 @@ const App: React.FC = () => {
         let selection: FlashcardData[] = [...selectedLearning, ...selectedReview];
 
         if (selection.length === 0) {
-            alert("No cards available to study!");
+            setMessageDialog({
+                isOpen: true,
+                title: 'No Cards Available',
+                message: 'No cards available to study at the moment. Try adding more words or come back later!',
+                type: 'info',
+                buttonText: 'Got it'
+            });
             return;
         }
 
@@ -655,12 +685,24 @@ const App: React.FC = () => {
 
         } catch (e: any) {
             console.error("Login processing failed:", e);
-            alert(`Login failed: ${e.message || "Unknown error"}`);
+            setMessageDialog({
+                isOpen: true,
+                title: 'Login Failed',
+                message: `Login failed: ${e.message || "Unknown error"}`,
+                type: 'error',
+                buttonText: 'Try Again'
+            });
         }
     };
 
     const handleLoginError = () => {
-        alert("Login failed. Please try again.");
+        setMessageDialog({
+            isOpen: true,
+            title: 'Login Failed',
+            message: 'Login failed. Please try again.',
+            type: 'error',
+            buttonText: 'Got it'
+        });
     };
 
     const handleLogout = () => {
@@ -1044,10 +1086,14 @@ const App: React.FC = () => {
                 </Routes>
             </main>
 
-            <CooldownDialog
-                isOpen={cooldownDialog.isOpen}
-                message={cooldownDialog.message}
-                onClose={() => setCooldownDialog(prev => ({ ...prev, isOpen: false }))}
+            {/* Message Dialog */}
+            <MessageDialog
+                isOpen={messageDialog.isOpen}
+                onClose={() => setMessageDialog(prev => ({ ...prev, isOpen: false }))}
+                title={messageDialog.title}
+                message={messageDialog.message}
+                type={messageDialog.type}
+                buttonText={messageDialog.buttonText}
             />
         </div>
     );
