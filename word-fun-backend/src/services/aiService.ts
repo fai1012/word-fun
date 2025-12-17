@@ -174,7 +174,20 @@ class AIService {
                 });
 
                 if (aiResponse.text) {
-                    const generatedData = JSON.parse(aiResponse.text.trim()) as any[];
+                    let cleanJson = aiResponse.text.trim();
+                    if (cleanJson.startsWith('```json')) {
+                        cleanJson = cleanJson.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+                    } else if (cleanJson.startsWith('```')) {
+                        cleanJson = cleanJson.replace(/^```\n?/, '').replace(/\n?```$/, '');
+                    }
+
+                    let generatedData;
+                    try {
+                        generatedData = JSON.parse(cleanJson) as any[];
+                    } catch (e) {
+                        console.error("[AI] JSON Parse Error. Raw response:", aiResponse.text);
+                        throw e;
+                    }
                     const generatedMap = new Map(generatedData.map(d => [d.character, d]));
 
                     // Update resultWords in place

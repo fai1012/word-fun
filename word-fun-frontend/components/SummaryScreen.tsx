@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FlashcardData } from '../types';
-import { TrendingUp, Circle, Trophy, BookOpen, Sparkles, X } from 'lucide-react';
+import { TrendingUp, Circle, Trophy, BookOpen, Sparkles, X, Clock } from 'lucide-react';
+import { formatDate } from '../utils';
 
 interface SummaryScreenProps {
     cards: FlashcardData[];
@@ -35,12 +36,26 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
     let currentList: FlashcardData[] = [];
     if (activeTab === 'LEARNING') {
         currentList = [...learningCards].sort((a, b) => {
+            // Sort by Last Reviewed (Descending) -> Most recent first
+            const dateA = a.lastReviewedAt ? new Date(a.lastReviewedAt).getTime() : 0;
+            const dateB = b.lastReviewedAt ? new Date(b.lastReviewedAt).getTime() : 0;
+            if (dateB !== dateA) return dateB - dateA;
+
+            // Secondary: Accuracy (Ascending) -> Hardest first
             const accA = (a.correctCount || 0) / (a.revisedCount || 1);
             const accB = (b.correctCount || 0) / (b.revisedCount || 1);
             return accA - accB;
         });
     } else if (activeTab === 'MASTERED') {
-        currentList = [...masteredCards].sort((a, b) => (b.revisedCount || 0) - (a.revisedCount || 0));
+        currentList = [...masteredCards].sort((a, b) => {
+            // Sort by Last Reviewed (Descending) -> Most recent first
+            const dateA = a.lastReviewedAt ? new Date(a.lastReviewedAt).getTime() : 0;
+            const dateB = b.lastReviewedAt ? new Date(b.lastReviewedAt).getTime() : 0;
+            if (dateB !== dateA) return dateB - dateA;
+
+            // Secondary: Review Count (Descending)
+            return (b.revisedCount || 0) - (a.revisedCount || 0);
+        });
     } else {
         currentList = newCards;
     }
@@ -357,7 +372,15 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                                     ) : (
                                         <>
                                             <div className={`text-sm font-black ${colorClass}`}>{progressPercent}%</div>
-                                            <div className="text-[10px] font-bold text-coffee/30 group-hover:text-coffee/50">{card.revisedCount} reviews</div>
+                                            <div className="flex flex-col items-end">
+                                                <div className="text-[10px] font-bold text-coffee/30 group-hover:text-coffee/50">{card.revisedCount} reviews</div>
+                                                {card.lastReviewedAt && (
+                                                    <div className="text-[10px] font-bold text-coffee/30 flex items-center gap-1 mt-0.5">
+                                                        <Clock className="w-3 h-3 opacity-50" />
+                                                        {formatDate(card.lastReviewedAt)}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </>
                                     )}
                                 </div>

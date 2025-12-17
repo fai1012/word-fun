@@ -29,6 +29,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const totalCards = cardCountZh + cardCountEn;
   const avatarSrc = avatarId ? AVATAR_MAP[avatarId] : null;
 
+  console.log("Rendering HomeScreen", { totalCards, profileName, avatarId, reviewedCount, masteredCount });
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 w-full max-w-lg mx-auto text-center">
 

@@ -18,6 +18,7 @@ import { AddWordsScreen } from './components/AddWordsScreen';
 import { BottomNav } from './components/BottomNav';
 import { SummaryScreen } from './components/SummaryScreen';
 import { PreferencesScreen } from './components/PreferencesScreen';
+import { CooldownDialog } from './components/CooldownDialog';
 import { ArrowLeft, Check, X, Repeat, Trophy, Home, RotateCcw, Star } from 'lucide-react';
 
 // Helper function for unbiased Fisher-Yates shuffle
@@ -46,6 +47,12 @@ const App: React.FC = () => {
 
     // Data State
     const [flashcards, setFlashcards] = useState<FlashcardData[]>([]);
+
+    // UI State
+    const [cooldownDialog, setCooldownDialog] = useState<{ isOpen: boolean, message: string }>({
+        isOpen: false,
+        message: ''
+    });
 
     // Preferences State
     const [autoPlaySound, setAutoPlaySound] = useState(false);
@@ -76,6 +83,7 @@ const App: React.FC = () => {
         setIsProfilesLoading(true);
         try {
             const data = await syncAndGetProfiles();
+            console.log("Profiles loaded:", data);
             setProfiles(data.profiles);
         } catch (e) {
             console.error("Failed to load profiles", e);
@@ -289,16 +297,69 @@ const App: React.FC = () => {
     };
 
     const startStudySession = async (lang: 'zh' | 'en' | 'all') => {
+        // RESET: Clear any existing session queue to prevent stale data
+        setSessionQueue([]);
+
         let pool = flashcards;
 
+
+
         if (lang !== 'all') {
-            pool = flashcards.filter(c => c.language === lang || (!c.language && lang === 'zh')); // Default old cards to zh if undefined
+            pool = flashcards.filter(c => {
+                // 1. Check metadata language tag
+                const tagMatch = c.language === lang || (!c.language && lang === 'zh');
+                if (!tagMatch) return false;
+
+                // 2. SAFETY CHECK: Content validation
+                // If we want English, strictly ensure valid English/Latin content.
+                // We'll reject anything with characters above 500 (covering basically all Chinese/Asian scripts).
+                // Standard Latin extensions go up to ~383.
+                if (lang === 'en') {
+                    // Check if any character in the string is widely out of Latin range
+                    // This is a brutal but effective filter for "English Mode"
+                    for (let i = 0; i < c.character.length; i++) {
+                        if (c.character.charCodeAt(i) > 1000) {
+                            console.warn(`[FILTER] Excluded card "${c.character}" from EN session (Code: ${c.character.charCodeAt(i)}).`);
+                            return false;
+                        }
+                    }
+                }
+                // If we want Chinese, ensure it's not purely ASCII (though some mixed content is allowed, usually the main char is Chinese)
+                // We'll trust the tag more for ZH, but could add checks if needed.
+
+                return true;
+            });
         }
+
+        console.log(`[SESSION] Starting session for lang=${lang}. Filtered pool size: ${pool.length}`);
+
 
         if (pool.length === 0) {
             alert(`No ${lang === 'zh' ? 'Chinese' : lang === 'en' ? 'English' : ''} cards available! Add some words first.`);
             return;
         }
+
+        // --- FILTER: 4-Hour Cooldown ---
+        const now = new Date();
+        const COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+        // Filter out cards that were reviewed within the last 4 hours
+        // Note: We use a new variable 'availablePool' so we don't lose the reference to 'pool' checking above
+        const availablePool = pool.filter(c => {
+            if (!c.lastReviewedAt) return true; // Never reviewed -> Ready
+            return (now.getTime() - new Date(c.lastReviewedAt).getTime()) > COOLDOWN_MS;
+        });
+
+        if (availablePool.length === 0) {
+            setCooldownDialog({
+                isOpen: true,
+                message: "You have done so well, no more words to review now, come challenge later!"
+            });
+            return;
+        }
+
+        // Use available pool for selection
+        pool = availablePool;
 
         // --- STEP 1: Learning Pool (Active Words) ---
         const activeCandidates = pool.filter(c => (c.correctCount || 0) < masteryThreshold);
@@ -361,13 +422,40 @@ const App: React.FC = () => {
                 const freshWords = await fetchProfileWords(currentProfile.id);
 
                 // Update selection with fresh data
-                selection = selection.map(sel => {
+                selection = selection.filter(sel => {
+                    // Check fresh data for invalid content as well
                     const fresh = freshWords.find((w: any) => w.id === sel.id);
+
+                    // Re-run SAFETY CHECK for English mode if fresh data is found
+                    if (lang === 'en' && fresh && (fresh.character || fresh.text)) {
+                        const charToCheck = fresh.character || fresh.text;
+                        for (let i = 0; i < charToCheck.length; i++) {
+                            if (charToCheck.charCodeAt(i) > 1000) {
+                                console.warn(`[SYNC-FILTER] Excluded fresh card "${charToCheck}" from EN session.`);
+                                return false; // REMOVE this card from selection entirely
+                            }
+                        }
+                    }
+
                     if (fresh && fresh.examples && fresh.examples.length > 0) {
                         const mappedExamples = Array.isArray(fresh.examples) ? fresh.examples.map((ex: any) =>
                             typeof ex === 'string' ? { chinese: ex, english: '' } : ex
                         ) : [];
                         console.log(`[SESSION] Found updated examples for ${sel.character}`);
+
+                        // Mutate the object in place or return new one (map expects return)
+                        // But since we are inside a filter that doesn't map, we need to handle this differently.
+                        // Actually, 'selection' was being .map()-ed before. I am changing to .filter() and will map afterwards or do a reduce.
+                        // Wait, complex logic change. Let's revert to map but filter explicitly after.
+                        return true;
+                    }
+                    return true;
+                }).map(sel => {
+                    const fresh = freshWords.find((w: any) => w.id === sel.id);
+                    if (fresh && fresh.examples && fresh.examples.length > 0) {
+                        const mappedExamples = Array.isArray(fresh.examples) ? fresh.examples.map((ex: any) =>
+                            typeof ex === 'string' ? { chinese: ex, english: '' } : ex
+                        ) : [];
                         return { ...sel, examples: mappedExamples };
                     }
                     return sel;
@@ -827,7 +915,7 @@ const App: React.FC = () => {
                             user ? (
                                 <ProfileGuard
                                     profiles={profiles}
-                                    isLoading={isLoading || isInitializing || isProfilesLoading}
+                                    isLoading={isInitializing || isProfilesLoading}
                                     currentProfile={currentProfile}
                                     onProfileSwitch={handleProfileSync}
                                 >
@@ -864,7 +952,7 @@ const App: React.FC = () => {
                             user ? (
                                 <ProfileGuard
                                     profiles={profiles}
-                                    isLoading={isLoading || isInitializing || isProfilesLoading}
+                                    isLoading={isInitializing || isProfilesLoading}
                                     currentProfile={currentProfile}
                                     onProfileSwitch={handleProfileSync}
                                 >
@@ -890,7 +978,7 @@ const App: React.FC = () => {
                             user ? (
                                 <ProfileGuard
                                     profiles={profiles}
-                                    isLoading={isLoading || isInitializing || isProfilesLoading}
+                                    isLoading={isInitializing || isProfilesLoading}
                                     currentProfile={currentProfile}
                                     onProfileSwitch={handleProfileSync}
                                 >
@@ -920,7 +1008,7 @@ const App: React.FC = () => {
                             user ? (
                                 <ProfileGuard
                                     profiles={profiles}
-                                    isLoading={isLoading || isInitializing || isProfilesLoading}
+                                    isLoading={isInitializing || isProfilesLoading}
                                     currentProfile={currentProfile}
                                     onProfileSwitch={handleProfileSync}
                                 >
@@ -956,7 +1044,7 @@ const App: React.FC = () => {
                             user ? (
                                 <ProfileGuard
                                     profiles={profiles}
-                                    isLoading={isLoading || isInitializing || isProfilesLoading}
+                                    isLoading={isInitializing || isProfilesLoading}
                                     currentProfile={currentProfile}
                                     onProfileSwitch={handleProfileSync}
                                 >
@@ -968,9 +1056,15 @@ const App: React.FC = () => {
                         }
                     />
 
-                    <Route path="*" element={<Navigate to={user ? "/profiles" : "/login"} replace />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </main>
+
+            <CooldownDialog
+                isOpen={cooldownDialog.isOpen}
+                message={cooldownDialog.message}
+                onClose={() => setCooldownDialog(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 };

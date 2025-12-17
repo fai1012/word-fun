@@ -39,8 +39,14 @@ export const ProfileGuard: React.FC<ProfileGuardProps> = ({
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
-                <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div>
+            <div className="flex flex-col items-center justify-center h-screen bg-cream font-rounded gap-4">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-salmon/20 rounded-full blur-xl animate-pulse"></div>
+                    <div className="relative w-16 h-16 border-4 border-coffee border-t-salmon rounded-full animate-spin"></div>
+                </div>
+                <div className="text-coffee font-black text-xl animate-pulse">
+                    Loading...
+                </div>
             </div>
         );
     }
@@ -48,7 +54,11 @@ export const ProfileGuard: React.FC<ProfileGuardProps> = ({
     // If ID is not found, we render nothing while the useEffect triggers the navigate
     // Or we could check immediately here
     const isValid = profiles.some(p => p.id === profileId);
-    if (!isValid) return null;
+
+    if (!isValid) {
+        console.warn("ProfileGuard blocking render: Profile ID not found in list", { profileId, profilesCount: profiles.length });
+        return null;
+    }
 
     return <>{children}</>;
 };
