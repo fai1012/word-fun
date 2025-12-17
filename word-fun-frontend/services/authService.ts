@@ -31,38 +31,59 @@ export const loginWithGoogle = async (idToken: string): Promise<AuthResponse> =>
     return data;
 };
 
+let refreshPromise: Promise<string | null> | null = null;
+
 export const refreshAccessToken = async (): Promise<string | null> => {
+    // 1. Check if a refresh operation is already in progress
+    if (refreshPromise) {
+        console.log("[AuthService] Refresh already in progress, waiting for existing promise...");
+        return refreshPromise;
+    }
+
     const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
     if (!refreshToken) return null;
 
-    try {
-        const response = await fetch(`${AUTH_SERVICE_URL}/refresh`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ refreshToken }),
-        });
+    // 2. Start new refresh operation and assign to promise
+    refreshPromise = (async () => {
+        try {
+            console.log("[AuthService] Starting token refresh...");
+            const response = await fetch(`${AUTH_SERVICE_URL}/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ refreshToken }),
+            });
 
-        if (!response.ok) {
-            throw new Error('Refresh failed');
-        }
-
-        const data = await response.json();
-        if (data.token) {
-            localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.token);
-            // Update refresh token if returned (rotation)
-            if (data.refreshToken) {
-                localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
+            if (!response.ok) {
+                // If the refresh failed on the server side (e.g. invalid token), verify if we should throw or just return null.
+                // Throwing here will be caught below.
+                throw new Error('Refresh failed');
             }
-            return data.token;
+
+            const data = await response.json();
+            if (data.token) {
+                localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.token);
+                // Update refresh token if returned (rotation)
+                if (data.refreshToken) {
+                    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
+                }
+                console.log("[AuthService] Token refresh successful");
+                return data.token;
+            }
+            return null;
+        } catch (error) {
+            console.error("Error refreshing token", error);
+            // Clear tokens if refresh fails?
+            localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+            localStorage.removeItem('word_fun_user');
+            return null;
+        } finally {
+            // 3. Clear promise when done so next failure can try again
+            refreshPromise = null;
         }
-    } catch (error) {
-        console.error("Error refreshing token", error);
-        // Clear tokens if refresh fails?
-        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-        localStorage.removeItem('word_fun_user');
-    }
-    return null;
+    })();
+
+    return refreshPromise;
 };

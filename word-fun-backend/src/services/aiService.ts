@@ -49,6 +49,27 @@ class AIService {
         }
     }
 
+    private async callWithRetry<T>(operation: () => Promise<T>, retries = 3, initialDelay = 1000): Promise<T> {
+        for (let i = 0; i < retries; i++) {
+            try {
+                return await operation();
+            } catch (error: any) {
+                // Check if it's a 503 or 429 (Too Many Requests)
+                const isOverloaded = error?.status === 503 || error?.code === 503 || error?.message?.includes('overloaded');
+                const isRateLimited = error?.status === 429 || error?.code === 429;
+
+                if ((isOverloaded || isRateLimited) && i < retries - 1) {
+                    const delay = initialDelay * Math.pow(2, i); // Exponential backoff: 1s, 2s, 4s
+                    console.warn(`[AI] Service overloaded (503). Retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } else {
+                    throw error;
+                }
+            }
+        }
+        throw new Error("Unreachable");
+    }
+
     async generateExamplesForWords(userId: string, profileId: string, words: Word[]): Promise<void> {
         if (words.length === 0) return;
 
@@ -68,7 +89,8 @@ class AIService {
 
                 const batchCharacters = langWords.map(w => w.text);
 
-                const aiResponse = await this.client.models.generateContent({
+                // WRAP WITH RETRY
+                const aiResponse = await this.callWithRetry(() => this.client.models.generateContent({
                     model: 'gemini-2.5-flash',
                     contents: this.getPromptForLanguage(lang, batchCharacters),
                     config: {
@@ -94,27 +116,40 @@ class AIService {
                             },
                         },
                     },
-                });
+                }));
 
                 if (aiResponse.text) {
                     let cleanJson = aiResponse.text.trim();
-                    if (cleanJson.startsWith('```json')) {
-                        cleanJson = cleanJson.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-                    } else if (cleanJson.startsWith('```')) {
-                        cleanJson = cleanJson.replace(/^```\n?/, '').replace(/\n?```$/, '');
+
+                    // Strategy 1: Markdown Code Block
+                    const match = cleanJson.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+                    if (match) {
+                        cleanJson = match[1].trim();
+                    } else {
+                        // Strategy 2: Find first '[' and last ']'
+                        const firstOpen = cleanJson.indexOf('[');
+                        const lastClose = cleanJson.lastIndexOf(']');
+                        if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+                            cleanJson = cleanJson.substring(firstOpen, lastClose + 1);
+                        }
                     }
 
-                    const generatedData = JSON.parse(cleanJson) as any[];
-                    const generatedMap = new Map(generatedData.map(d => [d.character, d]));
+                    try {
+                        const generatedData = JSON.parse(cleanJson) as any[];
+                        const generatedMap = new Map(generatedData.map(d => [d.character, d]));
 
-                    for (const word of langWords) {
-                        const gen = generatedMap.get(word.text);
-                        if (gen && gen.examples && Array.isArray(gen.examples)) {
-                            await wordService.updateWord(userId, profileId, word.id, {
-                                examples: gen.examples.map((ex: any) => ({ chinese: ex.chinese, english: '' }))
-                            });
-                            console.log(`[AI] Updated examples for ${word.text} (${lang})`);
+                        for (const word of langWords) {
+                            const gen = generatedMap.get(word.text);
+                            if (gen && gen.examples && Array.isArray(gen.examples)) {
+                                await wordService.updateWord(userId, profileId, word.id, {
+                                    examples: gen.examples.map((ex: any) => ({ chinese: ex.chinese, english: '' }))
+                                });
+                                console.log(`[AI] Updated examples for ${word.text} (${lang})`);
+                            }
                         }
+                    } catch (parseError) {
+                        console.error("[AI] JSON Parse Failed. Raw Text:", aiResponse.text);
+                        console.error("[AI] Cleaned Text:", cleanJson);
                     }
                 }
             }
@@ -145,7 +180,8 @@ class AIService {
 
                 const batchCharacters = langWords.map(w => w.text);
 
-                const aiResponse = await this.client.models.generateContent({
+                // WRAP WITH RETRY
+                const aiResponse = await this.callWithRetry(() => this.client.models.generateContent({
                     model: 'gemini-2.5-flash',
                     contents: this.getPromptForLanguage(lang, batchCharacters, contextWords),
                     config: {
@@ -171,14 +207,14 @@ class AIService {
                             },
                         },
                     },
-                });
+                }));
 
                 if (aiResponse.text) {
                     let cleanJson = aiResponse.text.trim();
-                    if (cleanJson.startsWith('```json')) {
-                        cleanJson = cleanJson.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-                    } else if (cleanJson.startsWith('```')) {
-                        cleanJson = cleanJson.replace(/^```\n?/, '').replace(/\n?```$/, '');
+                    // Robust extraction: Find the code block if it exists
+                    const match = cleanJson.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+                    if (match) {
+                        cleanJson = match[1].trim();
                     }
 
                     let generatedData;
@@ -245,10 +281,11 @@ class AIService {
                 5. Output: JUST the sentence string. No JSON.`;
             }
 
-            const aiResponse = await this.client.models.generateContent({
+            // WRAP WITH RETRY
+            const aiResponse = await this.callWithRetry(() => this.client.models.generateContent({
                 model: 'gemini-2.5-flash',
                 contents: prompt,
-            });
+            }));
 
             if (aiResponse.text) {
                 return aiResponse.text.trim().replace(/^"|"$/g, '');

@@ -310,20 +310,7 @@ const App: React.FC = () => {
                 const tagMatch = c.language === lang || (!c.language && lang === 'zh');
                 if (!tagMatch) return false;
 
-                // 2. SAFETY CHECK: Content validation
-                // If we want English, strictly ensure valid English/Latin content.
-                // We'll reject anything with characters above 500 (covering basically all Chinese/Asian scripts).
-                // Standard Latin extensions go up to ~383.
-                if (lang === 'en') {
-                    // Check if any character in the string is widely out of Latin range
-                    // This is a brutal but effective filter for "English Mode"
-                    for (let i = 0; i < c.character.length; i++) {
-                        if (c.character.charCodeAt(i) > 1000) {
-                            console.warn(`[FILTER] Excluded card "${c.character}" from EN session (Code: ${c.character.charCodeAt(i)}).`);
-                            return false;
-                        }
-                    }
-                }
+
                 // If we want Chinese, ensure it's not purely ASCII (though some mixed content is allowed, usually the main char is Chinese)
                 // We'll trust the tag more for ZH, but could add checks if needed.
 
@@ -333,6 +320,14 @@ const App: React.FC = () => {
 
         console.log(`[SESSION] Starting session for lang=${lang}. Filtered pool size: ${pool.length}`);
 
+
+        if (lang === 'en' && pool.length > 0) {
+            console.log("[DEBUG] EN Pool:", pool.map(c => ({
+                char: c.character,
+                lang: c.language,
+                code: c.character.charCodeAt(0)
+            })));
+        }
 
         if (pool.length === 0) {
             alert(`No ${lang === 'zh' ? 'Chinese' : lang === 'en' ? 'English' : ''} cards available! Add some words first.`);
@@ -425,17 +420,6 @@ const App: React.FC = () => {
                 selection = selection.filter(sel => {
                     // Check fresh data for invalid content as well
                     const fresh = freshWords.find((w: any) => w.id === sel.id);
-
-                    // Re-run SAFETY CHECK for English mode if fresh data is found
-                    if (lang === 'en' && fresh && (fresh.character || fresh.text)) {
-                        const charToCheck = fresh.character || fresh.text;
-                        for (let i = 0; i < charToCheck.length; i++) {
-                            if (charToCheck.charCodeAt(i) > 1000) {
-                                console.warn(`[SYNC-FILTER] Excluded fresh card "${charToCheck}" from EN session.`);
-                                return false; // REMOVE this card from selection entirely
-                            }
-                        }
-                    }
 
                     if (fresh && fresh.examples && fresh.examples.length > 0) {
                         const mappedExamples = Array.isArray(fresh.examples) ? fresh.examples.map((ex: any) =>
