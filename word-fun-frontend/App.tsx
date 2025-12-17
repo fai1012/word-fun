@@ -157,13 +157,17 @@ const App: React.FC = () => {
                 if (savedUser) {
                     const parsedUser = JSON.parse(savedUser);
                     setUser(parsedUser);
-                    await loadAllProfiles();
+
+                    // Restore profiles for deep linking, but avoid duplicate on /profiles (handled by useEffect)
+                    if (location.pathname !== '/profiles') {
+                        await loadAllProfiles();
+                    }
 
                     if (savedProfile) {
                         const parsedProfile = JSON.parse(savedProfile);
                         setCurrentProfile(parsedProfile);
                         // Trigger background refresh of words
-                        loadWords(parsedProfile.id, false);
+                        // loadWords(parsedProfile.id, false); // REMOVED: Managed by useEffect [currentProfile]
 
                         if (location.pathname === '/') {
                             navigate(`/profiles/${parsedProfile.id}/study`);
@@ -576,7 +580,7 @@ const App: React.FC = () => {
 
             // 4. Load Profiles immediately to ensure fresh state
             console.log("Loading profiles for new session...");
-            await loadAllProfiles();
+            // await loadAllProfiles(); // REMOVED: Managed by useEffect
 
             // 5. Navigate
             navigate('/profiles');
