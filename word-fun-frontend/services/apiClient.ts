@@ -35,15 +35,13 @@ export const fetchWithAuth = async (url: string, options: FetchOptions = {}): Pr
                 headers['Authorization'] = `Bearer ${newToken}`;
                 response = await fetch(url, { ...options, headers });
             } else {
-                console.warn("[apiClient] Token refresh returned null. Redirecting to home/login.");
                 // Refresh failed (e.g. refresh token also expired)
                 // Optionally redirect to login or let the app handle the 401/403 response
                 localStorage.removeItem('word_fun_user');
                 window.location.href = '/'; // Or dispatch a logout action
             }
         } catch (error) {
-            console.error("Token refresh failed with error:", error);
-            console.warn("[apiClient] Redirecting to home/login due to refresh error.");
+            console.error("Token refresh failed:", error);
             // logout logic?
             localStorage.removeItem('word_fun_user');
             window.location.href = '/';
