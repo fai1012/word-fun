@@ -18,6 +18,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Global Request Logger
+app.use((req: Request, res: Response, next: Function) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[API] ${timestamp} | ${req.method} ${req.url}`);
+    next();
+});
+
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger';
 
@@ -41,6 +48,10 @@ import profileRoutes from './routes/profileRoutes';
 // The user request said "Update the endpoint url". 
 // I will mount it at /api/profiles as discussed in plan.
 app.use('/api/profiles', profileRoutes);
+
+import authRoutes from './routes/authRoutes';
+app.use('/api/auth', authRoutes);
+
 
 import adminRoutes from './routes/adminRoutes';
 app.use('/api/admin', adminRoutes);
