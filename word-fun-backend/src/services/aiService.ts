@@ -14,9 +14,12 @@ class AIService {
     }
 
     private getPromptForLanguage(language: 'zh' | 'en', words: string[], contextWords: string[] = []): string {
-        const contextSection = contextWords.length > 0 ? `
+        // Optimization: Limit context to 30 RANDOM words to avoid token limits/overload
+        const limitedContext = [...contextWords].sort(() => 0.5 - Math.random()).slice(0, 30);
+
+        const contextSection = limitedContext.length > 0 ? `
                 EXISTING VOCABULARY CONTEXT (Try to use these words in examples):
-                ${contextWords.join(", ")}` : '';
+                ${limitedContext.join(", ")}` : '';
 
         if (language === 'zh') {
             return `Generate flashcard content for the following Chinese words.
@@ -163,7 +166,8 @@ class AIService {
     }
 
     async generateSessionContent(words: Word[], contextWords: string[]): Promise<Word[]> {
-        console.log(`[AI] Generating session content for ${words.length} words...`);
+        const wordList = words.map(w => w.text).join(", ");
+        console.log(`[AI] Generating session content for ${words.length} words: [${wordList}]`);
 
         // Group by language to process properly
         const wordsByLang = {
@@ -241,6 +245,7 @@ class AIService {
                 }
             }
 
+            console.log(`[AI] Session generation completed for ${words.length} words.`);
             return resultWords;
 
         } catch (err) {
