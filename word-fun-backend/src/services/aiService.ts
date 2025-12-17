@@ -165,17 +165,15 @@ class AIService {
         }
     }
 
-    async generateSessionContent(words: Word[], contextWords: string[]): Promise<Word[]> {
+    async generateSessionContent(userId: string, profileId: string, words: Word[], contextWords: string[]): Promise<void> {
         const wordList = words.map(w => w.text).join(", ");
-        console.log(`[AI] Generating session content for ${words.length} words: [${wordList}]`);
+        console.log(`[AI] Generating session content (Background) for ${words.length} words: [${wordList}]`);
 
         // Group by language to process properly
         const wordsByLang = {
             zh: words.filter(w => w.language === 'zh' || !w.language), // Default to zh if missing
             en: words.filter(w => w.language === 'en')
         };
-
-        const resultWords = [...words];
 
         try {
             for (const lang of ['zh', 'en'] as const) {
@@ -230,27 +228,25 @@ class AIService {
                     }
                     const generatedMap = new Map(generatedData.map(d => [d.character, d]));
 
-                    // Update resultWords in place
-                    for (let i = 0; i < resultWords.length; i++) {
-                        if (resultWords[i].language === lang || (!resultWords[i].language && lang === 'zh')) {
-                            const gen = generatedMap.get(resultWords[i].text);
-                            if (gen) {
-                                resultWords[i] = {
-                                    ...resultWords[i],
-                                    examples: gen.examples.map((ex: any) => ({ chinese: ex.chinese, english: '' }))
-                                };
-                            }
+                    // Update matches in DB
+                    for (const word of langWords) {
+                        const gen = generatedMap.get(word.text);
+                        if (gen && gen.examples && Array.isArray(gen.examples)) {
+                            await wordService.updateWord(userId, profileId, word.id, {
+                                examples: gen.examples.map((ex: any) => ({ chinese: ex.chinese, english: '' }))
+                            });
+                            console.log(`[AI] Updated examples for ${word.text} (${lang})`);
                         }
                     }
                 }
             }
 
             console.log(`[AI] Session generation completed for ${words.length} words.`);
-            return resultWords;
+            return;
 
         } catch (err) {
             console.error("[AI] Session generation failed:", err);
-            throw err;
+            // Do not throw, as this is background
         }
     }
 
