@@ -31,16 +31,39 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
 
     const masteryRate = totalCards > 0 ? Math.round((masteredCards.length / totalCards) * 100) : 0;
 
+    // Helper to format relative time
+    const formatTimeAgo = (dateString?: Date | string) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+        if (diffInSeconds < 60) return 'just now';
+        const diffInMinutes = Math.floor(diffInSeconds / 60);
+        if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        if (diffInHours < 24) return `${diffInHours}h ago`;
+        const diffInDays = Math.floor(diffInHours / 24);
+        if (diffInDays < 7) return `${diffInDays}d ago`;
+        return date.toLocaleDateString();
+    };
+
     // Determine displayed list details
     let currentList: FlashcardData[] = [];
     if (activeTab === 'LEARNING') {
         currentList = [...learningCards].sort((a, b) => {
-            const accA = (a.correctCount || 0) / (a.revisedCount || 1);
-            const accB = (b.correctCount || 0) / (b.revisedCount || 1);
-            return accA - accB;
+            // Sort by lastReviewedAt desc, then by accuracy
+            const timeA = a.lastReviewedAt ? new Date(a.lastReviewedAt).getTime() : 0;
+            const timeB = b.lastReviewedAt ? new Date(b.lastReviewedAt).getTime() : 0;
+            return timeB - timeA;
         });
     } else if (activeTab === 'MASTERED') {
-        currentList = [...masteredCards].sort((a, b) => (b.revisedCount || 0) - (a.revisedCount || 0));
+        currentList = [...masteredCards].sort((a, b) => {
+            // Sort by lastReviewedAt desc
+            const timeA = a.lastReviewedAt ? new Date(a.lastReviewedAt).getTime() : 0;
+            const timeB = b.lastReviewedAt ? new Date(b.lastReviewedAt).getTime() : 0;
+            return timeB - timeA;
+        });
     } else {
         currentList = newCards;
     }
@@ -357,7 +380,10 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                                     ) : (
                                         <>
                                             <div className={`text-sm font-black ${colorClass}`}>{progressPercent}%</div>
-                                            <div className="text-[10px] font-bold text-coffee/30 group-hover:text-coffee/50">{card.revisedCount} reviews</div>
+                                            <div className="text-[10px] font-bold text-coffee/30 group-hover:text-coffee/50 flex flex-col items-end">
+                                                {card.lastReviewedAt && <span>Reviewed {formatTimeAgo(card.lastReviewedAt)}</span>}
+                                                <span>{card.revisedCount} reviews</span>
+                                            </div>
                                         </>
                                     )}
                                 </div>
