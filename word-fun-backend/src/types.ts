@@ -65,6 +65,7 @@ export interface Profile {
     avatarId: string; // ID or URL of the avatar
     createdAt: Date;
     stats?: Record<string, any>;
+    exp: number;
 }
 
 /**

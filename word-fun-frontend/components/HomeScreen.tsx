@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Sparkles, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Layers, Sparkles, Plus, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { getLevelInfo } from '../services/levelService';
 import { AvatarPicker, AVATAR_MAP } from './AvatarPicker';
 
 interface HomeScreenProps {
@@ -19,6 +20,7 @@ interface HomeScreenProps {
   reviewedToday?: number;
   masteredThisWeek?: number;
   reviewedThisWeek?: number;
+  exp: number;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -33,7 +35,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   masteredToday = 0,
   reviewedToday = 0,
   masteredThisWeek = 0,
-  reviewedThisWeek = 0
+  reviewedThisWeek = 0,
+  exp = 0
 }) => {
   const totalCards = cardCountZh + cardCountEn;
   const avatarSrc = avatarId ? AVATAR_MAP[avatarId] : null;
@@ -144,9 +147,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </div>
 
       {profileName && (
-        <h1 className="text-3xl font-extrabold text-slate-800 mb-4 tracking-tight">
-          Hi, {profileName}!
-        </h1>
+        <div className="flex flex-col items-center mb-6">
+          <h1 className="text-3xl font-extrabold text-slate-800 mb-2 tracking-tight">
+            Hi, {profileName}!
+          </h1>
+          {(() => {
+            const info = getLevelInfo(exp);
+            return (
+              <div className="flex flex-col items-center w-full max-w-[200px] gap-1.5">
+                <div className="flex justify-between items-end w-full px-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="bg-coffee text-cream px-2 py-0.5 rounded-lg text-xs font-black shadow-sm">LV. {info.level}</span>
+                  </div>
+                  <span className="text-[10px] font-black text-coffee/30 uppercase tracking-widest leading-none">
+                    {info.expInLevel} / {info.nextLevelThreshold}
+                  </span>
+                </div>
+                <div className="w-full h-3 bg-coffee/10 rounded-full overflow-hidden border-2 border-coffee/20 p-0.5 relative">
+                  <div
+                    className="h-full bg-gradient-to-r from-yolk to-salmon rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${(info.expInLevel / info.nextLevelThreshold) * 100}%` }}
+                  >
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
       )}
 
       {reviewedCount > 0 ? (
