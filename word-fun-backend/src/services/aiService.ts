@@ -72,7 +72,7 @@ class AIService {
                 console.log(`[AI] Generating Content for ${lang} with prompt:\n${prompt}`);
 
                 const aiResponse = await this.client.models.generateContent({
-                    model: 'gemini-2.5-flash',
+                    model: 'gemini-3-flash-preview',
                     contents: prompt,
                     config: {
                         responseMimeType: "application/json",
@@ -152,7 +152,7 @@ class AIService {
                 console.log(`[AI] Generating Session Content for ${lang} with prompt:\n${prompt}`);
 
                 const aiResponse = await this.client.models.generateContent({
-                    model: 'gemini-2.5-flash',
+                    model: 'gemini-3-flash-preview',
                     contents: prompt,
                     config: {
                         responseMimeType: "application/json",
@@ -249,7 +249,7 @@ class AIService {
             console.log(`[AI] Generating Single Example with prompt:\n${prompt}`);
 
             const aiResponse = await this.client.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-3-flash-preview',
                 contents: prompt,
             });
 
