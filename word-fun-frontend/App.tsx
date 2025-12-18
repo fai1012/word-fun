@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { FlashcardData, User, Profile } from './types';
 import { DEFAULT_CONFIG, STORAGE_KEYS } from './constants';
@@ -51,6 +51,29 @@ const App: React.FC = () => {
 
     // Data State
     const [flashcards, setFlashcards] = useState<FlashcardData[]>([]);
+
+    // Derived Statistics
+    const masteredToday = useMemo(() => {
+        const today = new Date().toDateString();
+        return flashcards.filter(c => c.masteredAt && new Date(c.masteredAt).toDateString() === today).length;
+    }, [flashcards]);
+
+    const reviewedToday = useMemo(() => {
+        const today = new Date().toDateString();
+        return flashcards.filter(c => c.lastReviewedAt && new Date(c.lastReviewedAt).toDateString() === today).length;
+    }, [flashcards]);
+
+    const masteredThisWeek = useMemo(() => {
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return flashcards.filter(c => c.masteredAt && new Date(c.masteredAt) >= sevenDaysAgo).length;
+    }, [flashcards]);
+
+    const reviewedThisWeek = useMemo(() => {
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return flashcards.filter(c => c.lastReviewedAt && new Date(c.lastReviewedAt) >= sevenDaysAgo).length;
+    }, [flashcards]);
 
     // Preferences State
     const [autoPlaySound, setAutoPlaySound] = useState(false);
@@ -897,6 +920,10 @@ const App: React.FC = () => {
                                             avatarId={currentProfile?.avatarId}
                                             masteredCount={flashcards.filter(c => (c.correctCount || 0) >= masteryThreshold).length}
                                             reviewedCount={flashcards.reduce((acc, curr) => acc + (curr.revisedCount || 0), 0)}
+                                            masteredToday={masteredToday}
+                                            reviewedToday={reviewedToday}
+                                            masteredThisWeek={masteredThisWeek}
+                                            reviewedThisWeek={reviewedThisWeek}
                                         />
                                     </div>
                                     <BottomNav
