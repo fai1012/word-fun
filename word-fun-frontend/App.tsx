@@ -19,7 +19,9 @@ import { AddWordsScreen } from './components/AddWordsScreen';
 import { BottomNav } from './components/BottomNav';
 import { SummaryScreen } from './components/SummaryScreen';
 import { PreferencesScreen } from './components/PreferencesScreen';
-import { ArrowLeft, Check, X, Repeat, Trophy, Home, RotateCcw, Star } from 'lucide-react';
+import { getLevelInfo, EXP_SOURCES } from './services/levelService';
+import { ArrowLeft, Check, X, Repeat, Trophy, Home, RotateCcw, Star, Zap } from 'lucide-react';
+import { updateProfile } from './services/profileService';
 
 // Helper function for unbiased Fisher-Yates shuffle
 function shuffleArray<T>(array: T[]): T[] {
@@ -91,6 +93,33 @@ const App: React.FC = () => {
     // Stats Tracking for Session
     const [revisionRoundCount, setRevisionRoundCount] = useState(0);
     const [pendingScore, setPendingScore] = useState<boolean | null>(null);
+
+    // EXP tracking for Session
+    const [sessionExpBreakdown, setSessionExpBreakdown] = useState({
+        reviewedCount: 0,
+        gotItCount: 0,
+        masteredCount: 0
+    });
+    const [animationStage, setAnimationStage] = useState(0);
+
+    useEffect(() => {
+        if (isSessionCompleted) {
+            const timer1 = setTimeout(() => setAnimationStage(1), 500);
+            const timer2 = setTimeout(() => setAnimationStage(2), 1000);
+            const timer3 = setTimeout(() => setAnimationStage(3), 1500);
+            const timer4 = setTimeout(() => setAnimationStage(4), 2000);
+            const timer5 = setTimeout(() => setAnimationStage(5), 2500);
+            const timer6 = setTimeout(() => setAnimationStage(6), 3300);
+            return () => {
+                clearTimeout(timer1);
+                clearTimeout(timer2);
+                clearTimeout(timer3);
+                clearTimeout(timer4);
+                clearTimeout(timer5);
+                clearTimeout(timer6);
+            };
+        }
+    }, [isSessionCompleted]);
 
     // Calculate stars based on performance
     const calculateStars = () => {
@@ -504,6 +533,14 @@ const App: React.FC = () => {
         setRevisionRoundCount(0);
         setIsSessionCompleted(false);
 
+        // Reset EXP breakdown
+        setSessionExpBreakdown({
+            reviewedCount: 0,
+            gotItCount: 0,
+            masteredCount: 0
+        });
+        setAnimationStage(0);
+
         if (currentProfile) {
             navigate(`/profiles/${currentProfile.id}/session`);
         }
@@ -534,6 +571,17 @@ const App: React.FC = () => {
         // Check for new mastery
         if ((currentCard.correctCount || 0) < masteryThreshold && newCorrect >= masteryThreshold) {
             masteredAt = now;
+        }
+
+        // EXP Logic
+        if (!isRevisionMode) {
+            setSessionExpBreakdown(prev => ({
+                reviewedCount: prev.reviewedCount + 1,
+                gotItCount: correct ? prev.gotItCount + 1 : prev.gotItCount,
+                masteredCount: ((currentCard.correctCount || 0) < masteryThreshold && newCorrect >= masteryThreshold)
+                    ? prev.masteredCount + 1
+                    : prev.masteredCount
+            }));
         }
 
         // Sync to backend if we have profile and word ID
@@ -601,8 +649,38 @@ const App: React.FC = () => {
             setRevisionRoundCount(prev => prev + 1);
             setIsCardFlipped(false);
         } else {
-            setIsCardFlipped(false);
-            setIsSessionCompleted(true);
+            handleSessionComplete();
+        }
+    };
+
+    const handleSessionComplete = async () => {
+        setIsCardFlipped(false);
+        setIsSessionCompleted(true);
+
+        if (!currentProfile) return;
+
+        // Finalize EXP Gain
+        const gain = (sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW) +
+            (sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT) +
+            (sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED);
+
+        const newTotalExp = (currentProfile.exp || 0) + gain;
+
+        try {
+            // Update Backend
+            if (user && user.id) {
+                await updateProfile(currentProfile.id, { exp: newTotalExp });
+            }
+
+            // Update Local State
+            const updatedProfile = { ...currentProfile, exp: newTotalExp };
+            setCurrentProfile(updatedProfile);
+            setProfiles(prev => prev.map(p => p.id === updatedProfile.id ? updatedProfile : p));
+            localStorage.setItem('word_fun_profile', JSON.stringify(updatedProfile));
+
+            console.log(`[EXP] Gained ${gain} EXP. New total: ${newTotalExp}`);
+        } catch (err) {
+            console.error("Failed to save EXP gain", err);
         }
     };
 
@@ -722,13 +800,90 @@ const App: React.FC = () => {
                         })}
                     </div>
 
-                    <div className="text-xs text-slate-400 font-medium mb-10 uppercase tracking-wide">
+                    <div className="text-xs text-slate-400 font-medium mb-4 uppercase tracking-wide">
                         {revisionRoundCount === 0 ? "Perfect Run!" : `${revisionRoundCount} Revision Round${revisionRoundCount !== 1 ? 's' : ''}`}
                     </div>
 
+                    <div className="w-full bg-white/50 border-2 border-coffee/10 rounded-2xl p-4 mb-6 space-y-3 shadow-sm">
+                        {animationStage >= 1 && (
+                            <div className="flex justify-between items-center animate-in slide-in-from-left duration-300">
+                                <span className="text-xs font-black text-coffee uppercase opacity-60">Reviewed Words × {sessionExpBreakdown.reviewedCount}</span>
+                                <span className="font-black text-matcha">+{sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW}</span>
+                            </div>
+                        )}
+                        {animationStage >= 2 && (
+                            <div className="flex justify-between items-center animate-in slide-in-from-left duration-300">
+                                <span className="text-xs font-black text-coffee uppercase opacity-60">First Try Bonus × {sessionExpBreakdown.gotItCount}</span>
+                                <span className="font-black text-matcha">+{sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT}</span>
+                            </div>
+                        )}
+                        {animationStage >= 3 && (
+                            <div className="flex justify-between items-center animate-in slide-in-from-left duration-300">
+                                <span className="text-xs font-black text-coffee uppercase opacity-60">Newly Mastered × {sessionExpBreakdown.masteredCount}</span>
+                                <span className="font-black text-matcha">+{sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED}</span>
+                            </div>
+                        )}
+                        {animationStage >= 4 && (
+                            <div className="pt-2 border-t border-coffee/10 flex justify-between items-center font-black animate-in fade-in duration-500">
+                                <span className="text-coffee">Total Exp Gained</span>
+                                <div className="flex items-center gap-1 text-yolk">
+                                    <Zap className="w-4 h-4 fill-yolk stroke-coffee" />
+                                    <span>+{(sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW) + (sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT) + (sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED)}</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {animationStage >= 5 && currentProfile && (
+                        <div className="w-full mb-8 space-y-2 animate-in fade-in duration-1000">
+                            {(() => {
+                                const totalGained = (sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW) + (sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT) + (sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED);
+                                const oldExp = currentProfile.exp - totalGained;
+                                const oldInfo = getLevelInfo(oldExp);
+                                const newInfo = getLevelInfo(currentProfile.exp);
+                                const isLevelUp = newInfo.level > oldInfo.level;
+
+                                // Which info to display?
+                                // Stage 5: show old
+                                // Stage 6+: show new (animation triggers)
+                                const showFinalValue = animationStage >= 6;
+                                const displayInfo = showFinalValue ? newInfo : oldInfo;
+                                const displayIsLevelUp = showFinalValue && isLevelUp;
+
+                                return (
+                                    <>
+                                        <div className="flex justify-between items-end mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-coffee text-cream px-2 py-0.5 rounded-lg text-xs font-black transition-all duration-500">
+                                                    LV. {displayInfo.level}
+                                                </span>
+                                                {displayIsLevelUp && (
+                                                    <span className="text-salmon font-black text-sm animate-bounce">LEVEL UP! 🎊</span>
+                                                )}
+                                            </div>
+                                            <span className="text-[10px] font-black text-coffee/40 uppercase tracking-widest transition-all duration-500">
+                                                {displayInfo.expInLevel} / {displayInfo.nextLevelThreshold} EXP
+                                            </span>
+                                        </div>
+                                        <div className="w-full h-4 bg-coffee/10 rounded-full overflow-hidden border-2 border-coffee/20 p-0.5 relative shadow-inner">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-yolk to-salmon rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(255,179,0,0.4)]"
+                                                style={{ width: `${(displayInfo.expInLevel / displayInfo.nextLevelThreshold) * 100}%` }}
+                                            >
+                                                <div className="absolute top-0 right-0 w-full h-1/2 bg-white/20 rounded-full"></div>
+                                            </div>
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    )}
+
+
+
                     <button
                         onClick={() => navigate(currentProfile ? `/profiles/${currentProfile.id}/study` : '/profiles')}
-                        className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-300 hover:bg-slate-800 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
+                        className={`w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-300 hover:bg-slate-800 hover:-translate-y-1 transition-all flex items-center justify-center gap-2 ${animationStage < 6 ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-in fade-in slide-in-from-bottom-4 duration-500'}`}
                     >
                         <Home className="w-5 h-5" />
                         Back to Home
@@ -924,6 +1079,7 @@ const App: React.FC = () => {
                                             reviewedToday={reviewedToday}
                                             masteredThisWeek={masteredThisWeek}
                                             reviewedThisWeek={reviewedThisWeek}
+                                            exp={currentProfile?.exp || 0}
                                         />
                                     </div>
                                     <BottomNav

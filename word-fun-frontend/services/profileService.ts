@@ -82,7 +82,7 @@ export const deleteProfile = async (profileId: string): Promise<void> => {
     }
 };
 
-export const updateProfile = async (profileId: string, updates: { displayName?: string; avatarId?: string }): Promise<Profile> => {
+export const updateProfile = async (profileId: string, updates: { displayName?: string; avatarId?: string; exp?: number }): Promise<Profile> => {
     const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/${profileId}`, {
         method: 'PATCH',
         body: JSON.stringify(updates)

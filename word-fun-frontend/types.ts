@@ -25,6 +25,7 @@ export interface Profile {
     learningEn: number;
     masteredEn: number;
   };
+  exp: number;
 }
 
 export interface ProfileSyncResponse {
