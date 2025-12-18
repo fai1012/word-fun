@@ -40,6 +40,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   // Carousel State
   const [activeSlide, setActiveSlide] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
   const totalSlides = 3;
 
   useEffect(() => {
@@ -73,14 +74,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }
   ];
 
-  const handlePrev = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handlePrev = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setActiveSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
   };
 
-  const handleNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleNext = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setActiveSlide((prev) => (prev + 1) % totalSlides);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStart === null) return;
+
+    const touchEnd = e.changedTouches[0].clientX;
+    const diff = touchStart - touchEnd;
+    const threshold = 50;
+
+    if (diff > threshold) {
+      handleNext();
+    } else if (diff < -threshold) {
+      handlePrev();
+    }
+
+    setTouchStart(null);
   };
 
   return (
@@ -130,12 +151,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       {reviewedCount > 0 ? (
         <div className="mb-6 w-full px-2">
-          <div className="relative overflow-hidden bg-white/90 p-5 rounded-4xl shadow-[6px_6px_0px_0px_rgba(93,64,55,0.2)] border-4 border-coffee group/carousel min-h-[170px] flex flex-col justify-between">
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            className="relative overflow-hidden bg-white/90 p-5 rounded-4xl shadow-[6px_6px_0px_0px_rgba(93,64,55,0.2)] border-4 border-coffee group/carousel min-h-[170px] flex flex-col justify-between cursor-grab active:cursor-grabbing"
+          >
 
             {/* Slide Content */}
-            <div className="relative flex-1 overflow-hidden">
+            <div className="relative flex-1 overflow-hidden pointer-events-none">
               <div
-                className="flex transition-transform duration-500 ease-in-out h-full"
+                className="flex transition-transform duration-300 ease-in-out h-full"
                 style={{ transform: `translateX(-${activeSlide * 100}%)` }}
               >
                 {slideData.map((slide, i) => (
@@ -163,13 +188,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             {/* Navigation Buttons */}
             <button
               onClick={handlePrev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-cream text-coffee border-2 border-coffee opacity-0 group-hover/carousel:opacity-100 transition-all hover:bg-salmon hover:text-white shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none z-10"
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-cream text-coffee border-2 border-coffee transition-all hover:bg-salmon hover:text-white shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] active:shadow-none z-10"
             >
               <ChevronLeft className="w-4 h-4 stroke-[3]" />
             </button>
             <button
               onClick={handleNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-cream text-coffee border-2 border-coffee opacity-0 group-hover/carousel:opacity-100 transition-all hover:bg-salmon hover:text-white shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none z-10"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-cream text-coffee border-2 border-coffee transition-all hover:bg-salmon hover:text-white shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] active:shadow-none z-10"
             >
               <ChevronRight className="w-4 h-4 stroke-[3]" />
             </button>
