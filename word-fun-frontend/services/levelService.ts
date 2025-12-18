@@ -13,9 +13,9 @@ export interface LevelInfo {
  * Increment between gaps = 20
  */
 export const getLevelInfo = (totalExp: number): LevelInfo => {
-    let level = 1;
+    let level = 0;
     let expRemaining = totalExp;
-    let nextThreshold = 100; // Gap to reach L2
+    let nextThreshold = 100; // Gap to reach L1
     let cumulative = 0;
 
     while (expRemaining >= nextThreshold) {
@@ -23,13 +23,13 @@ export const getLevelInfo = (totalExp: number): LevelInfo => {
         cumulative += nextThreshold;
         level++;
         // Pattern: Gap to next level increases by 30 once, then 20 thereafter
-        // L1->L2: 100 (Total 100)
-        // L2->L3: 130 (Total 230)
-        // L3->L4: 150 (Total 380)
-        if (level === 2) {
+        // L0->L1: 100 (Total 100)
+        // L1->L2: 130 (Total 230)
+        // L2->L3: 150 (Total 380)
+        if (level === 1) {
             nextThreshold = 130;
         } else {
-            nextThreshold = 130 + ((level - 2) * 20);
+            nextThreshold = 130 + ((level - 1) * 20);
         }
     }
 

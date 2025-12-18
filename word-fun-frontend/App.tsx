@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { FlashcardData, User, Profile } from './types';
 import { DEFAULT_CONFIG, STORAGE_KEYS } from './constants';
@@ -100,16 +100,19 @@ const App: React.FC = () => {
         gotItCount: 0,
         masteredCount: 0
     });
+    const sessionBreakdownRef = useRef({ reviewedCount: 0, gotItCount: 0, masteredCount: 0 });
+    const [sessionExpSnapshot, setSessionExpSnapshot] = useState<{ oldExp: number; newExp: number } | null>(null);
+    const [animatedTotalExp, setAnimatedTotalExp] = useState(0);
     const [animationStage, setAnimationStage] = useState(0);
 
     useEffect(() => {
         if (isSessionCompleted) {
-            const timer1 = setTimeout(() => setAnimationStage(1), 500);
-            const timer2 = setTimeout(() => setAnimationStage(2), 1000);
-            const timer3 = setTimeout(() => setAnimationStage(3), 1500);
-            const timer4 = setTimeout(() => setAnimationStage(4), 2000);
-            const timer5 = setTimeout(() => setAnimationStage(5), 2500);
-            const timer6 = setTimeout(() => setAnimationStage(6), 3300);
+            const timer1 = setTimeout(() => setAnimationStage(1), 400);
+            const timer2 = setTimeout(() => setAnimationStage(2), 800);
+            const timer3 = setTimeout(() => setAnimationStage(3), 1200);
+            const timer4 = setTimeout(() => setAnimationStage(4), 1600);
+            const timer5 = setTimeout(() => setAnimationStage(5), 2000);
+            const timer6 = setTimeout(() => setAnimationStage(6), 2800);
             return () => {
                 clearTimeout(timer1);
                 clearTimeout(timer2);
@@ -118,8 +121,43 @@ const App: React.FC = () => {
                 clearTimeout(timer5);
                 clearTimeout(timer6);
             };
+        } else {
+            setAnimationStage(0);
         }
     }, [isSessionCompleted]);
+
+    // EXP Count-up Animation Effect
+    useEffect(() => {
+        if (animationStage === 5 && sessionExpSnapshot) {
+            setAnimatedTotalExp(sessionExpSnapshot.oldExp);
+        } else if (animationStage === 6 && sessionExpSnapshot) {
+            const start = sessionExpSnapshot.oldExp;
+            const end = sessionExpSnapshot.newExp;
+            const duration = 1000; // Match duration-1000 in CSS
+            const startTime = performance.now();
+
+            let animationFrame: number;
+            const animate = (currentTime: number) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Ease out cubic for a smoother finish
+                const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+                const currentValue = Math.floor(start + (end - start) * easedProgress);
+                setAnimatedTotalExp(currentValue);
+
+                if (progress < 1) {
+                    animationFrame = requestAnimationFrame(animate);
+                } else {
+                    setAnimatedTotalExp(end);
+                }
+            };
+
+            animationFrame = requestAnimationFrame(animate);
+            return () => cancelAnimationFrame(animationFrame);
+        }
+    }, [animationStage, sessionExpSnapshot]);
 
     // Calculate stars based on performance
     const calculateStars = () => {
@@ -533,12 +571,14 @@ const App: React.FC = () => {
         setRevisionRoundCount(0);
         setIsSessionCompleted(false);
 
-        // Reset EXP breakdown
+        // Reset EXP Tracking for NEW session
         setSessionExpBreakdown({
             reviewedCount: 0,
             gotItCount: 0,
             masteredCount: 0
         });
+        sessionBreakdownRef.current = { reviewedCount: 0, gotItCount: 0, masteredCount: 0 };
+        setSessionExpSnapshot(null);
         setAnimationStage(0);
 
         if (currentProfile) {
@@ -575,13 +615,21 @@ const App: React.FC = () => {
 
         // EXP Logic
         if (!isRevisionMode) {
+            const isJustMastered = (currentCard.correctCount || 0) < masteryThreshold && newCorrect >= masteryThreshold;
+
+            // Update state for UI
             setSessionExpBreakdown(prev => ({
                 reviewedCount: prev.reviewedCount + 1,
                 gotItCount: correct ? prev.gotItCount + 1 : prev.gotItCount,
-                masteredCount: ((currentCard.correctCount || 0) < masteryThreshold && newCorrect >= masteryThreshold)
-                    ? prev.masteredCount + 1
-                    : prev.masteredCount
+                masteredCount: isJustMastered ? prev.masteredCount + 1 : prev.masteredCount
             }));
+
+            // Update ref for immediate logic use in handleSessionComplete
+            sessionBreakdownRef.current = {
+                reviewedCount: sessionBreakdownRef.current.reviewedCount + 1,
+                gotItCount: correct ? sessionBreakdownRef.current.gotItCount + 1 : sessionBreakdownRef.current.gotItCount,
+                masteredCount: isJustMastered ? sessionBreakdownRef.current.masteredCount + 1 : sessionBreakdownRef.current.masteredCount
+            };
         }
 
         // Sync to backend if we have profile and word ID
@@ -654,17 +702,29 @@ const App: React.FC = () => {
     };
 
     const handleSessionComplete = async () => {
+        if (!currentProfile) {
+            setIsCardFlipped(false);
+            setAnimationStage(0);
+            setIsSessionCompleted(true);
+            return;
+        }
+
+        // Finalize EXP Gain using the REF (avoiding stale state)
+        const stats = sessionBreakdownRef.current;
+        const gain = (stats.reviewedCount * EXP_SOURCES.REVIEW) +
+            (stats.gotItCount * EXP_SOURCES.GOT_IT) +
+            (stats.masteredCount * EXP_SOURCES.MASTERED);
+
+        const oldExp = currentProfile.exp || 0;
+        const newTotalExp = oldExp + gain;
+
+        // Capture snapshot for results screen animation BEFORE triggering completion
+        setSessionExpSnapshot({ oldExp, newExp: newTotalExp });
+
+        // Reset and trigger UI
         setIsCardFlipped(false);
+        setAnimationStage(0);
         setIsSessionCompleted(true);
-
-        if (!currentProfile) return;
-
-        // Finalize EXP Gain
-        const gain = (sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW) +
-            (sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT) +
-            (sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED);
-
-        const newTotalExp = (currentProfile.exp || 0) + gain;
 
         try {
             // Update Backend
@@ -834,21 +894,17 @@ const App: React.FC = () => {
                         )}
                     </div>
 
-                    {animationStage >= 5 && currentProfile && (
+                    {animationStage >= 5 && sessionExpSnapshot && (
                         <div className="w-full mb-8 space-y-2 animate-in fade-in duration-1000">
                             {(() => {
-                                const totalGained = (sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW) + (sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT) + (sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED);
-                                const oldExp = currentProfile.exp - totalGained;
+                                const { oldExp, newExp } = sessionExpSnapshot;
                                 const oldInfo = getLevelInfo(oldExp);
-                                const newInfo = getLevelInfo(currentProfile.exp);
-                                const isLevelUp = newInfo.level > oldInfo.level;
+                                const newInfo = getLevelInfo(newExp);
 
-                                // Which info to display?
-                                // Stage 5: show old
-                                // Stage 6+: show new (animation triggers)
-                                const showFinalValue = animationStage >= 6;
-                                const displayInfo = showFinalValue ? newInfo : oldInfo;
-                                const displayIsLevelUp = showFinalValue && isLevelUp;
+                                // Use the animated value for display
+                                const displayInfo = getLevelInfo(animatedTotalExp);
+                                const isLevelUp = newInfo.level > oldInfo.level;
+                                const displayIsLevelUp = displayInfo.level > oldInfo.level;
 
                                 return (
                                     <>
