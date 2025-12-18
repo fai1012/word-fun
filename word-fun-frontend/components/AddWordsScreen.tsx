@@ -69,7 +69,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                         <textarea
                             value={text}
                             onChange={(e) => setText(e.target.value)}
-                            placeholder={`apple\nbanana\ncherry`}
+                            placeholder={`飛機\n救護員\nkangaroo\n姐姐`}
                             className="w-full h-64 p-4 rounded-2xl bg-coffee/5 border-2 border-coffee/10 focus:border-salmon focus:outline-none focus:ring-4 focus:ring-salmon/20 text-coffee font-bold font-mono text-base resize-none placeholder:text-coffee/20 transition-all"
                             disabled={isSubmitting}
                         />
