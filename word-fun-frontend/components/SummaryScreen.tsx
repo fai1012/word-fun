@@ -313,7 +313,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                 <button
                     onClick={() => setActiveTab('MASTERED')}
                     className={`flex-1 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${activeTab === 'MASTERED'
-                        ? 'bg-white text-matcha shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]'
+                        ? 'bg-white text-matcha-dark shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]'
                         : 'text-coffee/50 hover:text-coffee/70'
                         }`}
                 >
@@ -323,7 +323,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                 <button
                     onClick={() => setActiveTab('LEARNING')}
                     className={`flex-1 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${activeTab === 'LEARNING'
-                        ? 'bg-white text-yolk shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]'
+                        ? 'bg-white text-yolk-dark shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]'
                         : 'text-coffee/50 hover:text-coffee/70'
                         }`}
                 >
@@ -362,8 +362,8 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                         let colorClass = 'text-coffee/40';
                         if (activeTab !== 'NEW') {
                             if (progressPercent < 50) colorClass = 'text-salmon';
-                            else if (progressPercent < 80) colorClass = 'text-yolk';
-                            else colorClass = 'text-matcha';
+                            else if (progressPercent < 80) colorClass = 'text-yolk-dark';
+                            else colorClass = 'text-matcha-dark';
                         }
 
                         return (

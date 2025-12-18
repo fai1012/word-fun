@@ -808,25 +808,25 @@ const App: React.FC = () => {
                         {animationStage >= 1 && (
                             <div className="flex justify-between items-center animate-in slide-in-from-left duration-300">
                                 <span className="text-xs font-black text-coffee uppercase opacity-60">Reviewed Words × {sessionExpBreakdown.reviewedCount}</span>
-                                <span className="font-black text-matcha">+{sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW}</span>
+                                <span className="font-black text-matcha-dark">+{sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW}</span>
                             </div>
                         )}
                         {animationStage >= 2 && (
                             <div className="flex justify-between items-center animate-in slide-in-from-left duration-300">
                                 <span className="text-xs font-black text-coffee uppercase opacity-60">First Try Bonus × {sessionExpBreakdown.gotItCount}</span>
-                                <span className="font-black text-matcha">+{sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT}</span>
+                                <span className="font-black text-matcha-dark">+{sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT}</span>
                             </div>
                         )}
                         {animationStage >= 3 && (
                             <div className="flex justify-between items-center animate-in slide-in-from-left duration-300">
                                 <span className="text-xs font-black text-coffee uppercase opacity-60">Newly Mastered × {sessionExpBreakdown.masteredCount}</span>
-                                <span className="font-black text-matcha">+{sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED}</span>
+                                <span className="font-black text-matcha-dark">+{sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED}</span>
                             </div>
                         )}
                         {animationStage >= 4 && (
                             <div className="pt-2 border-t border-coffee/10 flex justify-between items-center font-black animate-in fade-in duration-500">
                                 <span className="text-coffee">Total Exp Gained</span>
-                                <div className="flex items-center gap-1 text-yolk">
+                                <div className="flex items-center gap-1 text-yolk-dark">
                                     <Zap className="w-4 h-4 fill-yolk stroke-coffee" />
                                     <span>+{(sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW) + (sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT) + (sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED)}</span>
                                 </div>

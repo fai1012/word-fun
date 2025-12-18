@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User as UserIcon, Plus, ChevronRight, Pencil, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Profile, User } from '../types';
 import { createProfile, deleteProfile, updateProfile } from '../services/profileService';
+import { getLevelInfo } from '../services/levelService';
 import { AvatarPicker, AVATAR_MAP } from './AvatarPicker';
 
 interface ProfileSelectionPageProps {
@@ -173,7 +174,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                 <div className="flex-1 min-w-0">
                                     <h3 className="font-black text-coffee text-xl truncate">{profile.displayName}</h3>
                                     <div className="flex items-center text-xs text-coffee/60 mt-1 gap-2 font-bold">
-                                        <span className="bg-coffee/5 px-2 py-0.5 rounded-lg border border-coffee/10">Lv {1 + Math.floor((profile.stats?.masteredWords || 0) / 10)}</span>
+                                        <span className="bg-coffee/5 px-2 py-0.5 rounded-lg border border-coffee/10">Lv {getLevelInfo(profile.exp || 0).level}</span>
 
                                         {(profile.stats?.totalZh || 0) > 0 && (
                                             <span className="flex items-baseline gap-0.5">
