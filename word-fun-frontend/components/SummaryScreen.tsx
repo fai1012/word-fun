@@ -372,6 +372,20 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                                     <div className={`min-w-[3rem] h-12 rounded-xl flex items-center justify-center text-xl font-bold text-coffee font-noto-serif-hk whitespace-nowrap shadow-inner ${activeTab === 'NEW' ? 'bg-coffee/5' : 'bg-cream border-2 border-coffee/10'}`}>
                                         {card.character}
                                     </div>
+                                    {card.tags && card.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1">
+                                            {card.tags.slice(0, 3).map(tag => (
+                                                <span key={tag} className="px-1.5 py-0.5 bg-coffee/5 text-coffee/50 text-[10px] font-bold rounded-lg border border-coffee/5">
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                            {card.tags.length > 3 && (
+                                                <span className="px-1.5 py-0.5 text-coffee/30 text-[10px] font-bold">
+                                                    +{card.tags.length - 3}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="text-right shrink-0">
