@@ -1140,13 +1140,13 @@ const App: React.FC = () => {
                                 >
                                     <div className="flex-1 overflow-y-auto">
                                         <HomeScreen
-                                            profileId={currentProfile!.id}
+                                            profileId={currentProfile?.id || ''}
                                             cardCountZh={flashcards.filter(c => c.language === 'zh' || !c.language).length}
                                             cardCountEn={flashcards.filter(c => c.language === 'en').length}
                                             onStart={startStudySession}
-                                            onManage={() => navigate(`/profiles/${currentProfile!.id}/add`)}
+                                            onManage={() => navigate(`/profiles/${currentProfile?.id}/add`)}
                                             isSyncing={isLoading}
-                                            onSync={() => loadWords(currentProfile!.id)}
+                                            onSync={() => currentProfile && loadWords(currentProfile.id)}
                                             profileName={currentProfile?.displayName}
                                             avatarId={currentProfile?.avatarId}
                                             masteredCount={flashcards.filter(c => (c.correctCount || 0) >= masteryThreshold).length}
