@@ -127,6 +127,28 @@ class WordController {
             res.status(500).json({ error: 'Internal server error' });
         }
     }
+    /**
+     * Delete a word.
+     * DELETE /api/profiles/:profileId/words/:wordId
+     */
+    async deleteWord(req: AuthenticatedRequest, res: Response): Promise<void> {
+        try {
+            const user = req.user as JwtPayload;
+            const userId = user.id || user.sub;
+            const { profileId, wordId } = req.params;
+
+            if (!profileId || !wordId) {
+                res.status(400).json({ error: 'Missing parameters' });
+                return;
+            }
+
+            await wordService.deleteWord(userId, profileId, wordId);
+            res.status(200).json({ status: 'deleted' });
+        } catch (error) {
+            console.error('Error deleting word:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
 }
 
 export const wordController = new WordController();

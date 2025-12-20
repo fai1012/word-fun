@@ -153,25 +153,27 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                             </div>
 
                             {showAutocomplete && (tagInput || filteredAutocompleteTags.length > 0) && (
-                                <div className="absolute z-10 w-full mt-2 bg-white border-4 border-coffee rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                    <div className="max-h-48 overflow-y-auto">
-                                        {filteredAutocompleteTags.map(tag => (
-                                            <button
-                                                key={tag}
-                                                onClick={() => handleAddTag(tag)}
-                                                className="w-full px-4 py-3 text-left hover:bg-matcha/10 text-coffee font-bold text-sm transition-colors border-b-2 border-coffee/5 last:border-none flex items-center gap-2"
-                                            >
-                                                <Tag className="w-4 h-4 opacity-40" />
-                                                {tag}
-                                            </button>
-                                        ))}
-                                    </div>
+                                <div className="absolute z-10 w-full mt-2 bg-white border-2 border-coffee rounded-2xl shadow-xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                                    {filteredAutocompleteTags.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mb-2 max-h-32 overflow-y-auto">
+                                            {filteredAutocompleteTags.map(tag => (
+                                                <button
+                                                    key={tag}
+                                                    onClick={() => handleAddTag(tag)}
+                                                    className="px-3 py-1.5 bg-matcha/10 hover:bg-matcha/20 text-coffee font-bold text-xs rounded-full border border-matcha/20 transition-all flex items-center gap-1.5"
+                                                >
+                                                    <Tag className="w-3 h-3 opacity-50" />
+                                                    {tag}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                     {tagInput && !availableTags.includes(tagInput) && (
                                         <button
                                             onClick={() => handleAddTag(tagInput)}
-                                            className="w-full px-4 py-4 text-left bg-salmon/5 hover:bg-salmon/10 text-salmon font-black text-sm transition-colors flex items-center gap-2 border-t-4 border-coffee"
+                                            className="w-full px-3 py-2 text-left bg-salmon/5 hover:bg-salmon/10 text-salmon font-black text-xs rounded-xl transition-colors flex items-center gap-2"
                                         >
-                                            <Plus className="w-4 h-4" />
+                                            <Plus className="w-3 h-3" />
                                             Create tag "{tagInput}"
                                         </button>
                                     )}

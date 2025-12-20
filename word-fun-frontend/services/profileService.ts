@@ -121,3 +121,15 @@ export const fetchProfileTags = async (profileId: string): Promise<string[]> => 
 
     return response.json();
 };
+
+export const deleteWord = async (profileId: string, wordId: string): Promise<void> => {
+    const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/${profileId}/words/${wordId}`, {
+        method: 'DELETE',
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to delete word');
+    }
+};
+
+

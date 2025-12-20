@@ -217,6 +217,29 @@ router.patch('/:profileId/words/:wordId', wordController.updateWord.bind(wordCon
 
 /**
  * @swagger
+ * /api/profiles/{profileId}/words/{wordId}:
+ *   delete:
+ *     summary: Delete a word
+ *     tags: [Profiles]
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: wordId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Word deleted successfully.
+ */
+router.delete('/:profileId/words/:wordId', wordController.deleteWord.bind(wordController));
+
+/**
+ * @swagger
  * /api/profiles/{profileId}/words/batch:
  *   post:
  *     summary: Add multiple words at once

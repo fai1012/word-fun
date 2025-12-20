@@ -172,6 +172,11 @@ class WordService {
 
         return { added: addedCount, skipped: skippedCount };
     }
+
+    async deleteWord(userId: string, profileId: string, wordId: string): Promise<void> {
+        const wordRef = this.getCollection(userId, profileId).doc(wordId);
+        await wordRef.delete();
+    }
 }
 
 export const wordService = new WordService();

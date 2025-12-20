@@ -8,7 +8,7 @@ import {
     generateSingleExample
 } from './services/geminiService';
 import { loginWithGoogle } from './services/authService';
-import { fetchProfileWords, updateWord, syncAndGetProfiles, createProfile } from './services/profileService';
+import { fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles, createProfile } from './services/profileService';
 import { HomeScreen } from './components/HomeScreen';
 import { Flashcard } from './components/Flashcard';
 import { SignInPage } from './components/SignInPage';
@@ -1182,7 +1182,29 @@ const App: React.FC = () => {
                                     onProfileSwitch={handleProfileSync}
                                 >
                                     <div className="flex-1 overflow-y-auto">
-                                        <SummaryScreen cards={flashcards} masteryThreshold={masteryThreshold} />
+                                        <SummaryScreen
+                                            profileId={currentProfile!.id}
+                                            cards={flashcards}
+                                            masteryThreshold={masteryThreshold}
+                                            onUpdateWord={async (wordId: string, updates: any) => {
+                                                // Optimistic update
+                                                const updatedCards = flashcards.map(c => c.id === wordId ? { ...c, ...updates } : c);
+                                                saveCards(updatedCards);
+                                                // Backend sync
+                                                if (currentProfile) {
+                                                    await updateWord(currentProfile.id, wordId, updates);
+                                                }
+                                            }}
+                                            onDeleteWord={async (wordId: string) => {
+                                                // Optimistic update
+                                                const updatedCards = flashcards.filter(c => c.id !== wordId);
+                                                saveCards(updatedCards);
+                                                // Backend sync
+                                                if (currentProfile) {
+                                                    await deleteWord(currentProfile.id, wordId);
+                                                }
+                                            }}
+                                        />
                                     </div>
                                     <BottomNav
                                         profileName={currentProfile?.displayName}
@@ -1284,7 +1306,7 @@ const App: React.FC = () => {
                     <Route path="*" element={<Navigate to={user ? "/profiles" : "/login"} replace />} />
                 </Routes>
             </main>
-        </div>
+        </div >
     );
 };
 
