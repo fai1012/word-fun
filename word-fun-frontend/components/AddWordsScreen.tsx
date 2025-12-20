@@ -121,7 +121,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                         />
 
                         <label className="block text-xs font-black text-coffee uppercase tracking-wider opacity-60 mb-3">
-                            Tags
+                            Tags (Add tag to group words for revision.)
                         </label>
                         <div className="relative" ref={autocompleteRef}>
                             <div className="flex flex-wrap gap-2 p-2 rounded-2xl bg-coffee/5 border-2 border-coffee/10 focus-within:border-salmon transition-all min-h-[50px]">
@@ -182,7 +182,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                         </div>
 
                         <p className="mt-4 text-xs font-bold text-coffee/40">
-                            Duplicates will be automatically skipped.
+                            Duplicates will be automatically skipped. New tags will be merged.
                         </p>
                     </div>
 
