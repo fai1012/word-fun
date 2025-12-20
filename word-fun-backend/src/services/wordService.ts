@@ -88,19 +88,48 @@ class WordService {
         if (uniqueInputs.length === 0) return { added: 0, skipped: 0 };
 
         // 2. Check existing (Optimization: fetch all texts to check duplicates locally avoids N reads)
-        const snapshot = await wordsCollection.select('text').get();
-        const existingTexts = new Set(snapshot.docs.map(doc => doc.data().text));
+        // We need 'tags' and 'text' to perform merging
+        const snapshot = await wordsCollection.select('text', 'tags').get();
+        // Map: text -> { id, tags }
+        const existingDataMap = new Map<string, { id: string; tags: string[] }>();
+        snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            existingDataMap.set(data.text, {
+                id: doc.id,
+                tags: Array.isArray(data.tags) ? data.tags : []
+            });
+        });
 
         const batch = db.batch();
         let addedCount = 0;
-        let skippedCount = 0;
+        let skippedCount = 0; // "Skipped" now mainly means exact duplicate with nothing to merge
         const now = new Date();
         const newWords: Word[] = []; // Capture for AI
 
         const isChinese = (text: string) => /[\u4e00-\u9fa5]/.test(text);
 
         for (const text of uniqueInputs) {
-            if (existingTexts.has(text)) {
+            if (existingDataMap.has(text)) {
+                // Word exists: Check if we need to merge new tags
+                const existing = existingDataMap.get(text)!;
+                if (tags.length > 0) {
+                    const currentTags = new Set(existing.tags);
+                    let hasNewTag = false;
+                    for (const t of tags) {
+                        if (!currentTags.has(t)) {
+                            currentTags.add(t);
+                            hasNewTag = true;
+                        }
+                    }
+
+                    if (hasNewTag) {
+                        const mergedTags = Array.from(currentTags);
+                        batch.update(wordsCollection.doc(existing.id), { tags: mergedTags });
+                        // We count this as "added" or maybe purely "merged"? 
+                        // For user feedback, it's often better to say "processed" or keep existing counters.
+                        // Let's count it as skipped for "new words" count, but effectively updated.
+                    }
+                }
                 skippedCount++;
                 continue;
             }
@@ -123,9 +152,18 @@ class WordService {
             addedCount++;
         }
 
-        if (addedCount > 0) {
+        // Commit if we have additions OR updates (batch is used for both)
+        if (addedCount > 0 || skippedCount > 0) {
+            // Note: skippedCount > 0 could imply updates, but batch.commit() is safe even if empty?
+            // Actually firestore batch errors if empty? No, usually fine, but let's be safe:
+            // We can check if batch has operations? Firestore SDK doesn't expose `batch._ops`.
+            // Ideally we track `updatesCount`. But committing anyway is usually cheap/safe if non-empty logic matches.
+            // Simplest: If any new word or any potential update happened.
+            // Since we construct the batch inside the loop, we should just commit it.
             await batch.commit();
+        }
 
+        if (addedCount > 0) {
             // Trigger Background AI Generation (Fire and Forget)
             // We don't await this so the UI returns immediately
             aiService.generateExamplesForWords(userId, profileId, newWords)

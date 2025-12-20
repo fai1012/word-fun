@@ -84,7 +84,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
         try {
             const res = await batchAddWords(profileId, words, selectedTags);
             setResult(res);
-            if (res.added > 0) {
+            if (res.added > 0 || res.skipped > 0) {
                 setText('');
                 setSelectedTags([]);
                 onWordsAdded(); // Trigger refresh
