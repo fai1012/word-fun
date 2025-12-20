@@ -1,18 +1,93 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { FlashcardData } from '../types';
-import { TrendingUp, Circle, Trophy, BookOpen, Sparkles, X } from 'lucide-react';
+import { fetchProfileTags } from '../services/profileService';
+import { ConfirmDialog } from './ConfirmDialog';
+import { TrendingUp, Circle, Trophy, BookOpen, Sparkles, X, Trash2, Plus, GripVertical, Tag, Check } from 'lucide-react';
 
 interface SummaryScreenProps {
+    profileId: string;
     cards: FlashcardData[];
     masteryThreshold: number;
+    onUpdateWord: (wordId: string, updates: Partial<FlashcardData>) => Promise<void>;
+    onDeleteWord: (wordId: string) => Promise<void>;
 }
 
 type FilterTab = 'MASTERED' | 'LEARNING' | 'NEW';
 
-export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThreshold }) => {
+export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, masteryThreshold, onUpdateWord, onDeleteWord }) => {
     const [activeTab, setActiveTab] = useState<FilterTab>('LEARNING');
     const [languageFilter, setLanguageFilter] = useState<'all' | 'zh' | 'en'>('all');
     const [filteredModalAttributes, setFilteredModalAttributes] = useState<{ title: string, cards: FlashcardData[] } | null>(null);
+
+    // Editing State
+    const [editingWordId, setEditingWordId] = useState<string | null>(null);
+    const [editTags, setEditTags] = useState<string[]>([]);
+    const [newTagInput, setNewTagInput] = useState('');
+    const [wordToDelete, setWordToDelete] = useState<string | null>(null);
+
+    // Autocomplete State
+    const [availableTags, setAvailableTags] = useState<string[]>([]);
+    const [showAutocomplete, setShowAutocomplete] = useState(false);
+    const autocompleteRef = useRef<HTMLDivElement>(null);
+    const editCardRef = useRef<HTMLDivElement>(null);
+    const tagInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            // Close autocomplete if clicked outside
+            if (showAutocomplete && autocompleteRef.current && !autocompleteRef.current.contains(event.target as Node)) {
+                setShowAutocomplete(false);
+            }
+
+            // Close edit mode if clicked outside the edit card
+            if (editingWordId && editCardRef.current && !editCardRef.current.contains(event.target as Node)) {
+                // Determine if we clicked on an "Edit" trigger (which might be the card itself).
+                // Actually, the card itself is replaced by the edit card, so clicking the *old* card isn't possible.
+                // But if they click another card, that card's onClick will trigger startEditing for that card.
+                // We just need to ensure we don't conflict. 
+                // Since startEditing sets a NEW editingWordId, it overrides.
+                // So clicking 'empty space' calls stopEditing.
+                // Clicking 'another card' calls stopEditing via this listener? 
+                // Wait. If I click another card, this listener fires first?
+                // Events bubble. The click on another card will trigger this listener (document level).
+                // If this listener calls stopEditing, it clears local state.
+                // Then the other card's onClick fires?
+                // If stopEditing clears state, then startEditing sets it.
+                // BUT startEditing uses `setEditingWordId`.
+                // React batching might handle it, or there might be a race.
+                // Usually "click outside" listeners use `mousedown` to fire before `click`.
+                // The current effect uses `mousedown`.
+                // If I click another card:
+                // 1. mousedown on document calls `stopEditing` -> `editingWordId` = null.
+                // 2. mouseup/click on other card calls `startEditing` -> `editingWordId` = newId.
+                // This seems fine.
+                stopEditing();
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showAutocomplete, editingWordId]);
+
+    useEffect(() => {
+        const loadTags = async () => {
+            if (!profileId) return;
+            try {
+                const tags = await fetchProfileTags(profileId);
+                setAvailableTags(tags);
+            } catch (err) {
+                console.error('Failed to load tags:', err);
+            }
+        };
+        loadTags();
+    }, [profileId]);
+
+    // Refresh tags when entering edit mode or when tags change (to keep availableTags fresh-ish)
+    // Actually simpler: just re-fetch when finishing an edit if we added a new tag?
+    // For now, initial load is enough, and we can optimistic add new tags to availableTags.
 
     // 1. Filter by Language
     const filteredCards = cards.filter(c => {
@@ -52,14 +127,12 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
     let currentList: FlashcardData[] = [];
     if (activeTab === 'LEARNING') {
         currentList = [...learningCards].sort((a, b) => {
-            // Sort by lastReviewedAt desc, then by accuracy
             const timeA = a.lastReviewedAt ? new Date(a.lastReviewedAt).getTime() : 0;
             const timeB = b.lastReviewedAt ? new Date(b.lastReviewedAt).getTime() : 0;
             return timeB - timeA;
         });
     } else if (activeTab === 'MASTERED') {
         currentList = [...masteredCards].sort((a, b) => {
-            // Sort by lastReviewedAt desc
             const timeA = a.lastReviewedAt ? new Date(a.lastReviewedAt).getTime() : 0;
             const timeB = b.lastReviewedAt ? new Date(b.lastReviewedAt).getTime() : 0;
             return timeB - timeA;
@@ -67,6 +140,64 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
     } else {
         currentList = newCards;
     }
+
+    const startEditing = (card: FlashcardData) => {
+        setEditingWordId(card.id || null);
+        setEditTags(card.tags ? [...card.tags] : []);
+        setNewTagInput('');
+        setShowAutocomplete(false);
+    };
+
+    const stopEditing = () => {
+        setEditingWordId(null);
+        setEditTags([]);
+        setNewTagInput('');
+        setShowAutocomplete(false);
+    };
+
+    const handleAddTag = (val: string) => {
+        const trimmed = val.trim();
+        if (trimmed && !editTags.includes(trimmed)) {
+            const nextTags = [...editTags, trimmed];
+            setEditTags(nextTags);
+            setNewTagInput('');
+            setShowAutocomplete(false);
+
+            // Add to available tags if not present
+            if (!availableTags.includes(trimmed)) {
+                setAvailableTags(prev => [...prev, trimmed]);
+            }
+
+            // Auto-save tags
+            if (editingWordId) {
+                onUpdateWord(editingWordId, { tags: nextTags });
+            }
+        }
+    };
+
+    const handleRemoveTag = (tagToRemove: string) => {
+        const nextTags = editTags.filter(t => t !== tagToRemove);
+        setEditTags(nextTags);
+        // Auto-save tags
+        if (editingWordId) {
+            onUpdateWord(editingWordId, { tags: nextTags });
+        }
+    };
+
+    const handleDeleteWord = async () => {
+        if (wordToDelete) {
+            await onDeleteWord(wordToDelete);
+            setWordToDelete(null);
+            stopEditing();
+        }
+    };
+
+    const filteredAutocompleteTags = availableTags.filter(
+        tag => tag.toLowerCase().includes(newTagInput.toLowerCase()) && !editTags.includes(tag)
+    );
+
+
+
 
     return (
         <div className="w-full max-w-lg mx-auto px-4 pb-24 pt-8 font-rounded text-coffee">
@@ -83,10 +214,10 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                     <button
                         key={lang}
                         onClick={() => setLanguageFilter(lang)}
-                        className={`flex-1 py-2.5 text-xs font-bold rounded-xl capitalize transition-all ${languageFilter === lang
+                        className={`flex - 1 py - 2.5 text - xs font - bold rounded - xl capitalize transition - all ${languageFilter === lang
                             ? 'bg-white text-coffee shadow-[2px_2px_0px_0px_rgba(93,64,55,0.2)] border border-coffee/10'
                             : 'text-coffee/50 hover:text-coffee/70'
-                            }`}
+                            } `}
                     >
                         {lang === 'all' ? 'All' : lang === 'zh' ? 'Chinese' : 'English'}
                     </button>
@@ -110,8 +241,8 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                 <h3 className="text-sm font-black text-coffee mb-4 uppercase tracking-wide opacity-80">Deck Status</h3>
 
                 <div className="flex h-5 rounded-full overflow-hidden bg-coffee/10 mb-5 border-2 border-coffee/10">
-                    <div className="bg-matcha transition-all duration-1000 border-r-2 border-white/20" style={{ width: `${totalCards > 0 ? (masteredCards.length / totalCards) * 100 : 0}%` }}></div>
-                    <div className="bg-yolk transition-all duration-1000 border-r-2 border-white/20" style={{ width: `${totalCards > 0 ? (learningCards.length / totalCards) * 100 : 0}%` }}></div>
+                    <div className="bg-matcha transition-all duration-1000 border-r-2 border-white/20" style={{ width: `${totalCards > 0 ? (masteredCards.length / totalCards) * 100 : 0}% ` }}></div>
+                    <div className="bg-yolk transition-all duration-1000 border-r-2 border-white/20" style={{ width: `${totalCards > 0 ? (learningCards.length / totalCards) * 100 : 0}% ` }}></div>
                 </div>
 
                 <div className="flex justify-between text-xs font-bold text-coffee/60">
@@ -135,7 +266,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                 Recent Activity
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                {/* Mastered Stats */}
+                {/* Mastered Stats - Only show if we have data or generic empty state? Standard UI */}
                 <div className="bg-white p-4 rounded-3xl border-2 border-coffee shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]">
                     <div className="flex items-center gap-2 mb-3">
                         <div className="p-1.5 bg-matcha/20 text-matcha rounded-lg border border-matcha/30">
@@ -191,7 +322,6 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                     </div>
                 </div>
 
-                {/* Reviewed Stats */}
                 <div className="bg-white p-4 rounded-3xl border-2 border-coffee shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]">
                     <div className="flex items-center gap-2 mb-3">
                         <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg border border-indigo-200">
@@ -248,74 +378,14 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                 </div>
             </div>
 
-            {/* Most Difficult (Last 7 Days) */}
-            <div className="mb-8">
-                <h3 className="text-lg font-black text-coffee mb-4 flex items-center gap-2">
-                    <span className="w-1.5 h-6 bg-salmon rounded-full"></span>
-                    Needs Attention
-                    <span className="text-[10px] font-bold text-coffee/40 ml-auto bg-white border border-coffee/10 px-2 py-1 rounded-full">Last 7 Days</span>
-                </h3>
-
-                {(() => {
-                    const recentDifficult = filteredCards
-                        .filter(c => {
-                            // Must be reviewed recently AND have some errors
-                            if (!c.lastReviewedAt) return false;
-                            const d = new Date(c.lastReviewedAt);
-                            const diffTime = Math.abs(new Date().getTime() - d.getTime());
-                            const isRecent = diffTime <= (7 * 24 * 60 * 60 * 1000);
-                            const accuracy = (c.correctCount || 0) / (c.revisedCount || 1);
-
-                            return isRecent && accuracy < 0.8 && (c.revisedCount || 0) > 2; // Threshold for "difficult"
-                        })
-                        .sort((a, b) => {
-                            const accA = (a.correctCount || 0) / (a.revisedCount || 1);
-                            const accB = (b.correctCount || 0) / (b.revisedCount || 1);
-                            return accA - accB;
-                        })
-                        .slice(0, 5);
-
-                    if (recentDifficult.length === 0) {
-                        return (
-                            <div className="bg-coffee/5 border-2 border-dashed border-coffee/20 rounded-3xl p-8 text-center text-coffee/40 text-sm font-bold">
-                                No difficult words found recently. You're doing great! ✨
-                            </div>
-                        );
-                    }
-
-                    return (
-                        <div className="grid grid-cols-1 gap-3">
-                            {recentDifficult.map((card, i) => {
-                                const masteryPercent = Math.min(100, Math.round(((card.correctCount || 0) / masteryThreshold) * 100));
-                                return (
-                                    <div key={card.id || i} className="bg-white p-3 rounded-2xl border-2 border-coffee/5 shadow-sm flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-8 h-8 rounded-xl bg-salmon/10 text-salmon border border-salmon/20 flex items-center justify-center text-sm font-black">
-                                                {i + 1}
-                                            </div>
-                                            <div className="text-xl font-bold text-coffee font-noto-serif-hk">{card.character}</div>
-                                        </div>
-
-                                        <div className="text-right">
-                                            <div className="text-xs font-black text-salmon">{masteryPercent}% Mastery</div>
-                                            <div className="text-[10px] font-bold text-coffee/30">Seen {card.revisedCount} times</div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    );
-                })()}
-            </div>
-
-            {/* Filter Tabs - unchanged logic, just layout adjust if needed */}
+            {/* Filter Tabs */}
             <div className="flex p-1.5 bg-coffee/10 rounded-2xl mb-6">
                 <button
                     onClick={() => setActiveTab('MASTERED')}
                     className={`flex-1 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${activeTab === 'MASTERED'
                         ? 'bg-white text-matcha-dark shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]'
                         : 'text-coffee/50 hover:text-coffee/70'
-                        }`}
+                        } `}
                 >
                     <Trophy className="w-3.5 h-3.5" />
                     Mastered
@@ -325,7 +395,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                     className={`flex-1 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${activeTab === 'LEARNING'
                         ? 'bg-white text-yolk-dark shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]'
                         : 'text-coffee/50 hover:text-coffee/70'
-                        }`}
+                        } `}
                 >
                     <BookOpen className="w-3.5 h-3.5" />
                     Learning
@@ -335,7 +405,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                     className={`flex-1 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${activeTab === 'NEW'
                         ? 'bg-white text-coffee shadow-[2px_2px_0px_0px_rgba(93,64,55,0.1)]'
                         : 'text-coffee/50 hover:text-coffee/70'
-                        }`}
+                        } `}
                 >
                     <Sparkles className="w-3.5 h-3.5" />
                     New
@@ -354,10 +424,10 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                     <p className="text-sm font-bold">No {activeTab.toLowerCase()} words found.</p>
                 </div>
             ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 pb-24">
                     {currentList.map((card, idx) => {
-                        // Calculate percentage based on dynamic threshold
                         const progressPercent = Math.min(100, Math.round(((card.correctCount || 0) / masteryThreshold) * 100));
+                        const isEditing = editingWordId === card.id;
 
                         let colorClass = 'text-coffee/40';
                         if (activeTab !== 'NEW') {
@@ -366,11 +436,140 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                             else colorClass = 'text-matcha-dark';
                         }
 
+                        // Edit Mode Card
+                        if (isEditing) {
+                            return (
+                                <div ref={editCardRef} key={card.id || idx} className="bg-white p-4 rounded-2xl border-2 border-salmon/20 shadow-lg ring-2 ring-salmon/10 transition-all cursor-default relative">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="min-w-[3.5rem] h-14 rounded-xl flex items-center justify-center text-2xl font-bold text-coffee font-noto-serif-hk bg-cream border-2 border-coffee/10">
+                                                {card.character}
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-black text-coffee/40 uppercase tracking-wide mb-1">Editing Tags</div>
+                                                <div className="text-xs font-bold text-coffee/60">Auto-saving...</div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => card.id && setWordToDelete(card.id)}
+                                            className="p-1.5 hover:bg-salmon/10 rounded-full text-salmon/60 hover:text-salmon transition-colors absolute top-4 right-4"
+                                            title="Delete Word"
+                                        >
+                                            <Trash2 className="w-4 h-4 stroke-[3]" />
+                                        </button>
+                                    </div>
+
+                                    {/* Tag Inputs */}
+                                    <div className="relative mb-4" ref={autocompleteRef}>
+                                        <div
+                                            className="flex flex-wrap gap-2 p-2 rounded-2xl bg-coffee/5 border-2 border-coffee/10 focus-within:border-salmon transition-all min-h-[50px] cursor-text"
+                                            onClick={() => tagInputRef.current?.focus()}
+                                        >
+                                            {editTags.map(tag => (
+                                                <span
+                                                    key={tag}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="flex items-center gap-1 bg-salmon text-white px-3 py-1 rounded-full text-sm font-bold shadow-sm animate-in zoom-in duration-200 cursor-default"
+                                                >
+                                                    {tag}
+                                                    <button
+                                                        onClick={() => handleRemoveTag(tag)}
+                                                        className="hover:text-coffee/50 transition-colors"
+                                                    >
+                                                        <X className="w-3 h-3 stroke-[3]" />
+                                                    </button>
+                                                </span>
+                                            ))}
+                                            <input
+                                                ref={tagInputRef}
+                                                type="text"
+                                                value={newTagInput}
+                                                onChange={(e) => {
+                                                    setNewTagInput(e.target.value);
+                                                    setShowAutocomplete(true);
+                                                }}
+                                                onFocus={() => setShowAutocomplete(true)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && newTagInput) {
+                                                        e.preventDefault();
+                                                        handleAddTag(newTagInput);
+                                                    }
+                                                }}
+                                                placeholder={editTags.length === 0 ? "Add tags..." : ""}
+                                                className="flex-1 bg-transparent border-none focus:ring-0 text-coffee font-bold text-sm min-w-[100px] placeholder:text-coffee/30 p-0"
+                                                autoFocus
+                                            />
+                                        </div>
+
+                                        {/* Autocomplete Dropdown (Tag Cloud Style) */}
+                                        {showAutocomplete && (newTagInput || filteredAutocompleteTags.length > 0) && (
+                                            <div className="absolute top-full left-0 z-50 w-full mt-2 bg-white border-2 border-coffee rounded-2xl shadow-xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                                                {filteredAutocompleteTags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2 mb-2 max-h-32 overflow-y-auto">
+                                                        {filteredAutocompleteTags.map(tag => (
+                                                            <button
+                                                                key={tag}
+                                                                onClick={() => handleAddTag(tag)}
+                                                                className="px-3 py-1.5 bg-matcha/10 hover:bg-matcha/20 text-coffee font-bold text-xs rounded-full border border-matcha/20 transition-all flex items-center gap-1.5"
+                                                            >
+                                                                <Tag className="w-3 h-3 opacity-50" />
+                                                                {tag}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {newTagInput && !availableTags.includes(newTagInput) && (
+                                                    <button
+                                                        onClick={() => handleAddTag(newTagInput)}
+                                                        className="w-full px-3 py-2 text-left bg-salmon/5 hover:bg-salmon/10 text-salmon font-black text-xs rounded-xl transition-colors flex items-center gap-2"
+                                                    >
+                                                        <Plus className="w-3 h-3" />
+                                                        Create tag "{newTagInput}"
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+
+                                </div>
+                            );
+                        }
+
+                        // Normal View Card
                         return (
-                            <div key={idx} className="bg-white p-4 rounded-2xl border-2 border-coffee/10 shadow-sm flex items-center justify-between group hover:border-coffee/30 hover:shadow-md transition-all">
+                            <div
+                                key={card.id || idx}
+                                onClick={() => startEditing(card)}
+                                className="bg-white p-4 rounded-2xl border-2 border-coffee/10 shadow-sm flex items-center justify-between group hover:border-coffee/30 hover:shadow-md transition-all cursor-pointer relative overflow-hidden"
+                            >
+                                <div className="absolute right-0 top-0 bottom-0 w-1 bg-coffee/0 group-hover:bg-salmon/50 transition-colors"></div>
+
                                 <div className="flex items-center gap-4 overflow-hidden">
-                                    <div className={`min-w-[3rem] h-12 rounded-xl flex items-center justify-center text-xl font-bold text-coffee font-noto-serif-hk whitespace-nowrap shadow-inner ${activeTab === 'NEW' ? 'bg-coffee/5' : 'bg-cream border-2 border-coffee/10'}`}>
+                                    <div className={`min-w-[3rem] h-12 rounded-xl flex items-center justify-center text-xl font-bold text-coffee font-noto-serif-hk whitespace-nowrap shadow-inner ${activeTab === 'NEW' ? 'bg-coffee/5' : 'bg-cream border-2 border-coffee/10'} `}>
                                         {card.character}
+                                    </div>
+                                    <div className="flex flex-col gap-1 min-w-0">
+                                        {/* Tags Display */}
+                                        {card.tags && card.tags.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1">
+                                                {card.tags.slice(0, 3).map(tag => (
+                                                    <span key={tag} className="px-1.5 py-0.5 bg-coffee/5 text-coffee/50 text-[10px] font-bold rounded-lg border border-coffee/5 whitespace-nowrap">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                                {card.tags.length > 3 && (
+                                                    <span className="px-1.5 py-0.5 text-coffee/30 text-[10px] font-bold whitespace-nowrap">
+                                                        +{card.tags.length - 3}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="text-[10px] font-bold text-coffee/20 italic group-hover:text-coffee/40 transition-colors">
+                                                No tags
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -427,6 +626,19 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ cards, masteryThre
                     </div>
                 </div>
             )}
+            {/* Word List */}
+            {/* ... */}
+
+            <ConfirmDialog
+                isOpen={!!wordToDelete}
+                onClose={() => setWordToDelete(null)}
+                onConfirm={handleDeleteWord}
+                title="Delete Word?"
+                message="Are you sure you want to delete this word? This action cannot be undone."
+                confirmText="Delete"
+                isDestructive={true}
+            />
         </div>
     );
 };
+

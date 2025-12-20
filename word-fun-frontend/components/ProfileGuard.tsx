@@ -51,10 +51,21 @@ export const ProfileGuard: React.FC<ProfileGuardProps> = ({
         );
     }
 
-    // If ID is not found, we render nothing while the useEffect triggers the navigate
-    // Or we could check immediately here
+    // Only render children if we have a profile that matches the one in the URL
     const isValid = profiles.some(p => p.id === profileId);
-    if (!isValid) return null;
+    if (!isValid || !currentProfile || currentProfile.id !== profileId) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full w-full bg-cream min-h-[50vh]">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-salmon/20 rounded-full blur-xl animate-pulse"></div>
+                    <div className="relative w-12 h-12 border-4 border-coffee border-t-salmon rounded-full animate-spin"></div>
+                </div>
+                <div className="mt-4 text-coffee font-black text-lg animate-pulse">
+                    Syncing Profile...
+                </div>
+            </div>
+        );
+    }
 
     return <>{children}</>;
 };

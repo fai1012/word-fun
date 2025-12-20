@@ -217,6 +217,29 @@ router.patch('/:profileId/words/:wordId', wordController.updateWord.bind(wordCon
 
 /**
  * @swagger
+ * /api/profiles/{profileId}/words/{wordId}:
+ *   delete:
+ *     summary: Delete a word
+ *     tags: [Profiles]
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: wordId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Word deleted successfully.
+ */
+router.delete('/:profileId/words/:wordId', wordController.deleteWord.bind(wordController));
+
+/**
+ * @swagger
  * /api/profiles/{profileId}/words/batch:
  *   post:
  *     summary: Add multiple words at once
@@ -254,6 +277,30 @@ router.patch('/:profileId/words/:wordId', wordController.updateWord.bind(wordCon
  *                   type: integer
  */
 router.post('/:profileId/words/batch', wordController.batchAddWords.bind(wordController));
+
+/**
+ * @swagger
+ * /api/profiles/{profileId}/tags:
+ *   get:
+ *     summary: Get all unique tags for a profile
+ *     tags: [Profiles]
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of tags.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: string
+ */
+router.get('/:profileId/tags', wordController.getTags.bind(wordController));
 
 // AI Generation Routes
 router.post('/:profileId/ai/session', aiController.generateSessionContent);

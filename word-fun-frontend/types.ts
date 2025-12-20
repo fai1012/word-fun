@@ -59,6 +59,7 @@ export interface FlashcardData {
   language?: 'zh' | 'en';
   revisedCount?: number;
   correctCount?: number;
+  tags?: string[];
   lastReviewedAt?: Date;
   masteredAt?: Date;
 }

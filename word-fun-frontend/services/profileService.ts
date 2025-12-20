@@ -60,6 +60,7 @@ export const updateWord = async (
         examples?: any[];
         lastReviewedAt?: Date | string;
         masteredAt?: Date | string;
+        tags?: string[];
     }
 ): Promise<void> => {
     const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/${profileId}/words/${wordId}`, {
@@ -96,10 +97,10 @@ export const updateProfile = async (profileId: string, updates: { displayName?: 
 };
 
 
-export const batchAddWords = async (profileId: string, words: string[]): Promise<{ added: number; skipped: number }> => {
+export const batchAddWords = async (profileId: string, words: string[], tags: string[] = []): Promise<{ added: number; skipped: number }> => {
     const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/${profileId}/words/batch`, {
         method: 'POST',
-        body: JSON.stringify({ words })
+        body: JSON.stringify({ words, tags })
     });
 
     if (!response.ok) {
@@ -108,3 +109,27 @@ export const batchAddWords = async (profileId: string, words: string[]): Promise
 
     return response.json();
 };
+
+export const fetchProfileTags = async (profileId: string): Promise<string[]> => {
+    const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/${profileId}/tags`, {
+        method: 'GET',
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch tags');
+    }
+
+    return response.json();
+};
+
+export const deleteWord = async (profileId: string, wordId: string): Promise<void> => {
+    const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/${profileId}/words/${wordId}`, {
+        method: 'DELETE',
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to delete word');
+    }
+};
+
+

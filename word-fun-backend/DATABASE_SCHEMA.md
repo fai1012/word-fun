@@ -41,7 +41,10 @@ Stores individual flashcards for a specific profile.
 | `revisedCount` | `number` | Number of times revised |
 | `correctCount` | `number` | Number of times answered correctly |
 | `examples` | `string[]` | List of example sentences |
+| `tags` | `string[]` | List of tags for categorization |
 | `createdAt` | `Timestamp` | Creation date |
+| `lastReviewedAt` | `Timestamp` | Last review date |
+| `masteredAt` | `Timestamp` | Date when the word was mastered |
 
 ## `games` (Collection)
 Future use: Game sessions, linking to `profileId`.
