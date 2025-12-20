@@ -12,53 +12,69 @@ class ProfileService {
         const profiles = await Promise.all(snapshot.docs.map(async doc => {
             const data = doc.data();
 
-            // Calculate Stats (Fetch minimal fields for in-memory aggregation)
-            const wordsColl = doc.ref.collection('words');
-            const wordsSnapshot = await wordsColl.get();
+            try {
+                // Calculate Stats using optimized count() aggregations
+                const wordsColl = doc.ref.collection('words');
+                const [
+                    totalCountSnap,
+                    masteredTotalCountSnap,
+                    totalEnCountSnap,
+                    masteredEnCountSnap
+                ] = await Promise.all([
+                    wordsColl.count().get(),
+                    wordsColl.where('correctCount', '>=', 6).count().get(),
+                    wordsColl.where('language', '==', 'en').count().get(),
+                    wordsColl.where('language', '==', 'en').where('correctCount', '>=', 6).count().get()
+                ]);
 
-            let totalZh = 0;
-            let learningZh = 0;
-            let totalEn = 0;
-            let learningEn = 0;
-            let masteredWords = 0; // Keep track of global mastery for Level calc
+                const totalWords = totalCountSnap.data().count;
+                const masteredWords = masteredTotalCountSnap.data().count;
 
-            wordsSnapshot.forEach(wDoc => {
-                const wData = wDoc.data();
-                const isEn = wData.language === 'en';
-                const count = wData.correctCount || 0;
-                const isMastered = count >= 6;
+                const totalEn = totalEnCountSnap.data().count;
+                const masteredEn = masteredEnCountSnap.data().count;
+                const learningEn = totalEn - masteredEn;
 
-                if (isMastered) masteredWords++;
+                // zh includes legacy words where language might be undefined
+                const totalZh = totalWords - totalEn;
+                const masteredZh = masteredWords - masteredEn;
+                const learningZh = totalZh - masteredZh;
 
-                if (isEn) {
-                    totalEn++;
-                    if (!isMastered) learningEn++;
-                } else {
-                    totalZh++;
-                    if (!isMastered) learningZh++;
-                }
-            });
-
-            const totalWords = totalZh + totalEn;
-
-
-            return {
-                id: doc.id,
-                userId: userId,
-                displayName: data.displayName,
-                avatarId: data.avatarId,
-                createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
-                exp: data.exp || 0,
-                stats: {
-                    totalWords,
-                    masteredWords,
-                    // Detailed stats
-                    totalZh,
-                    learningZh,
-                    totalEn,
-                    learningEn
-                }
-            } as Profile;
+                return {
+                    id: doc.id,
+                    userId: userId,
+                    displayName: data.displayName,
+                    avatarId: data.avatarId,
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
+                    exp: data.exp || 0,
+                    stats: {
+                        totalWords,
+                        masteredWords,
+                        totalZh,
+                        learningZh,
+                        totalEn,
+                        learningEn
+                    }
+                } as Profile;
+            } catch (err) {
+                console.error(`[ProfileService] Error processing profile ${doc.id}:`, err);
+                // Return a minimal profile object to avoid failing the entire fetch
+                return {
+                    id: doc.id,
+                    userId: userId,
+                    displayName: data.displayName,
+                    avatarId: data.avatarId,
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
+                    exp: data.exp || 0,
+                    stats: {
+                        totalWords: 0,
+                        masteredWords: 0,
+                        totalZh: 0,
+                        learningZh: 0,
+                        totalEn: 0,
+                        learningEn: 0
+                    }
+                } as Profile;
+            }
         }));
 
         return profiles;

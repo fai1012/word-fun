@@ -7,7 +7,7 @@ class WordService {
         return db.collection('users').doc(userId).collection('profiles').doc(profileId).collection('words');
     }
 
-    async addWord(userId: string, profileId: string, text: string, examples: string[] = []): Promise<Word> {
+    async addWord(userId: string, profileId: string, text: string, examples: string[] = [], tags: string[] = []): Promise<Word> {
         // 1. Verify Profile Exists
         const profileRef = db.collection('users').doc(userId).collection('profiles').doc(profileId);
         const profileDoc = await profileRef.get();
@@ -36,6 +36,7 @@ class WordService {
             revisedCount: 0,
             correctCount: 0,
             examples,
+            tags,
             createdAt: now
         };
 
@@ -54,6 +55,7 @@ class WordService {
                 revisedCount: data.revisedCount || 0,
                 correctCount: data.correctCount || 0,
                 examples: data.examples || [],
+                tags: data.tags || [],
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                 lastReviewedAt: data.lastReviewedAt?.toDate ? data.lastReviewedAt.toDate() : (data.lastReviewedAt ? new Date(data.lastReviewedAt) : undefined),
                 masteredAt: data.masteredAt?.toDate ? data.masteredAt.toDate() : (data.masteredAt ? new Date(data.masteredAt) : undefined)
@@ -61,12 +63,24 @@ class WordService {
         });
     }
 
-    async updateWord(userId: string, profileId: string, wordId: string, updates: Partial<Pick<Word, 'revisedCount' | 'correctCount' | 'examples' | 'lastReviewedAt' | 'masteredAt'>>): Promise<void> {
+    async updateWord(userId: string, profileId: string, wordId: string, updates: Partial<Pick<Word, 'revisedCount' | 'correctCount' | 'examples' | 'lastReviewedAt' | 'masteredAt' | 'tags'>>): Promise<void> {
         const wordRef = this.getCollection(userId, profileId).doc(wordId);
         await wordRef.update(updates);
     }
 
-    async batchAddWords(userId: string, profileId: string, rawWords: string[]): Promise<{ added: number; skipped: number }> {
+    async getTags(userId: string, profileId: string): Promise<string[]> {
+        const snapshot = await this.getCollection(userId, profileId).select('tags').get();
+        const tagSet = new Set<string>();
+        snapshot.docs.forEach(doc => {
+            const tags = doc.data().tags as string[] | undefined;
+            if (tags && Array.isArray(tags)) {
+                tags.forEach(tag => tagSet.add(tag));
+            }
+        });
+        return Array.from(tagSet).sort();
+    }
+
+    async batchAddWords(userId: string, profileId: string, rawWords: string[], tags: string[] = []): Promise<{ added: number; skipped: number }> {
         const wordsCollection = this.getCollection(userId, profileId);
 
         // 1. Sanitize input
@@ -101,6 +115,7 @@ class WordService {
                 revisedCount: 0,
                 correctCount: 0,
                 examples: [],
+                tags,
                 createdAt: now
             };
             batch.set(docRef, newWord);

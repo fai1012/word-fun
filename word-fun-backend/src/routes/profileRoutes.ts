@@ -255,6 +255,30 @@ router.patch('/:profileId/words/:wordId', wordController.updateWord.bind(wordCon
  */
 router.post('/:profileId/words/batch', wordController.batchAddWords.bind(wordController));
 
+/**
+ * @swagger
+ * /api/profiles/{profileId}/tags:
+ *   get:
+ *     summary: Get all unique tags for a profile
+ *     tags: [Profiles]
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of tags.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: string
+ */
+router.get('/:profileId/tags', wordController.getTags.bind(wordController));
+
 // AI Generation Routes
 router.post('/:profileId/ai/session', aiController.generateSessionContent);
 router.post('/:profileId/ai/example', aiController.generateSingleExample);

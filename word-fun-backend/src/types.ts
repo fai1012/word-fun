@@ -98,6 +98,7 @@ export interface Word {
     revisedCount: number;
     correctCount: number;
     examples: (string | { chinese: string; english: string })[];
+    tags?: string[];
     createdAt: Date;
     lastReviewedAt?: Date;
     masteredAt?: Date;

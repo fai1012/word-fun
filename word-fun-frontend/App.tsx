@@ -20,7 +20,7 @@ import { BottomNav } from './components/BottomNav';
 import { SummaryScreen } from './components/SummaryScreen';
 import { PreferencesScreen } from './components/PreferencesScreen';
 import { getLevelInfo, EXP_SOURCES } from './services/levelService';
-import { ArrowLeft, Check, X, Repeat, Trophy, Home, RotateCcw, Star, Zap } from 'lucide-react';
+import { ArrowLeft, Check, X, Repeat, Trophy, Home, RotateCcw, Star, Zap, AlertTriangle } from 'lucide-react';
 import { updateProfile } from './services/profileService';
 
 // Helper function for unbiased Fisher-Yates shuffle
@@ -174,6 +174,7 @@ const App: React.FC = () => {
             setProfiles(data.profiles);
         } catch (e) {
             console.error("Failed to load profiles", e);
+            setErrorMsg("Failed to load profiles. Please try again.");
         } finally {
             setIsProfilesLoading(false);
         }
@@ -203,6 +204,7 @@ const App: React.FC = () => {
                     revisedCount: w.revisedCount || 0,
                     correctCount: w.correctCount || 0,
                     language: w.language || 'zh',
+                    tags: w.tags || [],
                     lastReviewedAt: w.lastReviewedAt ? new Date(w.lastReviewedAt) : undefined,
                     masteredAt: w.masteredAt ? new Date(w.masteredAt) : undefined
                 }));
@@ -396,16 +398,22 @@ const App: React.FC = () => {
         }
     };
 
-    const startStudySession = async (lang: 'zh' | 'en' | 'all') => {
-        let pool = flashcards;
+    const startStudySession = async (lang: 'zh' | 'en' | 'all', selectedTags?: string[]) => {
+        let pool: FlashcardData[] = flashcards;
 
         if (lang !== 'all') {
             pool = flashcards.filter(c => c.language === lang || (!c.language && lang === 'zh')); // Default old cards to zh if undefined
         }
 
+        if (selectedTags && selectedTags.length > 0) {
+            pool = pool.filter(c => c.tags && c.tags.some(t => selectedTags.includes(t)));
+        }
+
         if (pool.length === 0) {
             setCooldownTitle("Time to Add Words!");
-            setCooldownMessage(`No ${lang === 'zh' ? 'Chinese' : lang === 'en' ? 'English' : ''} cards available! Add some words first.`);
+            const langText = lang === 'zh' ? 'Chinese' : lang === 'en' ? 'English' : '';
+            const tagText = selectedTags && selectedTags.length > 0 ? ` with tags: ${selectedTags.join(', ')}` : '';
+            setCooldownMessage(`No ${langText} cards available${tagText}! Add some words first.`);
             setCooldownButtonText("Go to Add Words");
             setShowCooldownDialog(true);
             return;
@@ -440,7 +448,7 @@ const App: React.FC = () => {
         const oldestPool = activeCandidates.slice(0, poolSize);
 
         // Randomly pick Batch Size from this pool
-        const selectedLearning = shuffleArray(oldestPool).slice(0, learningBatchSize);
+        const selectedLearning: FlashcardData[] = shuffleArray(oldestPool).slice(0, learningBatchSize);
 
         // --- STEP 2: Review Pool (Mastered Words) ---
         // Use eligiblePool instead of global pool
@@ -1075,6 +1083,17 @@ const App: React.FC = () => {
             {/* ... Global States ... */}
 
             <main className="flex-1 flex flex-col w-full max-w-screen-xl mx-auto relative min-h-0 overflow-hidden">
+                {errorMsg && (
+                    <div className="mx-4 mt-4 bg-salmon/10 text-salmon border-2 border-salmon p-3 rounded-2xl flex items-center justify-between font-bold shadow-sm animate-in slide-in-from-top-4 duration-300">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5" />
+                            <span>{errorMsg}</span>
+                        </div>
+                        <button onClick={() => setErrorMsg(null)} className="p-1 hover:bg-salmon/10 rounded-full transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                )}
                 <Routes>
                     <Route
                         path="/login"
@@ -1121,10 +1140,11 @@ const App: React.FC = () => {
                                 >
                                     <div className="flex-1 overflow-y-auto">
                                         <HomeScreen
+                                            profileId={currentProfile!.id}
                                             cardCountZh={flashcards.filter(c => c.language === 'zh' || !c.language).length}
                                             cardCountEn={flashcards.filter(c => c.language === 'en').length}
                                             onStart={startStudySession}
-                                            onManage={() => navigate(`/profiles/${currentProfile?.id}/add`)}
+                                            onManage={() => navigate(`/profiles/${currentProfile!.id}/add`)}
                                             isSyncing={isLoading}
                                             onSync={() => loadWords(currentProfile!.id)}
                                             profileName={currentProfile?.displayName}

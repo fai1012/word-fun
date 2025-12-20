@@ -36,14 +36,14 @@ class WordController {
             const user = req.user as JwtPayload;
             const userId = user.id || user.sub;
             const { profileId } = req.params;
-            const { text, examples } = req.body;
+            const { text, examples, tags } = req.body;
 
             if (!profileId || !text) {
                 res.status(400).json({ error: 'Missing required fields: profileId, text' });
                 return;
             }
 
-            const newWord = await wordService.addWord(userId, profileId, text, examples);
+            const newWord = await wordService.addWord(userId, profileId, text, examples, tags);
             res.status(201).json(newWord);
         } catch (error: any) {
             console.error('Error adding word:', error);
@@ -66,7 +66,7 @@ class WordController {
             const user = req.user as JwtPayload;
             const userId = user.id || user.sub;
             const { profileId, wordId } = req.params;
-            const updates = req.body; // { revisedCount, correctCount, examples }
+            const updates = req.body; // { revisedCount, correctCount, examples, tags }
 
             if (!profileId || !wordId) {
                 res.status(400).json({ error: 'Missing parameters' });
@@ -80,6 +80,7 @@ class WordController {
             res.status(500).json({ error: 'Internal server error' });
         }
     }
+
     /**
      * Batch add words.
      * POST /api/profiles/:profileId/words/batch
@@ -89,17 +90,40 @@ class WordController {
             const user = req.user as JwtPayload;
             const userId = user.id || user.sub;
             const { profileId } = req.params;
-            const { words } = req.body; // Expects { words: ["word1", "word2"] }
+            const { words, tags } = req.body; // Expects { words: ["word1", "word2"], tags: ["tag1"] }
 
             if (!profileId || !words || !Array.isArray(words)) {
                 res.status(400).json({ error: 'Missing required fields: profileId, words (array)' });
                 return;
             }
 
-            const result = await wordService.batchAddWords(userId, profileId, words);
+            const result = await wordService.batchAddWords(userId, profileId, words, tags || []);
             res.status(201).json(result);
         } catch (error) {
             console.error('Error batch adding words:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
+    /**
+     * Get all unique tags for a profile.
+     * GET /api/profiles/:profileId/tags
+     */
+    async getTags(req: AuthenticatedRequest, res: Response): Promise<void> {
+        try {
+            const user = req.user as JwtPayload;
+            const userId = user.id || user.sub;
+            const { profileId } = req.params;
+
+            if (!profileId) {
+                res.status(400).json({ error: 'Missing profileId' });
+                return;
+            }
+
+            const tags = await wordService.getTags(userId, profileId);
+            res.status(200).json(tags);
+        } catch (error) {
+            console.error('Error fetching tags:', error);
             res.status(500).json({ error: 'Internal server error' });
         }
     }

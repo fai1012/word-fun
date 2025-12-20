@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Sparkles, Plus, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { Layers, Sparkles, Plus, ChevronLeft, ChevronRight, Tags, Play, X, Check } from 'lucide-react';
 import { getLevelInfo } from '../services/levelService';
-import { AvatarPicker, AVATAR_MAP } from './AvatarPicker';
+import { AVATAR_MAP } from './AvatarPicker';
+import { fetchProfileTags } from '../services/profileService';
 
 interface HomeScreenProps {
+  profileId: string;
   cardCountZh: number;
   cardCountEn: number;
-  onStart: (lang: 'zh' | 'en' | 'all') => void;
+  onStart: (lang: 'zh' | 'en' | 'all', tags?: string[]) => void;
   onManage: () => void;
   linkedSheetUrl?: string;
   isSyncing: boolean;
@@ -24,6 +26,7 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
+  profileId,
   cardCountZh,
   cardCountEn,
   onStart,
@@ -45,6 +48,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [activeSlide, setActiveSlide] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const totalSlides = 3;
+
+  // Game Mode Selection State
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedLang, setSelectedLang] = useState<'zh' | 'en' | 'all'>('all');
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showTagSelector, setShowTagSelector] = useState(false);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -105,6 +116,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }
 
     setTouchStart(null);
+  };
+
+  const openGameModeDialog = async (lang: 'zh' | 'en') => {
+    setSelectedLang(lang);
+    setIsDialogOpen(true);
+    setShowTagSelector(false);
+    setSelectedTags([]);
+
+    setIsLoadingTags(true);
+    try {
+      const tags = await fetchProfileTags(profileId);
+      setAvailableTags(tags);
+    } catch (err) {
+      console.error('Failed to fetch tags:', err);
+    } finally {
+      setIsLoadingTags(false);
+    }
+  };
+
+  const handleStartGame = () => {
+    onStart(selectedLang, showTagSelector ? selectedTags : []);
+    setIsDialogOpen(false);
+  };
+
+  const toggleTagSelection = (tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
   };
 
   return (
@@ -271,7 +310,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => onStart('zh')}
+                onClick={() => openGameModeDialog('zh')}
                 className="w-full py-3 bg-salmon text-white rounded-2xl font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex flex-col items-center justify-center leading-tight"
               >
                 <span className="text-lg">中文</span>
@@ -279,7 +318,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </button>
 
               <button
-                onClick={() => onStart('en')}
+                onClick={() => openGameModeDialog('en')}
                 className="w-full py-3 bg-indigo-500 text-white rounded-2xl font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex flex-col items-center justify-center leading-tight"
               >
                 <span className="text-lg font-serif">Aa</span>
@@ -314,6 +353,99 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       </div>
 
+      {/* Game Mode Selection Dialog */}
+      {isDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-coffee/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsDialogOpen(false)} />
+          <div className="relative w-full max-w-sm bg-cream border-4 border-coffee rounded-4xl shadow-[8px_8px_0px_0px_rgba(93,64,55,1)] overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-2xl font-black text-coffee">Choose Mode</h3>
+                  <p className="text-coffee/40 text-xs font-black uppercase tracking-widest mt-1">
+                    {selectedLang === 'zh' ? 'Chinese Session' : 'English Session'}
+                  </p>
+                </div>
+                <button onClick={() => setIsDialogOpen(false)} className="p-2 hover:bg-coffee/5 rounded-full transition-colors">
+                  <X className="w-6 h-6 text-coffee" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => setShowTagSelector(false)}
+                  className={`w-full p-4 rounded-2xl border-4 text-left transition-all flex items-center gap-4 ${!showTagSelector ? 'bg-salmon text-white border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] translate-x-[-1px] translate-y-[-1px]' : 'bg-white text-coffee border-coffee/10 hover:border-coffee/30'}`}
+                >
+                  <div className={`p-2 rounded-xl border-2 ${!showTagSelector ? 'bg-white/20 border-white' : 'bg-coffee/5 border-coffee/10'}`}>
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-black text-lg">Overall</div>
+                    <div className={`text-xs font-bold ${!showTagSelector ? 'opacity-80' : 'text-coffee/40'}`}>Start with all words</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setShowTagSelector(true)}
+                  className={`w-full p-4 rounded-2xl border-4 text-left transition-all flex items-center gap-4 ${showTagSelector ? 'bg-indigo-500 text-white border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] translate-x-[-1px] translate-y-[-1px]' : 'bg-white text-coffee border-coffee/10 hover:border-coffee/30'}`}
+                >
+                  <div className={`p-2 rounded-xl border-2 ${showTagSelector ? 'bg-white/20 border-white' : 'bg-coffee/5 border-coffee/10'}`}>
+                    <Tags className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-black text-lg">By Tag</div>
+                    <div className={`text-xs font-bold ${showTagSelector ? 'opacity-80' : 'text-coffee/40'}`}>Filter by categories</div>
+                  </div>
+                </button>
+              </div>
+
+              {showTagSelector && (
+                <div className="mt-6 animate-in slide-in-from-top-4 duration-300">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] font-black text-coffee/40 uppercase tracking-widest leading-none">Select Tags</span>
+                    {selectedTags.length > 0 && (
+                      <button onClick={() => setSelectedTags([])} className="text-[10px] font-black text-salmon uppercase tracking-widest leading-none underline">Clear</button>
+                    )}
+                  </div>
+
+                  {isLoadingTags ? (
+                    <div className="flex justify-center p-4">
+                      <div className="w-6 h-6 border-2 border-coffee/20 border-t-coffee rounded-full animate-spin" />
+                    </div>
+                  ) : availableTags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                      {availableTags.map(tag => (
+                        <button
+                          key={tag}
+                          onClick={() => toggleTagSelection(tag)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-black border-2 transition-all flex items-center gap-1.5 ${selectedTags.includes(tag) ? 'bg-indigo-500 text-white border-coffee' : 'bg-white text-coffee/60 border-coffee/10 hover:border-coffee/20'}`}
+                        >
+                          {selectedTags.includes(tag) && <Check className="w-3 h-3 stroke-[4]" />}
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center py-4 text-sm font-bold text-coffee/30 bg-coffee/5 rounded-2xl border-2 border-dashed border-coffee/10">No tags found for this language.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-coffee/5 border-t-4 border-coffee">
+              <button
+                disabled={showTagSelector && selectedTags.length === 0}
+                onClick={handleStartGame}
+                className="w-full bg-slate-900 text-white font-black text-lg py-4 rounded-2xl border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
+              >
+                <Play className="w-5 h-5 fill-white" />
+                Start Game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes indeterminate-bar {
             0% { left: -35%; width: 30%; }
@@ -323,6 +455,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         .animate-indeterminate-bar {
             position: absolute;
             animation: indeterminate-bar 2s infinite linear;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(93,64,55,0.05);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(93,64,55,0.2);
+          border-radius: 10px;
         }
       `}</style>
     </div>

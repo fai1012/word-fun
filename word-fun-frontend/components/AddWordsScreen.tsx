@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { CheckCircle, AlertCircle, Tag, X, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { batchAddWords } from '../services/profileService';
+import { batchAddWords, fetchProfileTags } from '../services/profileService';
 
 interface AddWordsScreenProps {
     profileId: string;
@@ -14,7 +14,47 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [result, setResult] = useState<{ added: number; skipped: number } | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [tagInput, setTagInput] = useState('');
+    const [availableTags, setAvailableTags] = useState<string[]>([]);
+    const [showAutocomplete, setShowAutocomplete] = useState(false);
     const navigate = useNavigate();
+    const autocompleteRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const loadTags = async () => {
+            try {
+                const tags = await fetchProfileTags(profileId);
+                setAvailableTags(tags);
+            } catch (err) {
+                console.error('Failed to load tags:', err);
+            }
+        };
+        loadTags();
+    }, [profileId]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (autocompleteRef.current && !autocompleteRef.current.contains(event.target as Node)) {
+                setShowAutocomplete(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleAddTag = (tag: string) => {
+        const trimmedTag = tag.trim();
+        if (trimmedTag && !selectedTags.includes(trimmedTag)) {
+            setSelectedTags([...selectedTags, trimmedTag]);
+        }
+        setTagInput('');
+        setShowAutocomplete(false);
+    };
+
+    const handleRemoveTag = (tagToRemove: string) => {
+        setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,11 +82,15 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
         }
 
         try {
-            const res = await batchAddWords(profileId, words);
+            const res = await batchAddWords(profileId, words, selectedTags);
             setResult(res);
             if (res.added > 0) {
                 setText('');
+                setSelectedTags([]);
                 onWordsAdded(); // Trigger refresh
+                // Refresh available tags after adding
+                const updatedTags = await fetchProfileTags(profileId);
+                setAvailableTags(updatedTags);
             }
         } catch (err: any) {
             setError(err.message || 'Failed to add words');
@@ -55,13 +99,15 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
         }
     };
 
+    const filteredAutocompleteTags = availableTags.filter(
+        tag => tag.toLowerCase().includes(tagInput.toLowerCase()) && !selectedTags.includes(tag)
+    );
+
     return (
         <div className="flex flex-col h-full bg-cream font-rounded">
-            {/* Header Removed */}
-
             {/* Content */}
             <div className="flex-1 p-4 overflow-y-auto">
-                <div className="max-w-md mx-auto space-y-6">
+                <div className="max-w-md mx-auto space-y-6 pb-20">
                     <div className="bg-white p-6 rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-4 border-coffee">
                         <label className="block text-xs font-black text-coffee uppercase tracking-wider opacity-60 mb-3">
                             Paste words here (one per line)
@@ -70,10 +116,70 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                             placeholder={`飛機\n救護員\nkangaroo\n姐姐`}
-                            className="w-full h-64 p-4 rounded-2xl bg-coffee/5 border-2 border-coffee/10 focus:border-salmon focus:outline-none focus:ring-4 focus:ring-salmon/20 text-coffee font-bold font-mono text-base resize-none placeholder:text-coffee/20 transition-all"
+                            className="w-full h-48 p-4 rounded-2xl bg-coffee/5 border-2 border-coffee/10 focus:border-salmon focus:outline-none focus:ring-4 focus:ring-salmon/20 text-coffee font-bold font-mono text-base resize-none placeholder:text-coffee/20 transition-all mb-4"
                             disabled={isSubmitting}
                         />
-                        <p className="mt-3 text-xs font-bold text-coffee/40">
+
+                        <label className="block text-xs font-black text-coffee uppercase tracking-wider opacity-60 mb-3">
+                            Tags
+                        </label>
+                        <div className="relative" ref={autocompleteRef}>
+                            <div className="flex flex-wrap gap-2 p-2 rounded-2xl bg-coffee/5 border-2 border-coffee/10 focus-within:border-salmon transition-all min-h-[50px]">
+                                {selectedTags.map(tag => (
+                                    <span key={tag} className="flex items-center gap-1 bg-salmon text-white px-3 py-1 rounded-full text-sm font-bold shadow-sm">
+                                        {tag}
+                                        <button onClick={() => handleRemoveTag(tag)} className="hover:text-coffee/50 transition-colors">
+                                            <X className="w-3 h-3 stroke-[3]" />
+                                        </button>
+                                    </span>
+                                ))}
+                                <input
+                                    type="text"
+                                    value={tagInput}
+                                    onChange={(e) => {
+                                        setTagInput(e.target.value);
+                                        setShowAutocomplete(true);
+                                    }}
+                                    onFocus={() => setShowAutocomplete(true)}
+                                    placeholder={selectedTags.length === 0 ? "Add tags..." : ""}
+                                    className="flex-1 bg-transparent border-none focus:ring-0 text-coffee font-bold text-sm min-w-[100px]"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && tagInput) {
+                                            e.preventDefault();
+                                            handleAddTag(tagInput);
+                                        }
+                                    }}
+                                />
+                            </div>
+
+                            {showAutocomplete && (tagInput || filteredAutocompleteTags.length > 0) && (
+                                <div className="absolute z-10 w-full mt-2 bg-white border-4 border-coffee rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="max-h-48 overflow-y-auto">
+                                        {filteredAutocompleteTags.map(tag => (
+                                            <button
+                                                key={tag}
+                                                onClick={() => handleAddTag(tag)}
+                                                className="w-full px-4 py-3 text-left hover:bg-matcha/10 text-coffee font-bold text-sm transition-colors border-b-2 border-coffee/5 last:border-none flex items-center gap-2"
+                                            >
+                                                <Tag className="w-4 h-4 opacity-40" />
+                                                {tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {tagInput && !availableTags.includes(tagInput) && (
+                                        <button
+                                            onClick={() => handleAddTag(tagInput)}
+                                            className="w-full px-4 py-4 text-left bg-salmon/5 hover:bg-salmon/10 text-salmon font-black text-sm transition-colors flex items-center gap-2 border-t-4 border-coffee"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            Create tag "{tagInput}"
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <p className="mt-4 text-xs font-bold text-coffee/40">
                             Duplicates will be automatically skipped.
                         </p>
                     </div>
