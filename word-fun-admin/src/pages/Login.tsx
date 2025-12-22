@@ -19,7 +19,7 @@ const Login: React.FC = () => {
             // No, context logic should handle it.
             // I will modify AuthContext to expose a `handleLogin` function instead of generic `login`.
             // But for now, let's look at how I wrote AuthContext.
-            (auth as any).setTokenFromLogin(response.credential);
+            auth.setTokenFromLogin(response.credential);
         }
     };
 

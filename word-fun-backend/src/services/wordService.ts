@@ -80,15 +80,30 @@ class WordService {
         return Array.from(tagSet).sort();
     }
 
-    async batchAddWords(userId: string, profileId: string, rawWords: string[], tags: string[] = []): Promise<{ added: number; skipped: number }> {
+    async batchAddWords(userId: string, profileId: string, inputWords: (string | { text: string; tags?: string[] })[], globalTags: string[] = []): Promise<{ added: number; skipped: number }> {
         const wordsCollection = this.getCollection(userId, profileId);
 
-        // 1. Sanitize input
-        const uniqueInputs = Array.from(new Set(rawWords.map(w => w.trim()).filter(w => w.length > 0)));
-        if (uniqueInputs.length === 0) return { added: 0, skipped: 0 };
+        // 1. Sanitize and normalize input
+        const normalizedInputs = inputWords.map(input => {
+            if (typeof input === 'string') {
+                return { text: input.trim(), tags: globalTags };
+            }
+            return {
+                text: input.text.trim(),
+                tags: [...globalTags, ...(input.tags || [])]
+            };
+        }).filter(input => input.text.length > 0);
+
+        if (normalizedInputs.length === 0) return { added: 0, skipped: 0 };
+
+        // Deduplicate localized inputs (if the same word appears multiple times in the batch)
+        const consolidatedInputs = new Map<string, string[]>();
+        for (const { text, tags } of normalizedInputs) {
+            const currentTags = consolidatedInputs.get(text) || [];
+            consolidatedInputs.set(text, Array.from(new Set([...currentTags, ...tags])));
+        }
 
         // 2. Check existing (Optimization: fetch all texts to check duplicates locally avoids N reads)
-        // We need 'tags' and 'text' to perform merging
         const snapshot = await wordsCollection.select('text', 'tags').get();
         // Map: text -> { id, tags }
         const existingDataMap = new Map<string, { id: string; tags: string[] }>();
@@ -102,13 +117,13 @@ class WordService {
 
         const batch = db.batch();
         let addedCount = 0;
-        let skippedCount = 0; // "Skipped" now mainly means exact duplicate with nothing to merge
+        let skippedCount = 0; // "Skipped" now mainly means duplicate word (though tags might still be merged)
         const now = new Date();
         const newWords: Word[] = []; // Capture for AI
 
         const isChinese = (text: string) => /[\u4e00-\u9fa5]/.test(text);
 
-        for (const text of uniqueInputs) {
+        for (const [text, tags] of consolidatedInputs) {
             if (existingDataMap.has(text)) {
                 // Word exists: Check if we need to merge new tags
                 const existing = existingDataMap.get(text)!;
@@ -125,9 +140,6 @@ class WordService {
                     if (hasNewTag) {
                         const mergedTags = Array.from(currentTags);
                         batch.update(wordsCollection.doc(existing.id), { tags: mergedTags });
-                        // We count this as "added" or maybe purely "merged"? 
-                        // For user feedback, it's often better to say "processed" or keep existing counters.
-                        // Let's count it as skipped for "new words" count, but effectively updated.
                     }
                 }
                 skippedCount++;
@@ -152,20 +164,13 @@ class WordService {
             addedCount++;
         }
 
-        // Commit if we have additions OR updates (batch is used for both)
-        if (addedCount > 0 || skippedCount > 0) {
-            // Note: skippedCount > 0 could imply updates, but batch.commit() is safe even if empty?
-            // Actually firestore batch errors if empty? No, usually fine, but let's be safe:
-            // We can check if batch has operations? Firestore SDK doesn't expose `batch._ops`.
-            // Ideally we track `updatesCount`. But committing anyway is usually cheap/safe if non-empty logic matches.
-            // Simplest: If any new word or any potential update happened.
-            // Since we construct the batch inside the loop, we should just commit it.
+        // Commit if we have additions OR updates
+        if (addedCount > 0 || consolidatedInputs.size > 0) {
             await batch.commit();
         }
 
         if (addedCount > 0) {
             // Trigger Background AI Generation (Fire and Forget)
-            // We don't await this so the UI returns immediately
             aiService.generateExamplesForWords(userId, profileId, newWords)
                 .catch(err => console.error("Background AI generation failed to start", err));
         }
