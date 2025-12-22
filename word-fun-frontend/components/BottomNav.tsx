@@ -93,7 +93,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, cur
               </div>
 
               <div className="overflow-y-auto flex-1">
-                {profiles?.map(profile => (
+                {profiles?.filter(p => p && p.id).map(profile => (
                   <button
                     key={profile.id}
                     onClick={() => {
