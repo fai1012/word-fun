@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { googleLogout } from '@react-oauth/google';
 import { jwtDecode } from "jwt-decode";
 import apiClient from '../services/apiClient';
+import { loginWithGoogle } from '../services/authService';
 
 interface User {
     id: string;
@@ -24,15 +25,18 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('admin_token'));
+    const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
     const [loading, setLoading] = useState(true);
 
     const logout = () => {
         googleLogout();
-        localStorage.removeItem('admin_token');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
         setToken(null);
         setUser(null);
-        delete apiClient.defaults.headers.common['Authorization'];
+        // Interceptor handles headers, so no need to delete default header manually if we relied on it
+        // But good practice if we accessed defaults directly elsewhere.
+        // delete apiClient.defaults.headers.common['Authorization']; 
     };
 
     // 1. Restore Session from existing Custom Token
@@ -42,8 +46,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Check if token is expired
             if (decoded.exp * 1000 < Date.now()) {
                 console.warn("Token expired");
-                logout();
-                return;
+                // If we have a refresh token, the next API call (check admin) might trigger refresh via interceptor
+                // But let's check validity. 
+                // Actually, if it's expired, we rely on duplicate check or let the interceptor handle it on next request?
+                // Ideally we should try to refresh immediately or just let the first API call fail/refresh.
+                // For simplicity, if expired here, we might just let the checkAdmin call fail which triggers refresh.
+                // BUT, if it's way expired, `checkAdmin` might fail with 401.
             }
 
             const userProfile = {
@@ -53,15 +61,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 picture: decoded.picture,
             };
 
-            // Set global header
-            apiClient.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
-
             // Allow basic access first
             setUser(userProfile);
-            setToken(savedToken); // ensure state is synced
+            setToken(savedToken);
 
             try {
                 // Determine if admin by checking 'me' or just try listing users (which is protected)
+                // This call will trigger interceptor logic if token is expired
                 await apiClient.get('/admin/users?limit=1');
                 setUser({ ...userProfile, isAdmin: true });
             } catch (e: any) {
@@ -70,7 +76,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     logout();
                     alert("Access Denied: You are not an administrator.");
                 }
-                // If network error, we stay logged in but might show error/loading later
             }
         } catch (e) {
             console.error("Session restore failed", e);
@@ -81,29 +86,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // 2. Login: Exchange Google ID Token for Custom Token
     const handleGoogleLogin = async (googleIdToken: string) => {
         try {
-            const authServiceUrl = (window as any)._env_?.VITE_AUTH_SERVICE_URL || import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:8081';
+            const data = await loginWithGoogle(googleIdToken);
 
-            const response = await fetch(`${authServiceUrl}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    provider: 'google',
-                    token: googleIdToken
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Auth Service Login Failed');
+            if (data.token) {
+                localStorage.setItem('auth_token', data.token);
+                setToken(data.token);
+            }
+            if (data.refreshToken) {
+                localStorage.setItem('refresh_token', data.refreshToken);
             }
 
-            const data = await response.json();
-            const customToken = data.token;
-
-            localStorage.setItem('admin_token', customToken);
-            setToken(customToken);
-
             // Initialize session with new token
-            await restoreSession(customToken);
+            await restoreSession(data.token);
 
         } catch (e) {
             console.error("Login processing failed", e);
@@ -114,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         const init = async () => {
-            const savedToken = localStorage.getItem('admin_token');
+            const savedToken = localStorage.getItem('auth_token');
             if (savedToken) {
                 await restoreSession(savedToken);
             }

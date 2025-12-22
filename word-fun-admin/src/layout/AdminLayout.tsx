@@ -15,6 +15,7 @@ const AdminLayout: React.FC = () => {
                         <li><Link to="/">Dashboard</Link></li>
                         <li><Link to="/users">Users</Link></li>
                         <li><Link to="/words">Words</Link></li>
+                        <li><Link to="/word-packs">Word Packs</Link></li>
                     </ul>
                 </nav>
             </aside>
@@ -24,7 +25,7 @@ const AdminLayout: React.FC = () => {
                     <div className="user-info" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {user && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                {user.picture && <img src={user.picture} alt={user.name} style={{ width: 32, height: 32, borderRadius: '50%' }} />}
+                                {user.picture && <img src={user.picture} alt={user.name} style={{ width: 32, height: 32, borderRadius: '50%' }} referrerPolicy="no-referrer" />}
                                 <span>{user.name}</span>
                             </div>
                         )}

@@ -103,3 +103,20 @@ export interface Word {
     lastReviewedAt?: Date;
     masteredAt?: Date;
 }
+
+export interface WordPackWord {
+    character: string;
+    tags: string[];
+    examples?: string[];
+}
+
+export interface WordPackData {
+    name: string;
+    words: WordPackWord[];
+}
+
+export interface WordPack extends WordPackData {
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+}

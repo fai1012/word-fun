@@ -52,6 +52,10 @@ app.use('/api/profiles', profileRoutes);
 import authRoutes from './routes/authRoutes';
 app.use('/api/auth', authRoutes);
 
+import wordPackPublicRoutes from './routes/wordPackPublicRoutes';
+app.use('/api/word-packs', wordPackPublicRoutes);
+
+
 
 import adminRoutes from './routes/adminRoutes';
 app.use('/api/admin', adminRoutes);

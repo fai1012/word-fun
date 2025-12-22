@@ -97,7 +97,11 @@ export const updateProfile = async (profileId: string, updates: { displayName?: 
 };
 
 
-export const batchAddWords = async (profileId: string, words: string[], tags: string[] = []): Promise<{ added: number; skipped: number }> => {
+export const batchAddWords = async (
+    profileId: string,
+    words: (string | { text: string; tags: string[] })[],
+    tags: string[] = []
+): Promise<{ added: number; skipped: number }> => {
     const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/${profileId}/words/batch`, {
         method: 'POST',
         body: JSON.stringify({ words, tags })

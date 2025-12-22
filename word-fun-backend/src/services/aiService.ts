@@ -262,6 +262,53 @@ class AIService {
             throw err;
         }
     }
+    async generateWordPackExamples(word: string): Promise<string[]> {
+        console.log(`[AI] Generating examples for Word Pack: ${word}`);
+        const isChinese = /[\u4e00-\u9fa5]/.test(word);
+        const lang: 'zh' | 'en' = isChinese ? 'zh' : 'en';
+
+        try {
+            const prompt = this.getPromptForLanguage(lang, [word], []);
+            const aiResponse = await this.client.models.generateContent({
+                model: 'gemini-3-flash-preview',
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                character: { type: Type.STRING },
+                                examples: {
+                                    type: Type.ARRAY,
+                                    items: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            chinese: { type: Type.STRING }
+                                        },
+                                        required: ["chinese"]
+                                    }
+                                }
+                            },
+                            required: ["character", "examples"],
+                        },
+                    },
+                },
+            });
+
+            if (aiResponse.text) {
+                const generatedData = JSON.parse(aiResponse.text.trim()) as any[];
+                if (generatedData.length > 0 && generatedData[0].examples) {
+                    return generatedData[0].examples.map((ex: any) => ex.chinese);
+                }
+            }
+            throw new Error("No text returned from AI");
+        } catch (err) {
+            console.error("[AI] Word Pack example generation failed:", err);
+            throw err;
+        }
+    }
 }
 
 export const aiService = new AIService();
