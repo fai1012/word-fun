@@ -90,7 +90,8 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
     // For now, initial load is enough, and we can optimistic add new tags to availableTags.
 
     // 1. Filter by Language
-    const filteredCards = cards.filter(c => {
+    const filteredCards = (cards || []).filter(c => {
+        if (!c) return false;
         if (languageFilter === 'all') return true;
         if (languageFilter === 'zh') return c.language === 'zh' || !c.language; // Default old to zh
         return c.language === 'en';

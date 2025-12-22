@@ -141,7 +141,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                 )}
 
                 <div className="grid grid-cols-1 gap-4 mb-8">
-                    {profiles.map(profile => (
+                    {profiles.filter(p => p && p.id).map(profile => (
                         <div key={profile.id} className="group relative">
                             <div
                                 onClick={() => onProfileSelect(profile)}

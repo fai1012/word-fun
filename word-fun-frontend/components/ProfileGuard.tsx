@@ -22,7 +22,7 @@ export const ProfileGuard: React.FC<ProfileGuardProps> = ({
 
     useEffect(() => {
         if (!isLoading && profileId) {
-            const foundProfile = profiles.find(p => p.id === profileId);
+            const foundProfile = (profiles || []).find(p => p && p.id === profileId);
 
             if (foundProfile) {
                 // If URL ID is valid but doesn't match current state, switch it
@@ -52,7 +52,7 @@ export const ProfileGuard: React.FC<ProfileGuardProps> = ({
     }
 
     // Only render children if we have a profile that matches the one in the URL
-    const isValid = profiles.some(p => p.id === profileId);
+    const isValid = (profiles || []).some(p => p && p.id === profileId);
     if (!isValid || !currentProfile || currentProfile.id !== profileId) {
         return (
             <div className="flex flex-col items-center justify-center h-full w-full bg-cream min-h-[50vh]">

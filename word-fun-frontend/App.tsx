@@ -57,24 +57,24 @@ const App: React.FC = () => {
     // Derived Statistics
     const masteredToday = useMemo(() => {
         const today = new Date().toDateString();
-        return flashcards.filter(c => c.masteredAt && new Date(c.masteredAt).toDateString() === today).length;
+        return (flashcards || []).filter(c => c && c.masteredAt && new Date(c.masteredAt).toDateString() === today).length;
     }, [flashcards]);
 
     const reviewedToday = useMemo(() => {
         const today = new Date().toDateString();
-        return flashcards.filter(c => c.lastReviewedAt && new Date(c.lastReviewedAt).toDateString() === today).length;
+        return (flashcards || []).filter(c => c && c.lastReviewedAt && new Date(c.lastReviewedAt).toDateString() === today).length;
     }, [flashcards]);
 
     const masteredThisWeek = useMemo(() => {
         const now = new Date();
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return flashcards.filter(c => c.masteredAt && new Date(c.masteredAt) >= sevenDaysAgo).length;
+        return (flashcards || []).filter(c => c && c.masteredAt && new Date(c.masteredAt) >= sevenDaysAgo).length;
     }, [flashcards]);
 
     const reviewedThisWeek = useMemo(() => {
         const now = new Date();
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return flashcards.filter(c => c.lastReviewedAt && new Date(c.lastReviewedAt) >= sevenDaysAgo).length;
+        return (flashcards || []).filter(c => c && c.lastReviewedAt && new Date(c.lastReviewedAt) >= sevenDaysAgo).length;
     }, [flashcards]);
 
     // Preferences State
@@ -261,13 +261,24 @@ const App: React.FC = () => {
                     }
 
                     if (savedProfile) {
-                        const parsedProfile = JSON.parse(savedProfile);
-                        setCurrentProfile(parsedProfile);
-                        // Trigger background refresh of words
-                        // loadWords(parsedProfile.id, false); // REMOVED: Managed by useEffect [currentProfile]
+                        try {
+                            const parsedProfile = JSON.parse(savedProfile);
+                            if (parsedProfile && parsedProfile.id) {
+                                setCurrentProfile(parsedProfile);
+                                // Trigger background refresh of words
+                                // loadWords(parsedProfile.id, false); // REMOVED: Managed by useEffect [currentProfile]
 
-                        if (location.pathname === '/') {
-                            navigate(`/profiles/${parsedProfile.id}/study`);
+                                if (location.pathname === '/' || location.pathname === '/login') {
+                                    navigate(`/profiles/${parsedProfile.id}/study`);
+                                }
+                            } else {
+                                localStorage.removeItem('word_fun_profile');
+                                if (location.pathname === '/') navigate('/profiles');
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse saved profile", e);
+                            localStorage.removeItem('word_fun_profile');
+                            if (location.pathname === '/') navigate('/profiles');
                         }
                     } else {
                         if (location.pathname === '/') {
@@ -322,14 +333,14 @@ const App: React.FC = () => {
 
     const handleRegenerateCard = async (cardToFix: FlashcardData) => {
         try {
-            const allWords = flashcards.map(c => c.character);
+            const allWords = (flashcards || []).filter(c => c && c.character).map(c => c.character);
             if (!currentProfile?.id) return;
             const updatedList = await generateSessionContent(currentProfile.id, [cardToFix], allWords);
 
             if (updatedList.length > 0) {
                 const newCard = updatedList[0];
-                const updatedFlashcards = flashcards.map(c =>
-                    c.character === newCard.character ? newCard : c
+                const updatedFlashcards = (flashcards || []).map(c =>
+                    (c && c.character === newCard.character) ? newCard : c
                 );
                 saveCards(updatedFlashcards);
                 setSessionQueue(prev => prev.map(c => c.character === newCard.character ? newCard : c));
@@ -534,7 +545,7 @@ const App: React.FC = () => {
             console.log("[PERF] Session content generation needed. Starting...");
             const genStart = performance.now();
 
-            const allWords = flashcards.map(c => c.character);
+            const allWords = (flashcards || []).filter(c => c && c.character).map(c => c.character);
             if (!currentProfile?.id) {
                 setIsLoading(false);
                 return;
@@ -546,8 +557,8 @@ const App: React.FC = () => {
 
             selection = filledSelection;
 
-            const updatedFlashcards: FlashcardData[] = flashcards.map(original => {
-                const filled = filledSelection.find(f => f.character === original.character);
+            const updatedFlashcards: FlashcardData[] = (flashcards || []).map(original => {
+                const filled = filledSelection.find(f => f && original && f.character === original.character);
                 return filled || original;
             });
             saveCards(updatedFlashcards);
@@ -660,8 +671,8 @@ const App: React.FC = () => {
             masteredAt: masteredAt
         };
 
-        const updatedFlashcards = flashcards.map(c =>
-            c.character === currentCard.character ? updatedCard : c
+        const updatedFlashcards = (flashcards || []).map(c =>
+            (c && c.character === currentCard.character) ? updatedCard : c
         );
 
         saveCards(updatedFlashcards);
@@ -743,7 +754,7 @@ const App: React.FC = () => {
             // Update Local State
             const updatedProfile = { ...currentProfile, exp: newTotalExp };
             setCurrentProfile(updatedProfile);
-            setProfiles(prev => prev.map(p => p.id === updatedProfile.id ? updatedProfile : p));
+            setProfiles(prev => (prev || []).map(p => (p && p.id === updatedProfile.id) ? updatedProfile : p));
             localStorage.setItem('word_fun_profile', JSON.stringify(updatedProfile));
 
             console.log(`[EXP] Gained ${gain} EXP. New total: ${newTotalExp}`);
@@ -1141,16 +1152,16 @@ const App: React.FC = () => {
                                     <div className="flex-1 overflow-y-auto">
                                         <HomeScreen
                                             profileId={currentProfile?.id || ''}
-                                            cardCountZh={flashcards.filter(c => c.language === 'zh' || !c.language).length}
-                                            cardCountEn={flashcards.filter(c => c.language === 'en').length}
+                                            cardCountZh={flashcards.filter(c => c && (c.language === 'zh' || !c.language)).length}
+                                            cardCountEn={flashcards.filter(c => c && c.language === 'en').length}
                                             onStart={startStudySession}
                                             onManage={() => navigate(`/profiles/${currentProfile?.id}/add`)}
                                             isSyncing={isLoading}
                                             onSync={() => currentProfile && loadWords(currentProfile.id)}
                                             profileName={currentProfile?.displayName}
                                             avatarId={currentProfile?.avatarId}
-                                            masteredCount={flashcards.filter(c => (c.correctCount || 0) >= masteryThreshold).length}
-                                            reviewedCount={flashcards.reduce((acc, curr) => acc + (curr.revisedCount || 0), 0)}
+                                            masteredCount={flashcards.filter(c => c && (c.correctCount || 0) >= masteryThreshold).length}
+                                            reviewedCount={flashcards.reduce((acc, curr) => acc + (curr ? (curr.revisedCount || 0) : 0), 0)}
                                             masteredToday={masteredToday}
                                             reviewedToday={reviewedToday}
                                             masteredThisWeek={masteredThisWeek}
@@ -1183,12 +1194,12 @@ const App: React.FC = () => {
                                 >
                                     <div className="flex-1 overflow-y-auto">
                                         <SummaryScreen
-                                            profileId={currentProfile!.id}
+                                            profileId={currentProfile?.id || ''}
                                             cards={flashcards}
                                             masteryThreshold={masteryThreshold}
                                             onUpdateWord={async (wordId: string, updates: any) => {
                                                 // Optimistic update
-                                                const updatedCards = flashcards.map(c => c.id === wordId ? { ...c, ...updates } : c);
+                                                const updatedCards = (flashcards || []).map(c => (c && c.id === wordId) ? { ...c, ...updates } : c);
                                                 saveCards(updatedCards);
                                                 // Backend sync
                                                 if (currentProfile) {
@@ -1197,7 +1208,7 @@ const App: React.FC = () => {
                                             }}
                                             onDeleteWord={async (wordId: string) => {
                                                 // Optimistic update
-                                                const updatedCards = flashcards.filter(c => c.id !== wordId);
+                                                const updatedCards = (flashcards || []).filter(c => c && c.id !== wordId);
                                                 saveCards(updatedCards);
                                                 // Backend sync
                                                 if (currentProfile) {
