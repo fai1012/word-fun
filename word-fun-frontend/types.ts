@@ -60,6 +60,7 @@ export interface FlashcardData {
   revisedCount?: number;
   correctCount?: number;
   tags?: string[];
+  pronunciationUrl?: string; // Generated audio URL
   lastReviewedAt?: Date;
   masteredAt?: Date;
 }

@@ -19,21 +19,24 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
   // Auto-play audio when flipped if enabled
   useEffect(() => {
     if (isFlipped && autoPlaySound) {
-      const timer = setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(data.character);
-        utterance.lang = 'zh-CN';
-        window.speechSynthesis.speak(utterance);
-      }, 300);
-      return () => clearTimeout(timer);
+      if (data.pronunciationUrl) {
+        const timer = setTimeout(() => {
+          const audio = new Audio(data.pronunciationUrl);
+          audio.play().catch(err => console.error("Auto-play error", err));
+        }, 300);
+        return () => clearTimeout(timer);
+      }
+      // If no pronunciationUrl, do nothing (as per "hide speaker" requirement, likely implies no sound too)
     }
-  }, [isFlipped, data.character, autoPlaySound]);
+  }, [isFlipped, data.character, autoPlaySound, data.pronunciationUrl]);
 
   // Stop propagation on buttons to prevent flipping when clicking controls
   const handleAudioClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const utterance = new SpeechSynthesisUtterance(data.character);
-    utterance.lang = 'zh-CN';
-    window.speechSynthesis.speak(utterance);
+    if (data.pronunciationUrl) {
+      const audio = new Audio(data.pronunciationUrl);
+      audio.play().catch(err => console.error("Audio playback error", err));
+    }
   };
 
   const executeRegeneration = async (index: number) => {
@@ -220,12 +223,14 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleAudioClick}
-                  className="p-2 bg-white/10 rounded-full hover:bg-salmon hover:text-white transition-colors border-2 border-transparent hover:border-salmon"
-                >
-                  <Volume2 className="w-4 h-4" />
-                </button>
+                {data.pronunciationUrl && (
+                  <button
+                    onClick={handleAudioClick}
+                    className="p-2 bg-white/10 rounded-full hover:bg-salmon hover:text-white transition-colors border-2 border-transparent hover:border-salmon"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
 

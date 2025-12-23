@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import apiClient from '../services/apiClient';
-import { Search, ChevronLeft, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Loader2, AlertCircle, Volume2 } from 'lucide-react';
 
 interface Word {
     id: string;
@@ -9,6 +9,7 @@ interface Word {
     correctCount: number;
     revisedCount: number;
     userEmail?: string;
+    pronunciationUrl?: string; // Add optional url
 }
 
 const Words: React.FC = () => {
@@ -68,6 +69,26 @@ const Words: React.FC = () => {
         fetchWords();
     }, [debouncedSearch, page, pageSize]);
 
+    const [regenerating, setRegenerating] = useState(false);
+
+    const handleRegenerate = async () => {
+        if (!confirm('This will trigger background generation for ALL missing pronunciations which involves cost. Continue?')) {
+            return;
+        }
+        setRegenerating(true);
+        try {
+            await apiClient.post('/admin/pronunciations/regenerate');
+            alert("Regeneration triggered in background.");
+        } catch (err) {
+            console.error(err);
+            alert('Failed to trigger regeneration');
+        } finally {
+            setRegenerating(false);
+        }
+    };
+
+    // ... (fetchEffects) -> can stay as is
+
     const totalPages = Math.ceil(totalWords / pageSize);
 
     return (
@@ -80,15 +101,26 @@ const Words: React.FC = () => {
                     </p>
                 </div>
 
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Search user name or email..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all w-full sm:w-64 shadow-sm placeholder-slate-500"
-                    />
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={handleRegenerate}
+                        disabled={regenerating}
+                        className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border border-yellow-500/50 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                        {regenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Loader2 className="w-4 h-4" />}
+                        <span>Generate Missing Audio</span>
+                    </button>
+
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search user name or email..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all w-full sm:w-64 shadow-sm placeholder-slate-500"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -126,7 +158,18 @@ const Words: React.FC = () => {
                                         return (
                                             <tr key={word.id} className="hover:bg-slate-700/50 transition-colors">
                                                 <td className="px-6 py-4">
-                                                    <span className="font-bold text-slate-200 text-lg">{word.text}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-slate-200 text-lg">{word.text}</span>
+                                                        {word.pronunciationUrl && (
+                                                            <button
+                                                                onClick={() => new Audio(word.pronunciationUrl).play()}
+                                                                className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                                                                title="Play Pronunciation"
+                                                            >
+                                                                <Volume2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-slate-400">
                                                     {word.userEmail || '-'}

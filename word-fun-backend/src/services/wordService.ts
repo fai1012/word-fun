@@ -1,6 +1,8 @@
 import { db } from './firestoreService';
 import { Word } from '../types';
 import { aiService } from './aiService';
+import { pronunciationService } from './pronunciationService';
+import { storageService } from './storageService';
 
 class WordService {
     private getCollection(userId: string, profileId: string) {
@@ -41,12 +43,18 @@ class WordService {
         };
 
         await wordsRef.set(newWord);
+
+        // Trigger Pronunciation Generation (in background)
+        pronunciationService.getPronunciation(text)
+            .catch(err => console.error(`[WordService] Failed to generate pronunciation for ${text}`, err));
+
         return newWord;
     }
 
     async getWords(userId: string, profileId: string): Promise<Word[]> {
         const snapshot = await this.getCollection(userId, profileId).orderBy('createdAt', 'asc').get();
-        return snapshot.docs.map(doc => {
+
+        const words = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
@@ -56,11 +64,37 @@ class WordService {
                 correctCount: data.correctCount || 0,
                 examples: data.examples || [],
                 tags: data.tags || [],
+                // Populated with full URL OR relative path. storageService.getUrl manages resolution.
+                pronunciationUrl: data.pronunciationUrl ? storageService.getUrl(data.pronunciationUrl) : undefined,
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
                 lastReviewedAt: data.lastReviewedAt?.toDate ? data.lastReviewedAt.toDate() : (data.lastReviewedAt ? new Date(data.lastReviewedAt) : undefined),
                 masteredAt: data.masteredAt?.toDate ? data.masteredAt.toDate() : (data.masteredAt ? new Date(data.masteredAt) : undefined)
             } as Word;
         });
+
+        // Optimization: Lazy-load missing pronunciations
+        // We do not await this to slow down the request significantly? 
+        // Actually, the user wants the icon to show/hide. We MUST wait.
+        // Batch lookup strictly for words missing the URL
+        const missingUrlWords = words.filter(w => !w.pronunciationUrl).map(w => w.text);
+
+        if (missingUrlWords.length > 0) {
+            const urlMap = await pronunciationService.getPronunciations(missingUrlWords);
+
+            // Populate responses
+            words.forEach(w => {
+                if (!w.pronunciationUrl && urlMap.has(w.text)) {
+                    w.pronunciationUrl = urlMap.get(w.text);
+                }
+            });
+
+            // Optional: Fire-and-forget update to backfill the user's word docs? 
+            // This heals the data over time so next read is faster.
+            // However, doing 100 writes might be too much.
+            // Let's rely on the fast lookup for now as it handles shared pronunciation benefit immediately.
+        }
+
+        return words;
     }
 
     async updateWord(userId: string, profileId: string, wordId: string, updates: Partial<Pick<Word, 'revisedCount' | 'correctCount' | 'examples' | 'lastReviewedAt' | 'masteredAt' | 'tags'>>): Promise<void> {
@@ -173,6 +207,10 @@ class WordService {
             // Trigger Background AI Generation (Fire and Forget)
             aiService.generateExamplesForWords(userId, profileId, newWords)
                 .catch(err => console.error("Background AI generation failed to start", err));
+
+            // Trigger Pronunciation Generation for all new words (Fire and Forget)
+            Promise.all(newWords.map(w => pronunciationService.getPronunciation(w.text)))
+                .catch(err => console.error("Background pronunciation generation failed", err));
         }
 
         return { added: addedCount, skipped: skippedCount };

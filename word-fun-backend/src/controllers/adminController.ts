@@ -34,6 +34,16 @@ class AdminController {
             res.status(500).json({ error: 'Internal server error' });
         }
     }
+
+    async regeneratePronunciations(req: Request, res: Response): Promise<void> {
+        try {
+            const result = await adminService.regenerateMissingPronunciations();
+            res.status(200).json(result);
+        } catch (error) {
+            console.error('Error regenerating pronunciations:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
 }
 
 export const adminController = new AdminController();
