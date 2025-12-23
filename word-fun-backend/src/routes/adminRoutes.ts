@@ -14,7 +14,7 @@ router.get('/words', adminController.getAllWords.bind(adminController));
 
 // Word Pack Routes
 router.post('/word-packs', wordPackController.createWordPack.bind(wordPackController));
-router.get('/word-packs', wordPackController.getAllWordPacks.bind(wordPackController));
+router.get('/word-packs', wordPackController.getAdminAllWordPacks.bind(wordPackController));
 router.get('/word-packs/tags', wordPackController.getTags.bind(wordPackController));
 router.get('/word-packs/:id', wordPackController.getWordPackById.bind(wordPackController));
 router.patch('/word-packs/:id', wordPackController.updateWordPack.bind(wordPackController));

@@ -9,6 +9,7 @@ export interface WordPackWord {
 export interface WordPackData {
     name: string;
     words: WordPackWord[];
+    isPublished?: boolean;
 }
 
 export const wordPackService = {

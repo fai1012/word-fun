@@ -113,10 +113,12 @@ export interface WordPackWord {
 export interface WordPackData {
     name: string;
     words: WordPackWord[];
+    isPublished?: boolean;
 }
 
 export interface WordPack extends WordPackData {
     id: string;
+    isPublished?: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
