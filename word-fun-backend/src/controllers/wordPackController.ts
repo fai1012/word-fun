@@ -22,10 +22,22 @@ export const wordPackController = {
 
     async getAllWordPacks(req: Request, res: Response) {
         try {
-            const packs = await wordPackService.getAllPacks();
+            // Public endpoint: only return published packs
+            const packs = await wordPackService.getAllPacks({ isPublished: true });
             res.status(200).json(packs);
         } catch (error) {
             console.error('Error fetching word packs:', error);
+            res.status(500).json({ error: 'Failed to fetch word packs' });
+        }
+    },
+
+    async getAdminAllWordPacks(req: Request, res: Response) {
+        try {
+            // Admin endpoint: return all packs (drafts + published)
+            const packs = await wordPackService.getAllPacks();
+            res.status(200).json(packs);
+        } catch (error) {
+            console.error('Error fetching admin word packs:', error);
             res.status(500).json({ error: 'Failed to fetch word packs' });
         }
     },

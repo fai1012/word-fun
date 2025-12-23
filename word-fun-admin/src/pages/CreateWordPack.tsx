@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { wordPackService, type WordPackWord } from '../services/wordPackService';
 import TagAutocomplete from '../components/TagAutocomplete';
+import { ArrowLeft, Save, Plus, Trash2, Check, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 
 const CreateWordPack: React.FC = () => {
     const { id } = useParams();
@@ -11,6 +12,7 @@ const CreateWordPack: React.FC = () => {
     // Core state
     const [name, setName] = useState('');
     const [words, setWords] = useState<WordPackWord[]>([]);
+    const [isPublished, setIsPublished] = useState(false);
     const [loading, setLoading] = useState(isEditing);
     const [saving, setSaving] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -28,6 +30,7 @@ const CreateWordPack: React.FC = () => {
                     if (pack) {
                         setName(pack.name);
                         setWords(pack.words || []);
+                        setIsPublished(pack.isPublished ?? false);
                     }
                 } catch (error) {
                     console.error("Failed to fetch pack", error);
@@ -40,6 +43,25 @@ const CreateWordPack: React.FC = () => {
         }
     }, [id, isEditing]);
 
+    const handleTogglePublished = async () => {
+        const newVal = !isPublished;
+        setIsPublished(newVal);
+        if (isEditing && id) {
+            setSaving(true);
+            try {
+                await wordPackService.updatePack(id, {
+                    name,
+                    words,
+                    isPublished: newVal
+                });
+            } catch (error) {
+                console.error("Failed to toggle publish status", error);
+            } finally {
+                setSaving(false);
+            }
+        }
+    };
+
     const persistChanges = async (updatedWords: WordPackWord[]) => {
         if (!isEditing || !id) return;
 
@@ -47,11 +69,11 @@ const CreateWordPack: React.FC = () => {
         try {
             await wordPackService.updatePack(id, {
                 name,
-                words: updatedWords
+                words: updatedWords,
+                isPublished
             });
         } catch (error) {
             console.error('Failed to auto-save:', error);
-            // We don't want to alert on every auto-save failure, but maybe show a status
         } finally {
             setSaving(false);
         }
@@ -135,10 +157,8 @@ const CreateWordPack: React.FC = () => {
 
         setSaving(true);
         try {
-            // This function is now primarily for creating new packs
-            // For editing, changes are auto-saved via persistChanges
             if (!isEditing) {
-                await wordPackService.createPack({ name, words });
+                await wordPackService.createPack({ name, words, isPublished });
                 alert("Word Pack created successfully!");
                 navigate('/word-packs');
             }
@@ -151,216 +171,233 @@ const CreateWordPack: React.FC = () => {
     };
 
     return (
-        <div style={{ padding: '20px' }}>
-            <button
-                onClick={() => navigate('/word-packs')}
-                style={{ marginBottom: '10px', background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', padding: 0 }}
-            >
-                &larr; Back to List
-            </button>
-            <h2>{isEditing ? 'Edit' : 'Create'} Word Pack</h2>
+        <div className="max-w-6xl mx-auto space-y-6 pb-20">
+            <div className="flex items-center gap-4">
+                <button
+                    onClick={() => navigate('/word-packs')}
+                    className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="flex-1 flex items-start justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-white">{isEditing ? 'Edit Word Pack' : 'Create New Pack'}</h1>
+                        <p className="text-sm text-slate-400">
+                            {isEditing ? 'Changes are saved automatically as you edit.' : 'Add initial words to create the pack.'}
+                        </p>
+                    </div>
+
+                    <label className="flex items-center gap-3 cursor-pointer bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl hover:bg-slate-700/50 transition-colors">
+                        <span className={`text-sm font-medium transition-colors ${isPublished ? 'text-cyan-400' : 'text-slate-400'}`}>
+                            {isPublished ? 'Published' : 'Draft'}
+                        </span>
+                        <div className={`relative w-10 h-6 rounded-full transition-colors ${isPublished ? 'bg-cyan-500' : 'bg-slate-600'}`}>
+                            <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${isPublished ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </div>
+                        <input
+                            type="checkbox"
+                            checked={isPublished}
+                            onChange={handleTogglePublished}
+                            className="hidden"
+                        />
+                    </label>
+                </div>
+            </div>
 
             {loading ? (
-                <p>Loading pack data...</p>
+                <div className="flex items-center justify-center min-h-[400px] bg-slate-800 rounded-2xl border border-slate-700 shadow-sm">
+                    <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
+                </div>
             ) : (
                 <>
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px' }}>Pack Name</label>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-300">Pack Name</label>
                         <input
                             type="text"
                             value={name}
                             onChange={e => setName(e.target.value)}
-                            placeholder="e.g. HSK Level 1"
-                            style={{ padding: '8px', width: '300px' }}
+                            placeholder="e.g. HSK Level 1 Vocabulary"
+                            className="w-full max-w-md px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-colors placeholder-slate-500"
                         />
                     </div>
 
-                    <div style={{ display: 'flex', gap: '20px' }}>
-                        <div style={{ flex: 1, padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
-                            <h3>Add Word</h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <input
-                                    value={wordInput}
-                                    onChange={e => setWordInput(e.target.value)}
-                                    placeholder="Word (Chinese or English)"
-                                    style={{ padding: '8px' }}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter') handleAddWord();
-                                    }}
-                                />
-                                <div style={{ marginBottom: '10px' }}>
-                                    <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '4px' }}>Tags</label>
-                                    <TagAutocomplete
-                                        selectedTags={selectedTagsForNewWord}
-                                        onChange={setSelectedTagsForNewWord}
-                                        placeholder="Add tags to word..."
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Left Panel: Add Word */}
+                        <div className="lg:col-span-1 space-y-4">
+                            <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-sm sticky top-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">Add New Word</h3>
+                                <div className="space-y-4">
+                                    <input
+                                        value={wordInput}
+                                        onChange={e => setWordInput(e.target.value)}
+                                        placeholder="Enter character/word..."
+                                        className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-colors placeholder-slate-500"
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') handleAddWord();
+                                        }}
                                     />
+
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Tags</label>
+                                        <TagAutocomplete
+                                            selectedTags={selectedTagsForNewWord}
+                                            onChange={setSelectedTagsForNewWord}
+                                            placeholder="Add tags..."
+                                        />
+                                    </div>
+
+                                    <button
+                                        onClick={handleAddWord}
+                                        disabled={!wordInput.trim()}
+                                        className="w-full py-3 px-4 bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-xl hover:bg-cyan-400 transition-colors font-medium flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        Add to List
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={handleAddWord}
-                                    style={{ padding: '10px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                                >
-                                    Add Word
-                                </button>
                             </div>
                         </div>
 
-                        <div style={{ flex: 2 }}>
-                            <h3>Words List ({words.length})</h3>
-                            <div style={{ maxHeight: '700px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '8px', background: '#fff' }}>
-                                {words.map((w, i) => {
-                                    const isWordEditing = editingIndex === i;
+                        {/* Right Panel: Word List */}
+                        <div className="lg:col-span-2">
+                            <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-sm overflow-hidden">
+                                <div className="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-900/50">
+                                    <h3 className="font-semibold text-slate-200">Word List ({words.length})</h3>
+                                    {saving && (
+                                        <div className="flex items-center gap-2 text-xs text-cyan-400 font-medium animate-pulse">
+                                            <Save className="w-3 h-3" />
+                                            Saving...
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="divide-y divide-slate-700/50 max-h-[800px] overflow-y-auto">
+                                    {words.map((w, i) => {
+                                        const isWordEditing = editingIndex === i;
 
-                                    if (!isWordEditing) {
+                                        if (!isWordEditing) {
+                                            return (
+                                                <div
+                                                    key={i}
+                                                    onClick={() => setEditingIndex(i)}
+                                                    className="p-4 hover:bg-slate-700/50 transition-colors cursor-pointer group flex items-center justify-between"
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <span className="text-lg font-bold text-slate-200 w-24">{w.character}</span>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {w.tags.map(tag => (
+                                                                <span key={tag} className="px-2 py-1 bg-slate-700 text-slate-300 text-xs rounded-md font-medium border border-slate-600">
+                                                                    {tag}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-xs text-cyan-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        Edit
+                                                    </span>
+                                                </div>
+                                            );
+                                        }
+
                                         return (
-                                            <div
-                                                key={i}
-                                                onClick={() => setEditingIndex(i)}
-                                                style={{
-                                                    padding: '12px 15px',
-                                                    borderBottom: '1px solid #eee',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    transition: 'background 0.2s'
-                                                }}
-                                                onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'}
-                                                onMouseOut={(e) => e.currentTarget.style.background = 'white'}
-                                            >
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                                    <span style={{ fontWeight: 'bold', fontSize: '16px', minWidth: '100px' }}>{w.character}</span>
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                                                        {w.tags.map(tag => (
-                                                            <span key={tag} style={{ background: '#e9ecef', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', color: '#666' }}>
-                                                                {tag}
-                                                            </span>
+                                            <div key={i} className="p-6 bg-cyan-900/10 border-l-4 border-cyan-500 space-y-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-sm font-bold text-cyan-400 uppercase tracking-wider">Editing Word</h4>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleRemoveWord(i); setEditingIndex(null); }}
+                                                            className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setEditingIndex(null); }}
+                                                            className="flex items-center gap-1 px-3 py-1.5 bg-cyan-500 text-white rounded-lg hover:bg-cyan-400 transition-colors text-sm font-medium"
+                                                        >
+                                                            <Check className="w-3 h-3" />
+                                                            Done
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div className="space-y-1">
+                                                        <label className="text-xs text-slate-400 font-medium">Character/Word</label>
+                                                        <input
+                                                            value={w.character}
+                                                            onChange={e => handleWordUpdate(i, 'character', e.target.value)}
+                                                            className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:border-cyan-500"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-xs text-slate-400 font-medium">Tags</label>
+                                                        <TagAutocomplete
+                                                            selectedTags={w.tags}
+                                                            onChange={(newTags) => handleWordUpdate(i, 'tags', newTags)}
+                                                            placeholder="Edit tags..."
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="border-t border-slate-700/50 pt-4 space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-semibold text-slate-300">Examples</span>
+                                                        <button
+                                                            onClick={() => handleGenerateExamples(i)}
+                                                            disabled={generatingIndex === i}
+                                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${generatingIndex === i
+                                                                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                                                : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20'
+                                                                }`}
+                                                        >
+                                                            {generatingIndex === i ? (
+                                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                                            ) : (
+                                                                <Sparkles className="w-3 h-3" />
+                                                            )}
+                                                            {generatingIndex === i ? 'Generating AI...' : 'Generate with AI'}
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        {[0, 1, 2].map(exIdx => (
+                                                            <textarea
+                                                                key={exIdx}
+                                                                value={(w.examples || [])[exIdx] || ''}
+                                                                onChange={e => handleExampleUpdate(i, exIdx, e.target.value)}
+                                                                placeholder={`Example sentence ${exIdx + 1}...`}
+                                                                className="w-full px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:border-cyan-500 resize-none min-h-[60px] placeholder-slate-600"
+                                                            />
                                                         ))}
                                                     </div>
                                                 </div>
-                                                <span style={{ fontSize: '12px', color: '#007bff' }}>Click to edit &rarr;</span>
                                             </div>
                                         );
-                                    }
+                                    })}
 
-                                    return (
-                                        <div key={i} style={{ padding: '20px', borderBottom: '2px solid #007bff', background: '#f0f7ff', position: 'relative' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                                                <h4 style={{ margin: 0, color: '#007bff' }}>Editing Word</h4>
-                                                <div style={{ display: 'flex', gap: '10px' }}>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleRemoveWord(i); setEditingIndex(null); }}
-                                                        style={{ color: 'red', cursor: 'pointer', border: '1px solid red', padding: '4px 12px', borderRadius: '4px', background: 'white', fontSize: '12px' }}
-                                                    >
-                                                        Delete Word
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setEditingIndex(null); }}
-                                                        disabled={saving}
-                                                        style={{ background: '#007bff', color: 'white', border: 'none', padding: '4px 12px', borderRadius: '4px', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 'bold', opacity: saving ? 0.7 : 1 }}
-                                                    >
-                                                        Done
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div style={{ marginBottom: '15px' }}>
-                                                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '4px' }}>Word (Chinese or English)</label>
-                                                <input
-                                                    value={w.character}
-                                                    onChange={e => handleWordUpdate(i, 'character', e.target.value)}
-                                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da' }}
-                                                />
-                                            </div>
-
-                                            <div style={{ marginBottom: '15px' }}>
-                                                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '4px' }}>Tags</label>
-                                                <TagAutocomplete
-                                                    selectedTags={w.tags}
-                                                    onChange={(newTags) => handleWordUpdate(i, 'tags', newTags)}
-                                                />
-                                            </div>
-
-                                            <div style={{ borderTop: '1px solid #dee2e6', paddingTop: '15px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                    <span style={{ fontWeight: 'bold', fontSize: '14px' }}>Examples</span>
-                                                    <button
-                                                        onClick={() => handleGenerateExamples(i)}
-                                                        disabled={generatingIndex === i}
-                                                        style={{
-                                                            padding: '6px 12px',
-                                                            background: generatingIndex === i ? '#6c757d' : '#17a2b8',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            borderRadius: '4px',
-                                                            cursor: generatingIndex === i ? 'not-allowed' : 'pointer',
-                                                            fontSize: '12px',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '5px'
-                                                        }}
-                                                    >
-                                                        {generatingIndex === i ? (
-                                                            <>
-                                                                <span className="spinner-small" style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></span>
-                                                                Generating...
-                                                            </>
-                                                        ) : 'Generate Examples'}
-                                                    </button>
-                                                </div>
-
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                    {[0, 1, 2].map(exIdx => (
-                                                        <textarea
-                                                            key={exIdx}
-                                                            value={(w.examples || [])[exIdx] || ''}
-                                                            onChange={e => handleExampleUpdate(i, exIdx, e.target.value)}
-                                                            placeholder={`Example ${exIdx + 1}`}
-                                                            style={{
-                                                                width: '100%',
-                                                                padding: '8px',
-                                                                fontSize: '13px',
-                                                                minHeight: '45px',
-                                                                borderRadius: '4px',
-                                                                border: '1px solid #ced4da',
-                                                                resize: 'vertical'
-                                                            }}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
+                                    {words.length === 0 && (
+                                        <div className="py-20 flex flex-col items-center justify-center text-slate-500">
+                                            <AlertCircle className="w-12 h-12 mb-3 opacity-20" />
+                                            <p>No words added yet.</p>
+                                            <p className="text-sm opacity-60">Use the form on the left to add words.</p>
                                         </div>
-                                    );
-                                })}
-                                {words.length === 0 && (
-                                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
-                                        No words added yet
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ padding: '20px', borderTop: '1px solid #ddd', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '20px' }}>
-                        {saving && <span style={{ color: '#17a2b8', fontWeight: 'bold', fontSize: '14px' }}>Saving changes...</span>}
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            style={{
-                                padding: '12px 30px',
-                                background: isEditing ? '#6c757d' : '#007bff',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: saving ? 'not-allowed' : 'pointer',
-                                fontSize: '16px',
-                                fontWeight: 'bold',
-                                display: isEditing ? 'none' : 'block'
-                            }}
-                        >
-                            {isEditing ? 'Pack Updated (Auto-saved)' : (saving ? 'Creating...' : 'Create Word Pack')}
-                        </button>
-                    </div>
+                    {!isEditing && (
+                        <div className="flex justify-end pt-6 border-t border-slate-700">
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="px-8 py-3 bg-cyan-500 text-white rounded-xl hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-cyan-500/30 font-bold"
+                            >
+                                {saving ? 'Creating...' : 'Create Word Pack'}
+                            </button>
+                        </div>
+                    )}
                 </>
             )}
         </div>

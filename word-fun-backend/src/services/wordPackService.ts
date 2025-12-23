@@ -7,15 +7,22 @@ export const wordPackService = {
     async createPack(data: WordPackData): Promise<string> {
         const docRef = await db.collection(COLLECTION_NAME).add({
             ...data,
+            isPublished: data.isPublished ?? false,
             createdAt: new Date(),
             updatedAt: new Date()
         });
         return docRef.id;
     },
 
-    async getAllPacks(): Promise<any[]> {
-        const snapshot = await db.collection(COLLECTION_NAME).orderBy('createdAt', 'desc').get();
-        return snapshot.docs.map(doc => {
+    async getAllPacks(filters: { isPublished?: boolean } = {}): Promise<any[]> {
+        let query: any = db.collection(COLLECTION_NAME);
+
+        if (filters.isPublished !== undefined) {
+            query = query.where('isPublished', '==', filters.isPublished);
+        }
+
+        const snapshot = await query.get();
+        const packs = snapshot.docs.map((doc: any) => {
             const data = doc.data();
             return {
                 id: doc.id,
@@ -23,6 +30,12 @@ export const wordPackService = {
                 createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
                 updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt
             };
+        });
+
+        return packs.sort((a: any, b: any) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA;
         });
     },
 
