@@ -9,6 +9,7 @@ import {
 } from './services/geminiService';
 import { loginWithGoogle } from './services/authService';
 import { fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles, createProfile } from './services/profileService';
+import { addToQueue } from './services/queueService';
 import { HomeScreen } from './components/HomeScreen';
 import { Flashcard } from './components/Flashcard';
 import { SignInPage } from './components/SignInPage';
@@ -549,41 +550,16 @@ const App: React.FC = () => {
         }
 
         if (needsGeneration) {
-            setIsLoading(true);
-            console.log("[PERF] Session content generation needed. Starting...");
-            const genStart = performance.now();
+            console.log("[SESSION] Missing examples detected. Adding to queue...");
 
-            const allWords = (flashcards || []).filter(c => c && c.character).map(c => c.character);
-            if (!currentProfile?.id) {
-                setIsLoading(false);
-                return;
-            }
-            const filledSelection = await generateSessionContent(currentProfile.id, selection, allWords) as FlashcardData[];
-
-            const genEnd = performance.now();
-            console.log(`[PERF] Session Generation Wait Time: ${(genEnd - genStart).toFixed(0)}ms`);
-
-            selection = filledSelection;
-
-            const updatedFlashcards: FlashcardData[] = (flashcards || []).map(original => {
-                const filled = filledSelection.find(f => f && original && f.character === original.character);
-                return filled || original;
-            });
-            saveCards(updatedFlashcards);
-
-            // SYNC NEW EXAMPLES TO BACKEND
-            if (currentProfile && currentProfile.id) {
-                filledSelection.forEach(card => {
-                    // Only sync if it was ACTUALLY generated (examples length > 0)
-                    // and if it wasn't already there (we checked backend above, so if we are here, it's new)
-                    if (card.id && card.examples && card.examples.length > 0) {
-                        updateWord(currentProfile.id, card.id, { examples: card.examples })
-                            .catch(err => console.error(`Failed to sync examples for ${card.character}`, err));
+            // Non-blocking: Add to queue for background processing
+            if (currentProfile?.id) {
+                selection.forEach(card => {
+                    if ((!card.examples || card.examples.length === 0) && card.id) {
+                        addToQueue(card.id, card.character, currentProfile.id);
                     }
                 });
             }
-
-            setIsLoading(false);
         }
 
         // --- STEP 5: Final Shuffle ---

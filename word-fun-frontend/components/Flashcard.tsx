@@ -325,8 +325,9 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
                   })}
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-slate-600 text-xs italic">
-                  No examples available
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-600 text-xs italic gap-2 transition-opacity duration-1000 animate-pulse">
+                  <p>We are working on the examples...</p>
+                  <RefreshCw className="w-4 h-4 animate-spin opacity-50" />
                 </div>
               )}
             </div>

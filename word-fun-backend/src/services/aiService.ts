@@ -14,9 +14,16 @@ class AIService {
     }
 
     private getPromptForLanguage(language: 'zh' | 'en', words: string[], contextWords: string[] = []): string {
-        const contextSection = contextWords.length > 0 ? `
+        // Filter context words to match the target language
+        const filteredContext = contextWords.filter(w => {
+            if (language === 'zh') return /[\u4e00-\u9fa5]/.test(w);
+            if (language === 'en') return /[a-zA-Z]/.test(w) && !/[\u4e00-\u9fa5]/.test(w); // Ensure no mixed Chinese
+            return false;
+        });
+
+        const contextSection = filteredContext.length > 0 ? `
                 EXISTING VOCABULARY CONTEXT (Try to use these words in examples):
-                ${contextWords.join(", ")}` : '';
+                ${filteredContext.join(", ")}` : '';
 
         if (language === 'zh') {
             return `Generate flashcard content for the following Chinese words.
@@ -44,7 +51,7 @@ class AIService {
                 2. Examples:
                    - Create 3 distinct sentences for each word.
                    - Sentences must be simple, relatable to a 6-7 year old living in HK.
-                   - LANGUAGE: English Only. Do NOT provide Chinese translations.
+                   - LANGUAGE: Written british English. No informal English.
                 3. Return JSON Array.`;
         }
     }
@@ -210,9 +217,15 @@ class AIService {
         console.log(`[AI] Generating single example for ${word} with ${contextWords.length} context words...`);
         const isChinese = /[\u4e00-\u9fa5]/.test(word);
 
-        const contextSection = contextWords.length > 0 ? `
+        // Filter context words to match the target language
+        const filteredContext = contextWords.filter(w => {
+            if (isChinese) return /[\u4e00-\u9fa5]/.test(w);
+            return /[a-zA-Z]/.test(w) && !/[\u4e00-\u9fa5]/.test(w);
+        });
+
+        const contextSection = filteredContext.length > 0 ? `
                 EXISTING VOCABULARY CONTEXT (Try to use these words if natural):
-                ${contextWords.join(", ")}` : '';
+                ${filteredContext.join(", ")}` : '';
 
         try {
             let prompt = '';
@@ -242,7 +255,7 @@ class AIService {
                 1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
                 2. Content: Simple, relatable to daily life in HK.
                 3. Length: Short sentence (5-10 words preferred).
-                4. Language: English.
+                4. Language: Written british English. No informal English.
                 5. Output: JUST the sentence string. No JSON.`;
             }
 

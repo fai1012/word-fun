@@ -132,3 +132,16 @@ export interface Pronunciation {
     storagePath: string; // Internal path in the bucket
     createdAt: number; // Timestamp
 }
+
+export interface QueueItem {
+    id?: string;
+    wordId: string;
+    wordText: string;
+    userId: string;
+    profileId: string;
+    status: 'pending' | 'processing' | 'failed' | 'completed';
+    createdAt: Date;
+    startedAt?: Date;
+    error?: string;
+    attempts?: number;
+}

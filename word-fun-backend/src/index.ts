@@ -60,6 +60,9 @@ app.use('/api/word-packs', wordPackPublicRoutes);
 import adminRoutes from './routes/adminRoutes';
 app.use('/api/admin', adminRoutes);
 
+import queueRoutes from './routes/queueRoutes';
+app.use('/api/queue', queueRoutes);
+
 
 // Protected Routes (example)
 app.get('/api/protected', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
