@@ -108,6 +108,7 @@ export interface Word {
 export interface WordPackWord {
     character: string;
     tags: string[];
+    pronunciationUrl?: string;
     examples?: string[];
 }
 

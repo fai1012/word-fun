@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { wordPackService, type WordPackWord } from '../services/wordPackService';
 import TagAutocomplete from '../components/TagAutocomplete';
-import { ArrowLeft, Save, Plus, Trash2, Check, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Check, Sparkles, AlertCircle, Loader2, Volume2 } from 'lucide-react';
 
 const CreateWordPack: React.FC = () => {
     const { id } = useParams();
@@ -67,11 +67,15 @@ const CreateWordPack: React.FC = () => {
 
         setSaving(true);
         try {
-            await wordPackService.updatePack(id, {
+            const result = await wordPackService.updatePack(id, {
                 name,
                 words: updatedWords,
                 isPublished
             });
+            // Update local state with potentially enriched words (with audio URLs)
+            if (result.words) {
+                setWords(result.words);
+            }
         } catch (error) {
             console.error('Failed to auto-save:', error);
         } finally {
@@ -160,6 +164,7 @@ const CreateWordPack: React.FC = () => {
             if (!isEditing) {
                 await wordPackService.createPack({ name, words, isPublished });
                 alert("Word Pack created successfully!");
+                // If we stay, update state, but we navigate away
                 navigate('/word-packs');
             }
         } catch (error) {
@@ -283,7 +288,19 @@ const CreateWordPack: React.FC = () => {
                                                 >
                                                     <div className="flex items-center gap-4">
                                                         <span className="text-lg font-bold text-slate-200 w-24">{w.character}</span>
-                                                        <div className="flex flex-wrap gap-2">
+                                                        <div className="flex flex-wrap gap-2 items-center">
+                                                            {w.pronunciationUrl && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        new Audio(w.pronunciationUrl).play();
+                                                                    }}
+                                                                    className="p-1 text-cyan-400 hover:text-cyan-300 transition-colors"
+                                                                    title="Play Pronunciation"
+                                                                >
+                                                                    <Volume2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
                                                             {w.tags.map(tag => (
                                                                 <span key={tag} className="px-2 py-1 bg-slate-700 text-slate-300 text-xs rounded-md font-medium border border-slate-600">
                                                                     {tag}
