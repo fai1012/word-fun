@@ -3,6 +3,7 @@ import { Word } from '../types';
 import { aiService } from './aiService';
 import { pronunciationService } from './pronunciationService';
 import { storageService } from './storageService';
+import { queueService } from './queueService';
 
 class WordService {
     private getCollection(userId: string, profileId: string) {
@@ -58,6 +59,12 @@ class WordService {
             }
         } catch (err) {
             console.error(`[WordService] Failed to generate pronunciation for ${text}`, err);
+        }
+
+        // 4. Trigger AI Generation if no examples provided
+        if (!examples || examples.length === 0) {
+            queueService.addToQueue(newWord.id, newWord.text, userId, profileId)
+                .catch(err => console.error(`[WordService] Failed to add ${text} to queue`, err));
         }
 
         return newWord;
@@ -216,9 +223,11 @@ class WordService {
         }
 
         if (addedCount > 0) {
-            // Trigger Background AI Generation (Fire and Forget)
-            aiService.generateExamplesForWords(userId, profileId, newWords)
-                .catch(err => console.error("Background AI generation failed to start", err));
+            // Trigger Background AI Generation via Queue (Persistent)
+            newWords.forEach(w => {
+                queueService.addToQueue(w.id, w.text, userId, profileId)
+                    .catch(err => console.error(`[WordService] Failed to add ${w.text} to queue`, err));
+            });
 
             // Trigger Pronunciation Generation for all new words (Fire and Forget)
             Promise.all(newWords.map(w => pronunciationService.getPronunciation(w.text)))

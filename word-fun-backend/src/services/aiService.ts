@@ -14,9 +14,16 @@ class AIService {
     }
 
     private getPromptForLanguage(language: 'zh' | 'en', words: string[], contextWords: string[] = []): string {
-        const contextSection = contextWords.length > 0 ? `
+        // Filter context words to match the target language
+        const filteredContext = contextWords.filter(w => {
+            if (language === 'zh') return /[\u4e00-\u9fa5]/.test(w);
+            if (language === 'en') return /[a-zA-Z]/.test(w) && !/[\u4e00-\u9fa5]/.test(w); // Ensure no mixed Chinese
+            return false;
+        });
+
+        const contextSection = filteredContext.length > 0 ? `
                 EXISTING VOCABULARY CONTEXT (Try to use these words in examples):
-                ${contextWords.join(", ")}` : '';
+                ${filteredContext.join(", ")}` : '';
 
         if (language === 'zh') {
             return `Generate flashcard content for the following Chinese words.
@@ -44,7 +51,7 @@ class AIService {
                 2. Examples:
                    - Create 3 distinct sentences for each word.
                    - Sentences must be simple, relatable to a 6-7 year old living in HK.
-                   - LANGUAGE: English Only. Do NOT provide Chinese translations.
+                   - LANGUAGE: Written british English. No informal English.
                 3. Return JSON Array.`;
         }
     }
@@ -68,8 +75,23 @@ class AIService {
 
                 const batchCharacters = langWords.map(w => w.text);
 
-                const prompt = this.getPromptForLanguage(lang, batchCharacters);
-                console.log(`[AI] Generating Content for ${lang} with prompt:\n${prompt}`);
+                // Fetch context words dynamically
+                let contextWords: string[] = [];
+                try {
+                    const allWords = await wordService.getWords(userId, profileId);
+                    const sameLangWords = allWords
+                        .filter(w => (w.language === lang) || (!w.language && lang === 'zh'))
+                        .map(w => w.text);
+
+                    // Shuffle and pick 100
+                    contextWords = sameLangWords.sort(() => 0.5 - Math.random()).slice(0, 100);
+                    console.log(`[AI] Fetched ${contextWords.length} context words for ${lang} generation.`);
+                } catch (e) {
+                    console.warn("[AI] Failed to fetch context words, proceeding without context.", e);
+                }
+
+                const prompt = this.getPromptForLanguage(lang, batchCharacters, contextWords);
+                console.log(`[AI] Generating Content for ${lang} (Prompt length: ${prompt.length})`);
 
                 const aiResponse = await this.client.models.generateContent({
                     model: 'gemini-3-flash-preview',
@@ -127,6 +149,7 @@ class AIService {
 
         } catch (err) {
             console.error("[AI] Background generation failed:", err);
+            throw err;
         }
     }
 
@@ -149,7 +172,7 @@ class AIService {
                 const batchCharacters = langWords.map(w => w.text);
 
                 const prompt = this.getPromptForLanguage(lang, batchCharacters, contextWords);
-                console.log(`[AI] Generating Session Content for ${lang} with prompt:\n${prompt}`);
+                console.log(`[AI] Generating Session Content for ${lang} (Prompt length: ${prompt.length})`);
 
                 const aiResponse = await this.client.models.generateContent({
                     model: 'gemini-3-flash-preview',
@@ -210,9 +233,15 @@ class AIService {
         console.log(`[AI] Generating single example for ${word} with ${contextWords.length} context words...`);
         const isChinese = /[\u4e00-\u9fa5]/.test(word);
 
-        const contextSection = contextWords.length > 0 ? `
+        // Filter context words to match the target language
+        const filteredContext = contextWords.filter(w => {
+            if (isChinese) return /[\u4e00-\u9fa5]/.test(w);
+            return /[a-zA-Z]/.test(w) && !/[\u4e00-\u9fa5]/.test(w);
+        });
+
+        const contextSection = filteredContext.length > 0 ? `
                 EXISTING VOCABULARY CONTEXT (Try to use these words if natural):
-                ${contextWords.join(", ")}` : '';
+                ${filteredContext.join(", ")}` : '';
 
         try {
             let prompt = '';
@@ -242,11 +271,11 @@ class AIService {
                 1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
                 2. Content: Simple, relatable to daily life in HK.
                 3. Length: Short sentence (5-10 words preferred).
-                4. Language: English.
+                4. Language: Written british English. No informal English.
                 5. Output: JUST the sentence string. No JSON.`;
             }
 
-            console.log(`[AI] Generating Single Example with prompt:\n${prompt}`);
+            console.log(`[AI] Generating Single Example (Prompt length: ${prompt.length})`);
 
             const aiResponse = await this.client.models.generateContent({
                 model: 'gemini-3-flash-preview',
