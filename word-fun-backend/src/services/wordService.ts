@@ -44,9 +44,21 @@ class WordService {
 
         await wordsRef.set(newWord);
 
-        // Trigger Pronunciation Generation (in background)
-        pronunciationService.getPronunciation(text)
-            .catch(err => console.error(`[WordService] Failed to generate pronunciation for ${text}`, err));
+        // 3. Generate Pronunciation (Await so we can return the URL immediately)
+        try {
+            const pronunciation = await pronunciationService.getPronunciation(text);
+            if (pronunciation?.audioUrl) {
+                // Attach for the immediate response
+                newWord.pronunciationUrl = pronunciation.audioUrl;
+
+                // Optional: Update the word doc to store the URL/path to avoid future lookups
+                // but getWords handles lazy lookup so it's strictly not required for data integrity,
+                // just helpful for performance. Let's keep it simple and just return it for now
+                // to match the user request "update the audio url... they don't have to refresh".
+            }
+        } catch (err) {
+            console.error(`[WordService] Failed to generate pronunciation for ${text}`, err);
+        }
 
         return newWord;
     }

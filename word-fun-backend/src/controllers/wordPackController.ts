@@ -12,8 +12,8 @@ export const wordPackController = {
                 return res.status(400).json({ error: 'Invalid word pack data' });
             }
 
-            const id = await wordPackService.createPack(data);
-            res.status(201).json({ id, message: 'Word pack created successfully' });
+            const result = await wordPackService.createPack(data);
+            res.status(201).json({ id: result.id, words: result.words, message: 'Word pack created successfully' });
         } catch (error) {
             console.error('Error creating word pack:', error);
             res.status(500).json({ error: 'Failed to create word pack' });
@@ -65,8 +65,8 @@ export const wordPackController = {
                 return res.status(400).json({ error: 'Invalid word pack data' });
             }
 
-            await wordPackService.updatePack(id, data);
-            res.status(200).json({ message: 'Word pack updated successfully' });
+            const result = await wordPackService.updatePack(id, data);
+            res.status(200).json({ message: 'Word pack updated successfully', words: result.words });
         } catch (error) {
             console.error('Error updating word pack:', error);
             res.status(500).json({ error: 'Failed to update word pack' });

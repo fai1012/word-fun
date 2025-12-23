@@ -3,6 +3,7 @@ import apiClient from './apiClient';
 export interface WordPackWord {
     character: string;
     tags: string[];
+    pronunciationUrl?: string;
     examples?: string[];
 }
 
@@ -28,8 +29,9 @@ export const wordPackService = {
         return response.data;
     },
 
-    async updatePack(id: string, data: WordPackData): Promise<void> {
-        await apiClient.patch(`/admin/word-packs/${id}`, data);
+    async updatePack(id: string, data: WordPackData): Promise<{ words: WordPackWord[] }> {
+        const response = await apiClient.patch(`/admin/word-packs/${id}`, data);
+        return response.data;
     },
 
     async getGlobalTags(): Promise<string[]> {
