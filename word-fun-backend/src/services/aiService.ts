@@ -75,8 +75,23 @@ class AIService {
 
                 const batchCharacters = langWords.map(w => w.text);
 
-                const prompt = this.getPromptForLanguage(lang, batchCharacters);
-                console.log(`[AI] Generating Content for ${lang} with prompt:\n${prompt}`);
+                // Fetch context words dynamically
+                let contextWords: string[] = [];
+                try {
+                    const allWords = await wordService.getWords(userId, profileId);
+                    const sameLangWords = allWords
+                        .filter(w => (w.language === lang) || (!w.language && lang === 'zh'))
+                        .map(w => w.text);
+
+                    // Shuffle and pick 100
+                    contextWords = sameLangWords.sort(() => 0.5 - Math.random()).slice(0, 100);
+                    console.log(`[AI] Fetched ${contextWords.length} context words for ${lang} generation.`);
+                } catch (e) {
+                    console.warn("[AI] Failed to fetch context words, proceeding without context.", e);
+                }
+
+                const prompt = this.getPromptForLanguage(lang, batchCharacters, contextWords);
+                console.log(`[AI] Generating Content for ${lang} (Prompt length: ${prompt.length})`);
 
                 const aiResponse = await this.client.models.generateContent({
                     model: 'gemini-3-flash-preview',
@@ -134,6 +149,7 @@ class AIService {
 
         } catch (err) {
             console.error("[AI] Background generation failed:", err);
+            throw err;
         }
     }
 
@@ -156,7 +172,7 @@ class AIService {
                 const batchCharacters = langWords.map(w => w.text);
 
                 const prompt = this.getPromptForLanguage(lang, batchCharacters, contextWords);
-                console.log(`[AI] Generating Session Content for ${lang} with prompt:\n${prompt}`);
+                console.log(`[AI] Generating Session Content for ${lang} (Prompt length: ${prompt.length})`);
 
                 const aiResponse = await this.client.models.generateContent({
                     model: 'gemini-3-flash-preview',
@@ -259,7 +275,7 @@ class AIService {
                 5. Output: JUST the sentence string. No JSON.`;
             }
 
-            console.log(`[AI] Generating Single Example with prompt:\n${prompt}`);
+            console.log(`[AI] Generating Single Example (Prompt length: ${prompt.length})`);
 
             const aiResponse = await this.client.models.generateContent({
                 model: 'gemini-3-flash-preview',

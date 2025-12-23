@@ -377,7 +377,7 @@ const App: React.FC = () => {
                 .filter(c => (c.language || 'zh') === targetLang)
                 .map(c => c.character);
 
-            const contextWords = [...sameLangWords].sort(() => 0.5 - Math.random()).slice(0, 30);
+            const contextWords = [...sameLangWords].sort(() => 0.5 - Math.random()).slice(0, 100);
 
             const newChinese = await generateSingleExample(currentProfile.id, currentCard.character, contextExamples, contextWords);
 
@@ -554,11 +554,11 @@ const App: React.FC = () => {
 
             // Non-blocking: Add to queue for background processing
             if (currentProfile?.id) {
-                selection.forEach(card => {
-                    if ((!card.examples || card.examples.length === 0) && card.id) {
-                        addToQueue(card.id, card.character, currentProfile.id);
-                    }
-                });
+                const queuePromises = selection
+                    .filter(card => (!card.examples || card.examples.length === 0) && card.id)
+                    .map(card => addToQueue(card.id, card.character, currentProfile.id!));
+
+                Promise.all(queuePromises).catch(err => console.error("[SESSION] Failed to batch add to queue", err));
             }
         }
 

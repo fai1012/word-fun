@@ -22,7 +22,8 @@ export const queueService = {
         });
 
         if (activeItem) {
-            console.log(`[Queue] Word ${wordText} (${wordId}) is already in queue. Skipping.`);
+            const data = activeItem.data();
+            console.log(`[Queue] Word ${wordText} (${wordId}) is already in queue (Status: ${data.status}). Skipping.`);
             return;
         }
 
@@ -118,11 +119,13 @@ export const queueService = {
                     attempts
                 });
             } else {
-                // Back to pending for retry
+                // Back to pending for retry, AND move to back of queue
+                console.log(`[Queue] Retrying ${item.wordText} later (Attempt ${attempts})`);
                 await db.collection(COLLECTION_NAME).doc(docId).update({
                     status: 'pending',
                     attempts,
-                    error: error.message
+                    error: error.message,
+                    createdAt: new Date() // Move to back of queue
                 });
             }
         }

@@ -1,8 +1,12 @@
 import { fetchWithAuth } from './apiClient';
+import { getEnv } from '../constants';
+
+const BACKEND_URL = getEnv('VITE_BACKEND_SERVICE_URL');
 
 export const addToQueue = async (wordId: string, wordText: string, profileId: string): Promise<void> => {
     try {
-        await fetchWithAuth('/api/queue/add', {
+        if (!BACKEND_URL) throw new Error("Missing VITE_BACKEND_SERVICE_URL");
+        await fetchWithAuth(`${BACKEND_URL}/api/queue/add`, {
             method: 'POST',
             body: JSON.stringify({
                 wordId,
