@@ -205,6 +205,7 @@ const App: React.FC = () => {
                     correctCount: w.correctCount || 0,
                     language: w.language || 'zh',
                     tags: w.tags || [],
+                    pronunciationUrl: w.pronunciationUrl, // Add this line
                     lastReviewedAt: w.lastReviewedAt ? new Date(w.lastReviewedAt) : undefined,
                     masteredAt: w.masteredAt ? new Date(w.masteredAt) : undefined
                 }));
@@ -328,6 +329,13 @@ const App: React.FC = () => {
             loadAllProfiles();
         }
     }, [location.pathname, user]);
+
+    // Reload words whenever to ensure fresh data (including pronunciationUrl)
+    useEffect(() => {
+        if (currentProfile?.id) {
+            loadWords(currentProfile.id, false);
+        }
+    }, [currentProfile?.id]);
 
 
 

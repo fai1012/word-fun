@@ -121,6 +121,18 @@ class AdminService {
         const endIndex = startIndex + limit;
         const paginatedData = allWords.slice(startIndex, endIndex);
 
+        // 6. Populate Pronunciation Data
+        const { pronunciationService } = require('./pronunciationService');
+        const uniqueTexts = Array.from(new Set(paginatedData.map(w => w.text).filter(t => t)));
+        if (uniqueTexts.length > 0) {
+            const urlMap = await pronunciationService.getPronunciations(uniqueTexts);
+            paginatedData.forEach(w => {
+                if (urlMap.has(w.text)) {
+                    w.pronunciationUrl = urlMap.get(w.text);
+                }
+            });
+        }
+
         return {
             data: paginatedData,
             total
@@ -137,6 +149,48 @@ class AdminService {
             totalUsers: usersSnap.data().count,
             totalProfiles: profilesSnap.data().count,
             totalWords: wordsSnap.data().count
+        };
+    }
+
+    async regenerateMissingPronunciations(): Promise<{ totalChecked: number, triggered: number }> {
+        console.log('[Admin] Starting mass pronunciation check...');
+        const { pronunciationService } = require('./pronunciationService');
+
+        // 1. Scan all words
+        // Use collection group query to find all 'words' collections
+        const wordsSnapshot = await db.collectionGroup('words').select('text', 'pronunciationUrl').get();
+
+        const uniqueWords = new Set<string>();
+        wordsSnapshot.docs.forEach(doc => {
+            const data = doc.data();
+            if (!data.pronunciationUrl && data.text) {
+                uniqueWords.add(data.text);
+            }
+        });
+
+        console.log(`[Admin] Found ${uniqueWords.size} unique words possibly missing pronunciation URL.`);
+
+        if (uniqueWords.size === 0) {
+            return { totalChecked: 0, triggered: 0 };
+        }
+
+        // 2. Check existence in Pronunciations collection
+        const wordList = Array.from(uniqueWords);
+        const existingMap = await pronunciationService.getPronunciations(wordList);
+
+        const missingWords = wordList.filter(w => !existingMap.has(w));
+
+        console.log(`[Admin] ${missingWords.length} words are truly missing pronunciation audio.`);
+
+        // 3. Trigger generation
+        for (const word of missingWords) {
+            pronunciationService.getPronunciation(word)
+                .catch((e: any) => console.error(`Failed to generate for ${word}`, e));
+        }
+
+        return {
+            totalChecked: wordsSnapshot.size,
+            triggered: missingWords.length
         };
     }
 }

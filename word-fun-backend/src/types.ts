@@ -99,6 +99,7 @@ export interface Word {
     correctCount: number;
     examples: (string | { chinese: string; english: string })[];
     tags?: string[];
+    pronunciationUrl?: string; // Public URL of the audio file
     createdAt: Date;
     lastReviewedAt?: Date;
     masteredAt?: Date;
@@ -121,4 +122,12 @@ export interface WordPack extends WordPackData {
     isPublished?: boolean;
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface Pronunciation {
+    word: string; // The word identifier
+    language: 'en' | 'zh';
+    audioUrl: string; // Public URL of the audio file
+    storagePath: string; // Internal path in the bucket
+    createdAt: number; // Timestamp
 }

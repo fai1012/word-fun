@@ -11,6 +11,7 @@ router.use(authenticateToken, requireAdmin);
 router.get('/stats', adminController.getSystemStats.bind(adminController));
 router.get('/users', adminController.getAllUsers.bind(adminController));
 router.get('/words', adminController.getAllWords.bind(adminController));
+router.post('/pronunciations/regenerate', adminController.regeneratePronunciations.bind(adminController));
 
 // Word Pack Routes
 router.post('/word-packs', wordPackController.createWordPack.bind(wordPackController));
