@@ -138,5 +138,9 @@ export const wordPackService = {
             }
         });
         return Array.from(tagSet).sort();
+    },
+
+    async deletePack(id: string): Promise<void> {
+        await db.collection(COLLECTION_NAME).doc(id).delete();
     }
 };

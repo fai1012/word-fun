@@ -19,6 +19,8 @@ router.get('/word-packs', wordPackController.getAdminAllWordPacks.bind(wordPackC
 router.get('/word-packs/tags', wordPackController.getTags.bind(wordPackController));
 router.get('/word-packs/:id', wordPackController.getWordPackById.bind(wordPackController));
 router.patch('/word-packs/:id', wordPackController.updateWordPack.bind(wordPackController));
+router.delete('/word-packs/:id', wordPackController.deleteWordPack.bind(wordPackController));
 router.post('/word-packs/generate-examples', wordPackController.generateExamples.bind(wordPackController));
+router.post('/word-packs/suggest-tags', wordPackController.suggestTags.bind(wordPackController));
 
 export default router;

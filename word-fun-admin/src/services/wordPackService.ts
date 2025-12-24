@@ -42,5 +42,14 @@ export const wordPackService = {
     async generateExamples(word: string): Promise<string[]> {
         const response = await apiClient.post('/admin/word-packs/generate-examples', { word });
         return response.data.examples;
+    },
+
+    async suggestTags(word: string, existingTags: string[]): Promise<string[]> {
+        const response = await apiClient.post('/admin/word-packs/suggest-tags', { word, existingTags });
+        return response.data.tags;
+    },
+
+    async deletePack(id: string): Promise<void> {
+        await apiClient.delete(`/admin/word-packs/${id}`);
     }
 };

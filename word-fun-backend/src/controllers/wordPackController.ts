@@ -96,5 +96,31 @@ export const wordPackController = {
             console.error('Error fetching global tags:', error);
             res.status(500).json({ error: 'Failed to fetch tags' });
         }
+    },
+
+    async suggestTags(req: Request, res: Response) {
+        try {
+            const { word, existingTags } = req.body;
+            if (!word) {
+                return res.status(400).json({ error: 'Word is required' });
+            }
+
+            const tags = await aiService.suggestTags(word, existingTags || []);
+            res.status(200).json({ tags });
+        } catch (error) {
+            console.error('Error suggesting tags:', error);
+            res.status(500).json({ error: 'Failed to suggest tags' });
+        }
+    },
+
+    async deleteWordPack(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            await wordPackService.deletePack(id);
+            res.status(200).json({ message: 'Word pack deleted successfully' });
+        } catch (error) {
+            console.error('Error deleting word pack:', error);
+            res.status(500).json({ error: 'Failed to delete word pack' });
+        }
     }
 };
