@@ -1,0 +1,147 @@
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #000;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  user-select: none;
+}
+
+canvas {
+  display: block;
+}
+
+#game-ui {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* Let clicks pass through to canvas by default */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hud-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: rgba(255, 230, 204, 0.9);
+  /* Light orange/cream tint */
+  border-bottom: 4px solid #D68C45;
+  pointer-events: auto;
+}
+
+.icon-btn {
+  width: 50px;
+  height: 50px;
+  background: #E6A55C;
+  border: 3px solid #BF7830;
+  border-radius: 12px;
+  color: white;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #BF7830;
+}
+
+.icon-btn:active {
+  transform: translateY(4px);
+  box-shadow: none;
+}
+
+.level-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 20px;
+}
+
+.level-info h1 {
+  margin: 0;
+  color: #BF7830;
+  font-size: 1.5rem;
+  text-shadow: 1px 1px 0 #fff;
+}
+
+.progress-bar-container {
+  width: 300px;
+  height: 20px;
+  background: #5C4033;
+  border-radius: 10px;
+  margin-top: 5px;
+  border: 3px solid #FFF8F0;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #F4A460;
+  border-radius: 8px 0 0 8px;
+}
+
+.word-counter {
+  background: #BF7830;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  border: 3px solid #8C4B15;
+}
+
+.hud-bottom {
+  padding: 20px;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: auto;
+}
+
+.controls-area {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: flex-end;
+}
+
+.action-btn {
+  padding: 15px 40px;
+  border: none;
+  border-radius: 25px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s;
+}
+
+.action-btn:active {
+  transform: translateY(6px);
+  box-shadow: none;
+}
+
+.orange-btn {
+  background: #FFA04D;
+  border: 4px solid #CC6600;
+  box-shadow: 0 6px 0 #CC6600;
+}
+
+.orange-btn:active {
+  box-shadow: none;
+}
+
+.blue-btn {
+  background: #87CEEB;
+  border: 4px solid #4682B4;
+  box-shadow: 0 6px 0 #4682B4;
+}
+
+.blue-btn:active {
+  box-shadow: none;
+}
