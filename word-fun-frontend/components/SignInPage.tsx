@@ -8,29 +8,21 @@ interface SignInPageProps {
     onLoginError: () => void;
 }
 
+const PANDA_LOGO_URL = `${import.meta.env.VITE_CDN_URL}/assets/panda-abc.png`;
+
 export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess, onLoginError }) => {
     return (
         <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-4 relative overflow-hidden font-rounded text-coffee">
-            {/* Background Decor */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-salmon/10 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-yolk/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-            </div>
+
 
             <div className="z-10 flex flex-col items-center max-w-md w-full text-center">
-                <div className="mb-8 relative">
-                    <div className="absolute -inset-4 bg-gradient-to-r from-salmon/20 to-yolk/20 rounded-full blur opacity-50"></div>
-                    <div className="relative bg-white p-5 rounded-3xl border-4 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] flex items-center justify-center transform rotate-3 hover:rotate-6 transition-transform">
-                        <Brain className="w-12 h-12 text-salmon stroke-[2.5]" />
-                    </div>
-                    <div className="absolute -top-3 -right-3">
-                        <Sparkles className="w-8 h-8 text-yolk animate-bounce stroke-[3]" />
-                    </div>
+                <div className="mb-4 flex justify-center">
+                    <img
+                        src={PANDA_LOGO_URL}
+                        alt="Word Fun Logo"
+                        className="w-64 object-contain"
+                    />
                 </div>
-
-                <h1 className="text-4xl font-black text-coffee mb-2 tracking-tight">
-                    Word Fun
-                </h1>
                 <p className="text-coffee/60 mb-10 text-lg font-bold">
                     Master vocabulary with <br />AI-powered personalized revisions.
                 </p>
