@@ -234,9 +234,11 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
               </div>
             </div>
 
-            {/* Main Word Info - Reduced size for mobile */}
-            <div className="mb-4 shrink-0 flex flex-col items-center text-center">
-              <h3 className="text-4xl sm:text-6xl font-noto-serif-hk font-bold mb-1 leading-tight text-white drop-shadow-md">{data.character}</h3>
+            {/* Main Word Info - Increased size when no examples */}
+            <div className={`flex flex-col items-center text-center transition-all duration-500 ${displayExamples.length === 0 ? 'flex-1 justify-end pb-4' : 'mb-4 shrink-0'}`}>
+              <h3 className={`${displayExamples.length === 0 ? 'text-7xl sm:text-9xl' : 'text-4xl sm:text-6xl'} font-noto-serif-hk font-bold mb-1 leading-tight text-white drop-shadow-md`}>
+                {data.character}
+              </h3>
               {isMastered && (
                 <div className="mt-2 flex items-center gap-1 text-yolk text-xs font-bold uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-full border border-yolk/30">
                   <Crown className="w-3 h-3 fill-yolk" /> Mastered
@@ -245,12 +247,15 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
             </div>
 
             {/* Examples Section */}
-            <div className="mt-2 pt-4 border-t-2 border-white/10 flex-1 flex flex-col min-h-0">
-              <div className="text-[10px] text-latte/70 font-black uppercase tracking-widest mb-3 shrink-0">Examples</div>
+            <div className={`flex flex-col min-h-0 ${displayExamples.length > 0 ? 'mt-2 pt-4 border-t-2 border-white/10 flex-1' : 'flex-1 justify-start pt-4'}`}>
+              {displayExamples.length > 0 && (
+                <div className="text-[10px] text-latte/70 font-black uppercase tracking-widest mb-3 shrink-0">Examples</div>
+              )}
 
               {displayExamples.length > 0 ? (
                 <div className="flex flex-col gap-3 pb-2">
                   {displayExamples.map((ex, idx) => {
+                    // ... (rest of the mapping logic)
                     // Determine current offset for swipe animation
                     let translateX = 0;
                     if (activeSwipeIndex === idx) {
@@ -325,9 +330,9 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
                   })}
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-600 text-xs italic gap-2 transition-opacity duration-1000 animate-pulse">
-                  <p>We are working on the examples...</p>
-                  <RefreshCw className="w-4 h-4 animate-spin opacity-50" />
+                <div className="flex flex-col items-center text-latte/40 text-[13px] font-bold gap-3 transition-opacity duration-1000 animate-pulse mt-4">
+                  <p className="tracking-wide">Working on examples...</p>
+                  <RefreshCw className="w-5 h-5 animate-spin opacity-40" />
                 </div>
               )}
             </div>
