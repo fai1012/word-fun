@@ -215,10 +215,10 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                     <button
                         key={lang}
                         onClick={() => setLanguageFilter(lang)}
-                        className={`flex - 1 py - 2.5 text - xs font - bold rounded - xl capitalize transition - all ${languageFilter === lang
+                        className={`flex-1 py-2.5 text-xs font-bold rounded-xl capitalize transition-all ${languageFilter === lang
                             ? 'bg-white text-coffee shadow-[2px_2px_0px_0px_rgba(93,64,55,0.2)] border border-coffee/10'
                             : 'text-coffee/50 hover:text-coffee/70'
-                            } `}
+                            }`}
                     >
                         {lang === 'all' ? 'All' : lang === 'zh' ? 'Chinese' : 'English'}
                     </button>
@@ -242,8 +242,8 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                 <h3 className="text-sm font-black text-coffee mb-4 uppercase tracking-wide opacity-80">Deck Status</h3>
 
                 <div className="flex h-5 rounded-full overflow-hidden bg-coffee/10 mb-5 border-2 border-coffee/10">
-                    <div className="bg-matcha transition-all duration-1000 border-r-2 border-white/20" style={{ width: `${totalCards > 0 ? (masteredCards.length / totalCards) * 100 : 0}% ` }}></div>
-                    <div className="bg-yolk transition-all duration-1000 border-r-2 border-white/20" style={{ width: `${totalCards > 0 ? (learningCards.length / totalCards) * 100 : 0}% ` }}></div>
+                    <div className="bg-matcha transition-all duration-1000 border-r-2 border-white/20" style={{ width: `${totalCards > 0 ? (masteredCards.length / totalCards) * 100 : 0}%` }}></div>
+                    <div className="bg-yolk transition-all duration-1000 border-r-2 border-white/20" style={{ width: `${totalCards > 0 ? (learningCards.length / totalCards) * 100 : 0}%` }}></div>
                 </div>
 
                 <div className="flex justify-between text-xs font-bold text-coffee/60">
