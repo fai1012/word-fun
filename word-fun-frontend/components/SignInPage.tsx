@@ -8,7 +8,7 @@ interface SignInPageProps {
     onLoginError: () => void;
 }
 
-const PANDA_LOGO_URL = `${import.meta.env.VITE_CDN_URL}/assets/panda-abc.png`;
+const PANDA_LOGO_URL = 'https://cdn.word-fun.popular-c.io/assets/panda-abc.png';
 
 export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess, onLoginError }) => {
     return (
