@@ -12,18 +12,18 @@ const PANDA_LOGO_URL = 'https://cdn.word-fun.popular-c.io/assets/panda-logo.png'
 
 export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess, onLoginError }) => {
     return (
-        <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-4 relative overflow-hidden font-rounded text-coffee">
+        <div className="min-h-screen min-h-[100dvh] bg-cream flex flex-col items-center justify-center p-4 pb-12 sm:pb-4 relative overflow-hidden font-rounded text-coffee">
 
 
             <div className="z-10 flex flex-col items-center max-w-md w-full text-center">
-                <div className="mb-4 flex justify-center">
+                <div className="mb-2 sm:mb-4 flex justify-center">
                     <img
                         src={PANDA_LOGO_URL}
                         alt="Word Fun Logo"
                         className="w-64 object-contain"
                     />
                 </div>
-                <p className="text-coffee/60 mb-10 text-lg font-bold">
+                <p className="text-coffee/60 mb-6 sm:mb-10 text-lg font-bold">
                     Master vocabulary with <br />AI-powered personalized revisions.
                 </p>
 
