@@ -59,15 +59,22 @@ class AdminService {
             }
         }
 
-        // 3. Fetch Words
+        // 3. Fetch all profiles for lookup
+        const profilesSnap = await db.collectionGroup('profiles').get();
+        const profileMap = new Map<string, string>();
+        profilesSnap.docs.forEach(doc => {
+            profileMap.set(doc.id, doc.data().displayName);
+        });
+
+        // 4. Fetch Words
         if (targetUserIds.length > 0) {
             // A. Fetch for specific users
             for (const userId of targetUserIds) {
                 // Determine userEmail directly from our map
                 const userInfo = userMap.get(userId);
 
-                const profilesSnap = await db.collection('users').doc(userId).collection('profiles').get();
-                for (const profileDoc of profilesSnap.docs) {
+                const userProfilesSnap = await db.collection('users').doc(userId).collection('profiles').get();
+                for (const profileDoc of userProfilesSnap.docs) {
                     const wordsSnap = await profileDoc.ref.collection('words').get();
                     const words = wordsSnap.docs.map(doc => {
                         const data = doc.data();
@@ -78,8 +85,11 @@ class AdminService {
                             correctCount: data.correctCount,
                             revisedCount: data.revisedCount,
                             createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+                            lastReviewedAt: data.lastReviewedAt?.toDate ? data.lastReviewedAt.toDate() : (data.lastReviewedAt ? new Date(data.lastReviewedAt) : null),
+                            masteredAt: data.masteredAt?.toDate ? data.masteredAt.toDate() : (data.masteredAt ? new Date(data.masteredAt) : null),
                             userEmail: userInfo?.email || 'Unknown',
-                            userName: userInfo?.name || 'Unknown'
+                            userName: userInfo?.name || 'Unknown',
+                            profileName: profileDoc.data().displayName || 'Unknown'
                         };
                     });
                     allWords.push(...words);
@@ -87,16 +97,15 @@ class AdminService {
             }
         } else {
             // B. Fetch ALL words (No search filter)
-            // Note: collectionGroup query doesn't give us the parent User ID easily in the snapshot data 
-            // unless we encoded it. However, the ref path is: users/{userId}/profiles/{profileId}/words/{wordId}
             const snapshot = await db.collectionGroup('words').get();
 
             allWords = snapshot.docs.map(doc => {
                 const data = doc.data();
 
-                // Extract userId from path: users/USER_ID/profiles/...
+                // Extract userId from path: users/USER_ID/profiles/PROFILE_ID/words/WORD_ID
                 const pathSegments = doc.ref.path.split('/');
-                const userId = pathSegments[1]; // Index 1 is userId
+                const userId = pathSegments[1];
+                const profileId = pathSegments[3];
                 const userInfo = userMap.get(userId);
 
                 return {
@@ -106,8 +115,11 @@ class AdminService {
                     correctCount: data.correctCount,
                     revisedCount: data.revisedCount,
                     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+                    lastReviewedAt: data.lastReviewedAt?.toDate ? data.lastReviewedAt.toDate() : (data.lastReviewedAt ? new Date(data.lastReviewedAt) : null),
+                    masteredAt: data.masteredAt?.toDate ? data.masteredAt.toDate() : (data.masteredAt ? new Date(data.masteredAt) : null),
                     userEmail: userInfo?.email || 'Unknown',
-                    userName: userInfo?.name || 'Unknown'
+                    userName: userInfo?.name || 'Unknown',
+                    profileName: profileMap.get(profileId) || 'Unknown'
                 };
             });
         }

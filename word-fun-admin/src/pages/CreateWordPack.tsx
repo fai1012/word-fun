@@ -17,6 +17,7 @@ const CreateWordPack: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [generatingIndex, setGeneratingIndex] = useState<number | null>(null);
+    const [suggestions, setSuggestions] = useState<Record<number, string[]>>({});
 
     // Input state
     const [wordInput, setWordInput] = useState('');
@@ -105,6 +106,11 @@ const CreateWordPack: React.FC = () => {
         setWordInput('');
         setSelectedTagsForNewWord([]);
         persistChanges(updatedWords);
+
+        // Trigger AI automation for the new word
+        const newIndex = updatedWords.length - 1;
+        handleGenerateExamples(newIndex, newWord.character);
+        handleSuggestTags(newIndex, newWord.character);
     };
 
     const handleRemoveWord = (index: number) => {
@@ -120,22 +126,52 @@ const CreateWordPack: React.FC = () => {
         persistChanges(newWords);
     };
 
-    const handleGenerateExamples = async (index: number) => {
-        const word = words[index].character;
+    const handleGenerateExamples = async (index: number, wordTextOverride?: string) => {
+        // Use override if provided (state might not be updated yet for new words)
+        // For existing words, use current state
+        let word = wordTextOverride;
+        if (!word) {
+            // Functional access to ensure we get latest if possible, but here we depend on render scope 'words'
+            // For safety in async callbacks from handleAddWord, we should rely on the Override.
+            word = words[index]?.character;
+        }
+
         if (!word) return;
 
         setGeneratingIndex(index);
         try {
             const examples = await wordPackService.generateExamples(word);
-            const newWords = [...words];
-            newWords[index] = { ...newWords[index], examples };
-            setWords(newWords);
-            persistChanges(newWords);
+
+            setWords(prev => {
+                const newWords = [...prev];
+                if (newWords[index]) {
+                    newWords[index] = { ...newWords[index], examples };
+                    // Persist strictly after state update calculation
+                    persistChanges(newWords);
+                }
+                return newWords;
+            });
         } catch (error) {
             console.error('Failed to generate examples:', error);
-            alert('Failed to generate examples. Please try again.');
+            // Don't alert for background generation to avoid disrupting flow
+            if (!wordTextOverride) alert('Failed to generate examples. Please try again.');
         } finally {
             setGeneratingIndex(null);
+        }
+    };
+
+    const handleSuggestTags = async (index: number, wordText: string) => {
+        try {
+            // Gather existing tags for context
+            const allTags = Array.from(new Set(words.flatMap(w => w.tags)));
+            const suggested = await wordPackService.suggestTags(wordText, allTags);
+
+            setSuggestions(prev => ({
+                ...prev,
+                [index]: suggested
+            }));
+        } catch (error) {
+            console.error('Failed to suggest tags:', error);
         }
     };
 
@@ -192,20 +228,42 @@ const CreateWordPack: React.FC = () => {
                         </p>
                     </div>
 
-                    <label className="flex items-center gap-3 cursor-pointer bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl hover:bg-slate-700/50 transition-colors">
-                        <span className={`text-sm font-medium transition-colors ${isPublished ? 'text-cyan-400' : 'text-slate-400'}`}>
-                            {isPublished ? 'Published' : 'Draft'}
-                        </span>
-                        <div className={`relative w-10 h-6 rounded-full transition-colors ${isPublished ? 'bg-cyan-500' : 'bg-slate-600'}`}>
-                            <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${isPublished ? 'translate-x-4' : 'translate-x-0'}`} />
-                        </div>
-                        <input
-                            type="checkbox"
-                            checked={isPublished}
-                            onChange={handleTogglePublished}
-                            className="hidden"
-                        />
-                    </label>
+                    <div className="flex items-center gap-3">
+                        {isEditing && (
+                            <button
+                                onClick={async () => {
+                                    if (confirm('Are you sure you want to delete this word pack? This action cannot be undone.')) {
+                                        try {
+                                            await wordPackService.deletePack(id!);
+                                            navigate('/word-packs');
+                                        } catch (error) {
+                                            console.error("Failed to delete pack", error);
+                                            alert("Failed to delete pack. Please try again.");
+                                        }
+                                    }
+                                }}
+                                className="flex items-center gap-2 px-3 py-2 bg-red-900/20 text-red-400 border border-red-900/50 hover:bg-red-900/40 rounded-xl transition-colors text-sm font-medium"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                            </button>
+                        )}
+
+                        <label className="flex items-center gap-3 cursor-pointer bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl hover:bg-slate-700/50 transition-colors">
+                            <span className={`text-sm font-medium transition-colors ${isPublished ? 'text-cyan-400' : 'text-slate-400'}`}>
+                                {isPublished ? 'Published' : 'Draft'}
+                            </span>
+                            <div className={`relative w-10 h-6 rounded-full transition-colors ${isPublished ? 'bg-cyan-500' : 'bg-slate-600'}`}>
+                                <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${isPublished ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </div>
+                            <input
+                                type="checkbox"
+                                checked={isPublished}
+                                onChange={handleTogglePublished}
+                                className="hidden"
+                            />
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -281,36 +339,57 @@ const CreateWordPack: React.FC = () => {
 
                                         if (!isWordEditing) {
                                             return (
-                                                <div
-                                                    key={i}
-                                                    onClick={() => setEditingIndex(i)}
-                                                    className="p-4 hover:bg-slate-700/50 transition-colors cursor-pointer group flex items-center justify-between"
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <span className="text-lg font-bold text-slate-200 w-24">{w.character}</span>
-                                                        <div className="flex flex-wrap gap-2 items-center">
-                                                            {w.pronunciationUrl && (
+                                                <div key={i} className="border-b border-slate-700/50 last:border-0 group">
+                                                    <div
+                                                        onClick={() => setEditingIndex(i)}
+                                                        className="p-4 hover:bg-slate-700/50 transition-colors cursor-pointer flex items-center justify-between"
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            <span className="text-lg font-bold text-slate-200 w-24">{w.character}</span>
+                                                            <div className="flex flex-wrap gap-2 items-center">
+                                                                {w.pronunciationUrl && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            new Audio(w.pronunciationUrl).play();
+                                                                        }}
+                                                                        className="p-1 text-cyan-400 hover:text-cyan-300 transition-colors"
+                                                                        title="Play Pronunciation"
+                                                                    >
+                                                                        <Volume2 className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                                {w.tags.map(tag => (
+                                                                    <span key={tag} className="px-2 py-1 bg-slate-700 text-slate-300 text-xs rounded-md font-medium border border-slate-600">
+                                                                        {tag}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-xs text-cyan-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            Edit
+                                                        </span>
+                                                    </div>
+                                                    {/* Suggestions in List View (if any) */}
+                                                    {suggestions[i] && suggestions[i].length > 0 && !w.tags.some(t => suggestions[i].includes(t)) && (
+                                                        <div className="px-4 pb-3 pt-2 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-1 hover:bg-slate-700/50 transition-colors">
+                                                            <span className="text-xs text-slate-500 flex items-center gap-1">
+                                                                <Sparkles className="w-3 h-3" /> Suggested:
+                                                            </span>
+                                                            {suggestions[i].filter(t => !w.tags.includes(t)).map(tag => (
                                                                 <button
+                                                                    key={tag}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        new Audio(w.pronunciationUrl).play();
+                                                                        handleWordUpdate(i, 'tags', [...w.tags, tag]);
                                                                     }}
-                                                                    className="p-1 text-cyan-400 hover:text-cyan-300 transition-colors"
-                                                                    title="Play Pronunciation"
+                                                                    className="px-2 py-0.5 bg-cyan-900/30 text-cyan-400 text-xs rounded-full border border-cyan-800/50 hover:bg-cyan-900/50 hover:border-cyan-500/50 transition-all"
                                                                 >
-                                                                    <Volume2 className="w-4 h-4" />
+                                                                    + {tag}
                                                                 </button>
-                                                            )}
-                                                            {w.tags.map(tag => (
-                                                                <span key={tag} className="px-2 py-1 bg-slate-700 text-slate-300 text-xs rounded-md font-medium border border-slate-600">
-                                                                    {tag}
-                                                                </span>
                                                             ))}
                                                         </div>
-                                                    </div>
-                                                    <span className="text-xs text-cyan-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        Edit
-                                                    </span>
+                                                    )}
                                                 </div>
                                             );
                                         }
@@ -353,6 +432,21 @@ const CreateWordPack: React.FC = () => {
                                                             onChange={(newTags) => handleWordUpdate(i, 'tags', newTags)}
                                                             placeholder="Edit tags..."
                                                         />
+                                                        {/* Inline Suggestions when editing */}
+                                                        {suggestions[i] && suggestions[i].length > 0 && (
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                <span className="text-xs text-slate-500 py-1">Suggestions:</span>
+                                                                {suggestions[i].filter(t => !w.tags.includes(t)).map(tag => (
+                                                                    <button
+                                                                        key={tag}
+                                                                        onClick={() => handleWordUpdate(i, 'tags', [...w.tags, tag])}
+                                                                        className="px-2 py-0.5 bg-slate-800 text-slate-300 text-xs rounded border border-slate-700 hover:border-cyan-500 hover:text-cyan-400 transition-colors"
+                                                                    >
+                                                                        + {tag}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 

@@ -338,6 +338,52 @@ class AIService {
             throw err;
         }
     }
+
+    async suggestTags(word: string, existingTags: string[]): Promise<string[]> {
+        console.log(`[AI] Generating tag suggestions for: ${word}`);
+        const isChinese = /[\u4e00-\u9fa5]/.test(word);
+
+        const prompt = `
+            Suggest 3-5 relevant tags for the word "${word}".
+            
+            EXISTING TAGS (Reuse these if applicable, or suggest new ones if better):
+            ${existingTags.join(', ')}
+
+            REQUIREMENTS:
+            1. Language: 
+               - If the word is Chinese, suggest Chinese tags (Traditional Chinese).
+               - If the word is English, suggest English tags.
+            2. Content: 
+               - Categorize by nature/topic (e.g., "Animals", "Food", "Actions", "Adjectives").
+               - Reuse existing tags if they fit well.
+            3. Audience: For educational flashcards (Primary school level).
+            4. Output: JSON Array of strings ONLY. No markup.
+        `;
+
+        try {
+            const aiResponse = await this.client.models.generateContent({
+                model: 'gemini-3-flash-preview',
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING }
+                    },
+                },
+            });
+
+            if (aiResponse.text) {
+                const tags = JSON.parse(aiResponse.text.trim()) as string[];
+                return tags;
+            }
+            return [];
+        } catch (err) {
+            console.error("[AI] Tag suggestion failed:", err);
+            // Return empty array on failure so UI doesn't break
+            return [];
+        }
+    }
 }
 
 export const aiService = new AIService();
