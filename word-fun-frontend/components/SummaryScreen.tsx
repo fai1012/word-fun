@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { FlashcardData } from '../types';
-import { fetchProfileTags } from '../services/profileService';
 import { ConfirmDialog } from './ConfirmDialog';
 import { TrendingUp, Circle, Trophy, BookOpen, Sparkles, X, Trash2, Plus, GripVertical, Tag, Check } from 'lucide-react';
+import { fetchProfileTags } from '../services/profileService';
 
 interface SummaryScreenProps {
     profileId: string;
