@@ -72,6 +72,8 @@ app.get('/api/protected', authenticateToken, (req: AuthenticatedRequest, res: Re
     });
 });
 
+import { queueService } from './services/queueService';
+
 const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

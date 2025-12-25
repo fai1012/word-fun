@@ -6,6 +6,7 @@ import Words from './pages/Words';
 import Login from './pages/Login';
 import CreateWordPack from './pages/CreateWordPack';
 import WordPackList from './pages/WordPackList';
+import Queue from './pages/Queue';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 
@@ -24,6 +25,7 @@ function App() {
               <Route path="word-packs" element={<WordPackList />} />
               <Route path="word-packs/create" element={<CreateWordPack />} />
               <Route path="word-packs/edit/:id" element={<CreateWordPack />} />
+              <Route path="queue" element={<Queue />} />
             </Route>
           </Route>
         </Routes>

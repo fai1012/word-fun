@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Users, BookOpen, Layers, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, Layers, LogOut, Menu, X, Activity } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
     const { user, logout } = useAuth();
@@ -13,6 +13,7 @@ const AdminLayout: React.FC = () => {
         { name: 'Users', href: '/users', icon: Users },
         { name: 'Words Management', href: '/words', icon: BookOpen },
         { name: 'Word Packs', href: '/word-packs', icon: Layers },
+        { name: 'Generation Queue', href: '/queue', icon: Activity },
     ];
 
     const handleLogout = () => {

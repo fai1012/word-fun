@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { FlashcardData } from '../types';
-import { Volume2, Check, Target, RefreshCw, Crown, Trash2 } from 'lucide-react';
+import { Volume2, Check, Target, RefreshCw, Crown, Trash2, Plus, Minimize2 } from 'lucide-react';
 
 interface FlashcardProps {
   data: FlashcardData;
@@ -10,9 +10,11 @@ interface FlashcardProps {
   onRegenerate?: () => void;
   onRegenerateExample?: (index: number) => Promise<void>;
   masteryThreshold: number;
+  onAddWords?: (words: string[]) => Promise<void>;
+  allWords?: FlashcardData[];
 }
 
-export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, autoPlaySound, onRegenerate, onRegenerateExample, masteryThreshold }) => {
+export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFlipped, onFlip, autoPlaySound, onRegenerate, onRegenerateExample, masteryThreshold, onAddWords }) => {
   const [regeneratingIndex, setRegeneratingIndex] = React.useState<number | null>(null);
   const [swipedIndex, setSwipedIndex] = React.useState<number | null>(null);
 
@@ -55,6 +57,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
   const touchStartRef = React.useRef<{ x: number, y: number } | null>(null);
   const [currentSwipeOffset, setCurrentSwipeOffset] = React.useState<number>(0);
   const [activeSwipeIndex, setActiveSwipeIndex] = React.useState<number | null>(null);
+  const [interactionMode, setInteractionMode] = React.useState<'none' | 'swipe' | 'scroll'>('none');
 
   const handleTouchStart = (e: React.TouchEvent, index: number) => {
     touchStartRef.current = {
@@ -63,17 +66,39 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
     };
     setActiveSwipeIndex(index);
     setCurrentSwipeOffset(0);
+    setInteractionMode('none');
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!touchStartRef.current || activeSwipeIndex === null) return;
 
     const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
     const deltaX = currentX - touchStartRef.current.x;
+    const deltaY = currentY - touchStartRef.current.y;
 
-    // Only allow swiping left (negative values), clamp at -100px
-    if (deltaX < 0 && deltaX > -100) {
-      setCurrentSwipeOffset(deltaX);
+    if (interactionMode === 'none') {
+      // Determine mode if moved enough
+      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          setInteractionMode('swipe');
+        } else {
+          setInteractionMode('scroll');
+        }
+      }
+      return;
+    }
+
+    if (interactionMode === 'swipe') {
+      // Prevent scrolling while swiping
+      if (e.cancelable) e.preventDefault();
+
+      // Only allow swiping left (negative values), clamp at -100px
+      if (deltaX < 0 && deltaX > -100) {
+        setCurrentSwipeOffset(deltaX);
+      } else if (deltaX >= 0) {
+        setCurrentSwipeOffset(0);
+      }
     }
   };
 
@@ -93,6 +118,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
     touchStartRef.current = null;
     setActiveSwipeIndex(null);
     setCurrentSwipeOffset(0);
+    setInteractionMode('none');
   };
 
   // Calculate generic accuracy for display
@@ -124,6 +150,86 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
   };
 
   const [expandedExample, setExpandedExample] = React.useState<string | null>(null);
+  const [isPickerMode, setIsPickerMode] = React.useState(false);
+  const [selectedGroups, setSelectedGroups] = React.useState<number[][]>([]);
+  const [isAddingWords, setIsAddingWords] = React.useState(false);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [infoWord, setInfoWord] = React.useState<FlashcardData | null>(null);
+
+  // Map for quick word lookup
+  const wordMap = React.useMemo(() => {
+    const map = new Map<string, FlashcardData>();
+    allWords.forEach(w => {
+      map.set(w.character.toLowerCase(), w);
+    });
+    return map;
+  }, [allWords]);
+
+  const getWordHighlightData = React.useCallback((wordData: FlashcardData) => {
+    const correct = wordData.correctCount || 0;
+    const progress = Math.min(1, correct / masteryThreshold);
+    // HSL: 0 is red, 120 is green. We want a smooth transition.
+    const hue = progress * 120;
+    return {
+      color: `hsl(${hue}, 80%, 60%)`,
+      data: wordData
+    };
+  }, [masteryThreshold]);
+
+  // Split text into selectable segments (Simple splitting, no pre-grouping)
+  const segments = React.useMemo(() => {
+    if (!expandedExample) return [];
+    const segmentRegex = /[\u4e00-\u9fa5]|[a-zA-Z0-9']+|./g;
+    return expandedExample.match(segmentRegex) || [];
+  }, [expandedExample]);
+
+  // Map segments to highlighted words for display view
+  const highlightMap = React.useMemo(() => {
+    const map = new Map<number, { color: string, data: FlashcardData }>();
+    if (!expandedExample || !segments.length || allWords.length === 0) return map;
+
+    const sortedVocab = [...allWords].sort((a, b) => b.character.length - a.character.length);
+
+    sortedVocab.forEach(word => {
+      const charToMatch = word.character.toLowerCase();
+      let lastIdx = -1;
+
+      while ((lastIdx = expandedExample.toLowerCase().indexOf(charToMatch, lastIdx + 1)) !== -1) {
+        let currentPos = 0;
+        const matchingSegmentIndices: number[] = [];
+
+        for (let i = 0; i < segments.length; i++) {
+          const seg = segments[i];
+          const segStart = currentPos;
+          const segEnd = currentPos + seg.length;
+
+          if (segStart >= lastIdx && segEnd <= lastIdx + charToMatch.length) {
+            // Only count as part of this word if it's not punctuation or symbols
+            if (/[\u4e00-\u9fa5]|[a-zA-Z0-9']/.test(seg)) {
+              matchingSegmentIndices.push(i);
+            }
+          }
+          currentPos = segEnd;
+        }
+
+        const isConflict = matchingSegmentIndices.some(idx => map.has(idx));
+        if (!isConflict && matchingSegmentIndices.length > 0) {
+          const highlight = getWordHighlightData(word);
+          matchingSegmentIndices.forEach(idx => map.set(idx, highlight));
+        }
+      }
+    });
+
+    return map;
+  }, [expandedExample, segments, allWords, getWordHighlightData]);
+
+  const colors = [
+    'bg-matcha border-matcha',
+    'bg-salmon border-salmon text-white',
+    'bg-cyan-500 border-cyan-500 text-white',
+    'bg-yolk border-yolk text-coffee',
+    'bg-purple-500 border-purple-500 text-white',
+  ];
 
   // Reset all interactive states when the card changes (e.g. next card)
   useEffect(() => {
@@ -132,7 +238,18 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
     setCurrentSwipeOffset(0);
     setExpandedExample(null);
     setRegeneratingIndex(null);
+    setIsPickerMode(false);
+    setSelectedGroups([]);
   }, [data.character]);
+
+  // Reset selection when switching or closing examples within the same card
+  useEffect(() => {
+    setSelectedGroups([]);
+    // Only reset picker mode if we are actually closing the overlay
+    if (!expandedExample) {
+      setIsPickerMode(false);
+    }
+  }, [expandedExample]);
 
   // ... (previous handlers)
 
@@ -149,6 +266,76 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
   const handleCloseExpanded = (e: React.MouseEvent) => {
     e.stopPropagation();
     setExpandedExample(null);
+    setIsPickerMode(false);
+    setSelectedGroups([]);
+  };
+
+
+  const handlePointerDown = (idx: number, isSelectable: boolean) => {
+    if (!isSelectable) return;
+
+    // Check if already selected
+    const existingGroupIdx = selectedGroups.findIndex(g => g.includes(idx));
+    if (existingGroupIdx !== -1) {
+      // Toggle off: remove either the specific segment or the whole group?
+      // User said "tap to select", so let's just remove the group for simplicity, 
+      // or just remove the segment. Usually if they tap a word, they want it gone.
+      setSelectedGroups(prev => prev.filter((_, i) => i !== existingGroupIdx));
+      return;
+    }
+
+    setIsDragging(true);
+    setSelectedGroups(prev => [...prev, [idx]]);
+  };
+
+  const handlePointerEnter = (idx: number, isSelectable: boolean) => {
+    if (isDragging && isSelectable) {
+      const isAlreadySelected = selectedGroups.some(g => g.includes(idx));
+      if (!isAlreadySelected) {
+        setSelectedGroups(prev => {
+          const newGroups = [...prev];
+          const lastGroup = [...newGroups[newGroups.length - 1], idx];
+          newGroups[newGroups.length - 1] = lastGroup;
+          return newGroups;
+        });
+      }
+    }
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleAddSelected = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onAddWords || selectedGroups.length === 0) return;
+
+    const wordsToAdd: string[] = selectedGroups.map(group => {
+      let word = "";
+      group.forEach((idx, i) => {
+        const seg = segments[idx];
+        const isEnglish = /^[a-zA-Z0-9']+$/.test(seg);
+        if (i > 0 && isEnglish) {
+          word += " " + seg;
+        } else {
+          word += seg;
+        }
+      });
+      return word.trim();
+    });
+
+    setIsAddingWords(true);
+    try {
+      await onAddWords(wordsToAdd);
+      // Success - exit picker mode
+      setIsPickerMode(false);
+      setSelectedGroups([]);
+      setExpandedExample(null);
+    } catch (err) {
+      console.error("Failed to add words", err);
+    } finally {
+      setIsAddingWords(false);
+    }
   };
 
   return (
@@ -338,24 +525,176 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, isFlipped, onFlip, a
             </div>
           </div>
 
-          {/* Expanded Example Overlay */}
           {expandedExample && (
             <div
-              className="absolute inset-0 z-50 bg-slate-900/95 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200"
-              onClick={handleCloseExpanded}
+              className={`absolute inset-0 z-50 bg-slate-900/98 backdrop-blur-md flex flex-col items-center justify-center p-6 animate-in fade-in duration-200 cursor-default`}
             >
-              <div className="text-center">
-                <p className="text-4xl sm:text-5xl font-noto-serif-hk font-bold leading-relaxed text-white drop-shadow-lg">
-                  {expandedExample}
-                </p>
-                <div className="mt-8 text-slate-400 text-sm uppercase tracking-widest animate-pulse">
-                  Tap to close
-                </div>
+              {/* Close Button Top Right */}
+              <button
+                onClick={handleCloseExpanded}
+                className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-salmon hover:text-white text-slate-400 rounded-full transition-all active:scale-90 border border-white/10"
+                title="Minimize"
+              >
+                <Minimize2 className="w-6 h-6" />
+              </button>
+
+              <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm">
+                {!isPickerMode ? (
+                  <>
+                    <div className="flex flex-wrap justify-center gap-x-1 gap-y-3 px-4">
+                      {segments.map((char, idx) => {
+                        const highlight = highlightMap.get(idx);
+                        const isSelectable = /[\u4e00-\u9fa5]|[a-zA-Z0-9']/.test(char);
+
+                        if (!isSelectable) {
+                          return (
+                            <span key={idx} className="text-4xl sm:text-5xl font-noto-serif-hk font-bold leading-relaxed text-white/60">
+                              {char}
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <span
+                            key={idx}
+                            onClick={(e) => {
+                              if (highlight) {
+                                e.stopPropagation();
+                                setInfoWord(highlight.data);
+                              }
+                            }}
+                            className="text-4xl sm:text-5xl font-noto-serif-hk font-bold leading-relaxed drop-shadow-lg transition-all active:scale-95"
+                            style={{
+                              color: highlight ? highlight.color : 'white',
+                              cursor: highlight ? 'pointer' : 'default',
+                              textDecoration: highlight ? 'underline' : 'none',
+                              textDecorationColor: highlight ? 'rgba(255,255,255,0.2)' : 'transparent',
+                              textUnderlineOffset: '8px'
+                            }}
+                          >
+                            {char}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-8 flex flex-col items-center gap-4">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setIsPickerMode(true); }}
+                        className="px-6 py-2.5 bg-salmon text-white rounded-full font-bold shadow-lg shadow-salmon/20 active:scale-95 transition-transform flex items-center gap-2"
+                      >
+                        <Plus className="w-4 h-4 stroke-[3]" />
+                        Add Word
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full flex flex-col items-center animate-in zoom-in-95 duration-200">
+                    <h4 className="text-slate-400 text-xs font-black uppercase tracking-widest mb-6 border-b border-white/10 pb-2 w-full text-center">Select characters to add</h4>
+
+                    <div
+                      className="flex flex-wrap justify-center gap-2 mb-10 select-none touch-none"
+                      onPointerLeave={handlePointerUp}
+                      onPointerUp={handlePointerUp}
+                    >
+                      {segments.map((char, idx) => {
+                        const isSelectable = /[\u4e00-\u9fa5]|[a-zA-Z0-9']/.test(char);
+                        const isSpace = char === ' ';
+
+                        if (isSpace) return <div key={idx} className="w-4 h-12 sm:h-14" />;
+
+                        const groupIndex = selectedGroups.findIndex(g => g.includes(idx));
+                        const isSelected = groupIndex !== -1;
+                        const colorClass = isSelected ? colors[groupIndex % colors.length] : 'bg-white/5 text-white/40 border-white/10 hover:border-white/30 hover:text-white/60';
+
+                        return (
+                          <button
+                            key={idx}
+                            disabled={!isSelectable}
+                            onPointerDown={() => handlePointerDown(idx, isSelectable)}
+                            onPointerEnter={() => handlePointerEnter(idx, isSelectable)}
+                            className={`min-w-[3rem] h-12 sm:min-w-[3.5rem] sm:h-14 px-4 flex items-center justify-center text-2xl sm:text-3xl font-bold font-noto-serif-hk rounded-xl border-2 transition-all ${!isSelectable
+                              ? 'text-white/20 border-white/5 cursor-default'
+                              : isSelected
+                                ? `${colorClass} shadow-lg scale-110 active:scale-100`
+                                : colorClass
+                              }`}
+                          >
+                            {char}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex gap-3 w-full">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setIsPickerMode(false); setSelectedGroups([]); }}
+                        className="flex-1 py-3 bg-white/10 text-white rounded-2xl font-bold hover:bg-white/20 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleAddSelected}
+                        disabled={selectedGroups.length === 0 || isAddingWords}
+                        className={`flex-[2] py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${selectedGroups.length > 0 && !isAddingWords
+                          ? 'bg-matcha text-coffee shadow-lg shadow-matcha/20 active:scale-95'
+                          : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                          }`}
+                      >
+                        {isAddingWords ? (
+                          <RefreshCw className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="w-5 h-5 stroke-[3]" />
+                            Add Selected
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Info Overlay for Existing Word */}
+      {infoWord && (
+        <div
+          className="absolute inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200"
+          onClick={() => setInfoWord(null)}
+        >
+          <div
+            className="w-full max-w-xs bg-coffee border-2 border-white/20 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="text-latte text-[10px] font-black uppercase tracking-[0.2em] mb-1">Vocabulary Info</div>
+              <h5 className="text-5xl font-noto-serif-hk font-bold text-white mb-6 underline decoration-white/10 underline-offset-8">
+                {infoWord.character}
+              </h5>
+
+              <div className="grid grid-cols-2 gap-4 w-full mb-8">
+                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <div className="text-salmon text-[10px] font-black uppercase tracking-wider mb-1">Attempts</div>
+                  <div className="text-2xl font-black text-white">{infoWord.revisedCount || 0}</div>
+                </div>
+                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <div className="text-matcha text-[10px] font-black uppercase tracking-wider mb-1">Correct</div>
+                  <div className="text-2xl font-black text-white">{infoWord.correctCount || 0}</div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setInfoWord(null)}
+                className="w-full py-3 bg-white/10 text-white rounded-2xl font-bold hover:bg-white/20 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

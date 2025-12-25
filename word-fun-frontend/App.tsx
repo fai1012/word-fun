@@ -8,7 +8,7 @@ import {
     generateSingleExample
 } from './services/geminiService';
 import { loginWithGoogle } from './services/authService';
-import { fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles, createProfile } from './services/profileService';
+import { fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles, createProfile, batchAddWords } from './services/profileService';
 import { addToQueue } from './services/queueService';
 import { HomeScreen } from './components/HomeScreen';
 import { Flashcard } from './components/Flashcard';
@@ -415,6 +415,20 @@ const App: React.FC = () => {
         } catch (e) {
             console.error("Failed to regenerate single example", e);
             // Optional: Show toast or error
+        }
+    };
+
+    const handleBatchAddWords = async (words: string[]) => {
+        if (!currentProfile?.id) return;
+        try {
+            const result = await batchAddWords(currentProfile.id, words);
+            console.log(`Successfully added ${result.added} words, skipped ${result.skipped}`);
+            // Silently refresh words list to show new ones if needed, 
+            // though session words won't change until next session.
+            loadWords(currentProfile.id, false);
+        } catch (e) {
+            console.error("Failed to batch add words", e);
+            throw e;
         }
     };
 
@@ -1000,12 +1014,14 @@ const App: React.FC = () => {
                         <div className="flex-1 w-full flex items-center justify-center min-h-0 py-2">
                             <Flashcard
                                 data={sessionQueue[currentIndex]}
+                                allWords={flashcards}
                                 isFlipped={isCardFlipped}
                                 onFlip={handleFlip}
                                 autoPlaySound={autoPlaySound}
                                 onRegenerate={() => handleRegenerateCard(sessionQueue[currentIndex])}
                                 onRegenerateExample={handleRegenerateSingleExample}
                                 masteryThreshold={masteryThreshold}
+                                onAddWords={handleBatchAddWords}
                             />
                         </div>
 

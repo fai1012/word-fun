@@ -33,11 +33,16 @@ class AIService {
                 ${contextSection}
                 
                 REQUIREMENTS:
-                1. Target Audience: Hong Kong Primary 1 or Primary 2 students.
+                1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
                 2. Examples:
                    - Create 3 distinct sentences for each word.
                    - Sentences must be simple, relatable to a 6-7 year old living in HK.
-                   - LANGUAGE: Traditional Chinese (Standard Written Chinese / 書面語). NO colloquial Cantonese (口語).
+                   - LANGUAGE: STRICTLY Traditional Chinese (Standard Written Chinese / 書面語). 
+                   - FORBIDDEN: 
+                     - NO colloquial Cantonese (口語).
+                     - NO English translations inside the content.
+                     - NO Pinyin or Jyutping.
+                     - NO auxiliary notes or explanations in parentheses.
                 3. Return JSON Array.`;
         } else {
             return `Generate flashcard content for the following English words.
@@ -47,11 +52,15 @@ class AIService {
                 ${contextSection}
                 
                 REQUIREMENTS:
-                1. Target Audience: Hong Kong Primary 1 or Primary 2 students.
+                1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
                 2. Examples:
                    - Create 3 distinct sentences for each word.
                    - Sentences must be simple, relatable to a 6-7 year old living in HK.
-                   - LANGUAGE: Written british English. No informal English.
+                   - LANGUAGE: STRICTLY British English.
+                   - FORBIDDEN: 
+                     - NO Chinese translations inside the content.
+                     - NO Pinyin or Jyutping romanization.
+                     - NO auxiliary notes or explanations in parentheses.
                 3. Return JSON Array.`;
         }
     }
@@ -94,7 +103,7 @@ class AIService {
                 console.log(`[AI] Generating Content for ${lang} (Prompt length: ${prompt.length})`);
 
                 const aiResponse = await this.client.models.generateContent({
-                    model: 'gemini-3-flash-preview',
+                    model: 'gemini-2.0-flash',
                     contents: prompt,
                     config: {
                         responseMimeType: "application/json",
@@ -135,10 +144,19 @@ class AIService {
                     for (const word of langWords) {
                         const gen = generatedMap.get(word.text);
                         if (gen && gen.examples && Array.isArray(gen.examples)) {
-                            await wordService.updateWord(userId, profileId, word.id, {
-                                examples: gen.examples.map((ex: any) => ({ chinese: ex.chinese, english: '' }))
-                            });
-                            console.log(`[AI] Updated examples for ${word.text} (${lang})`);
+                            try {
+                                await wordService.updateWord(userId, profileId, word.id, {
+                                    examples: gen.examples.map((ex: any) => ({ chinese: ex.chinese, english: '' }))
+                                });
+                                console.log(`[AI] Updated examples for ${word.text} (${lang})`);
+                            } catch (e: any) {
+                                // If word was deleted while in queue, ignore the NOT_FOUND error (code 5)
+                                if (e.code === 5 || e.message?.includes('NOT_FOUND')) {
+                                    console.warn(`[AI] Word ${word.text} (${word.id}) not found for update, likely deleted. Skipping.`);
+                                } else {
+                                    throw e;
+                                }
+                            }
                         }
                     }
                 }
@@ -175,7 +193,7 @@ class AIService {
                 console.log(`[AI] Generating Session Content for ${lang} (Prompt length: ${prompt.length})`);
 
                 const aiResponse = await this.client.models.generateContent({
-                    model: 'gemini-3-flash-preview',
+                    model: 'gemini-2.0-flash',
                     contents: prompt,
                     config: {
                         responseMimeType: "application/json",
@@ -257,11 +275,16 @@ class AIService {
                 1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
                 2. Content: Simple, relatable to daily life in HK.
                 3. Length: Short sentence (5-10 words preferred).
-                4. Language: Traditional Chinese (Standard Written Chinese / 書面語). NO colloquial Cantonese.
-                5. Output: JUST the sentence string. No JSON, no Pinyin, no English.`;
+                4. Language: STRICTLY Traditional Chinese (Standard Written Chinese / 書面語).
+                5. FORBIDDEN:
+                   - NO colloquial Cantonese.
+                   - NO English translations.
+                   - NO Pinyin or Jyutping.
+                   - NO explanations or notes in parentheses.
+                6. Output: JUST the sentence string. No JSON, no extra text.`;
             } else {
                 prompt = `Generate ONE new English example sentence for the word "${word}".
-
+                
                 ${contextSection}
                 
                 EXISTING EXAMPLES (Do not repeat these):
@@ -271,8 +294,12 @@ class AIService {
                 1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
                 2. Content: Simple, relatable to daily life in HK.
                 3. Length: Short sentence (5-10 words preferred).
-                4. Language: Written british English. No informal English.
-                5. Output: JUST the sentence string. No JSON.`;
+                4. Language: STRICTLY British English.
+                5. FORBIDDEN:
+                   - NO Chinese translations.
+                   - NO Pinyin or Jyutping.
+                   - NO explanations or notes in parentheses.
+                6. Output: JUST the sentence string. No JSON, no extra text.`;
             }
 
             console.log(`[AI] Generating Single Example (Prompt length: ${prompt.length})`);
