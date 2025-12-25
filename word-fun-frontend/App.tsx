@@ -104,6 +104,7 @@ const App: React.FC = () => {
     const sessionBreakdownRef = useRef({ reviewedCount: 0, gotItCount: 0, masteredCount: 0 });
     const [sessionExpSnapshot, setSessionExpSnapshot] = useState<{ oldExp: number; newExp: number } | null>(null);
     const [animatedTotalExp, setAnimatedTotalExp] = useState(0);
+    const [isAtMaxThreshold, setIsAtMaxThreshold] = useState(false);
     const [animationStage, setAnimationStage] = useState(0);
 
     useEffect(() => {
@@ -131,27 +132,59 @@ const App: React.FC = () => {
     useEffect(() => {
         if (animationStage === 5 && sessionExpSnapshot) {
             setAnimatedTotalExp(sessionExpSnapshot.oldExp);
+            setIsAtMaxThreshold(false);
         } else if (animationStage === 6 && sessionExpSnapshot) {
-            const start = sessionExpSnapshot.oldExp;
-            const end = sessionExpSnapshot.newExp;
-            const duration = 1000; // Match duration-1000 in CSS
+            const { oldExp, newExp } = sessionExpSnapshot;
+
+            // Calculate milestones (thresholds between old and new)
+            const milestones: number[] = [oldExp];
+            let current = oldExp;
+            while (true) {
+                const info = getLevelInfo(current);
+                const threshold = info.totalExpToCurrentLevel + info.nextLevelThreshold;
+                if (threshold < newExp) {
+                    milestones.push(threshold);
+                    current = threshold;
+                } else {
+                    break;
+                }
+            }
+            milestones.push(newExp);
+
             const startTime = performance.now();
+            const segmentDuration = 1000;
 
             let animationFrame: number;
             const animate = (currentTime: number) => {
                 const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
 
-                // Ease out cubic for a smoother finish
-                const easedProgress = 1 - Math.pow(1 - progress, 3);
+                // Which milestone segment are we in?
+                const segmentIndex = Math.min(Math.floor(elapsed / segmentDuration), milestones.length - 2);
+                const segmentElapsed = elapsed - (segmentIndex * segmentDuration);
+                const segmentProgress = Math.min(segmentElapsed / 800, 1); // 800ms animation, 200ms pause
 
+                const start = milestones[segmentIndex];
+                const end = milestones[segmentIndex + 1];
+                const isLastSegment = segmentIndex === milestones.length - 2;
+
+                // Ease out cubic
+                const easedProgress = segmentProgress === 1 ? 1 : 1 - Math.pow(1 - segmentProgress, 3);
                 const currentValue = Math.floor(start + (end - start) * easedProgress);
+
                 setAnimatedTotalExp(currentValue);
 
-                if (progress < 1) {
+                // If we reached a threshold milestone (not the final end), mark as max
+                if (segmentProgress >= 1 && !isLastSegment) {
+                    setIsAtMaxThreshold(true);
+                } else {
+                    setIsAtMaxThreshold(false);
+                }
+
+                if (elapsed < (milestones.length - 1) * segmentDuration) {
                     animationFrame = requestAnimationFrame(animate);
                 } else {
-                    setAnimatedTotalExp(end);
+                    setAnimatedTotalExp(newExp);
+                    setIsAtMaxThreshold(false);
                 }
             };
 
@@ -919,9 +952,19 @@ const App: React.FC = () => {
                                 const newInfo = getLevelInfo(newExp);
 
                                 // Use the animated value for display
-                                const displayInfo = getLevelInfo(animatedTotalExp);
+                                let displayInfo = getLevelInfo(animatedTotalExp);
                                 const isLevelUp = newInfo.level > oldInfo.level;
                                 const displayIsLevelUp = displayInfo.level > oldInfo.level;
+
+                                // Handle "100%" state at thresholds
+                                if (isAtMaxThreshold) {
+                                    displayInfo = {
+                                        level: displayInfo.level - 1,
+                                        expInLevel: getLevelInfo(animatedTotalExp - 1).nextLevelThreshold,
+                                        nextLevelThreshold: getLevelInfo(animatedTotalExp - 1).nextLevelThreshold,
+                                        totalExpToCurrentLevel: 0 // Not needed for display
+                                    };
+                                }
 
                                 return (
                                     <>
@@ -930,7 +973,7 @@ const App: React.FC = () => {
                                                 <span className="bg-coffee text-cream px-2 py-0.5 rounded-lg text-xs font-black transition-all duration-500">
                                                     LV. {displayInfo.level}
                                                 </span>
-                                                {displayIsLevelUp && (
+                                                {(displayIsLevelUp || isAtMaxThreshold) && (
                                                     <span className="text-salmon font-black text-sm animate-bounce">LEVEL UP! 🎊</span>
                                                 )}
                                             </div>

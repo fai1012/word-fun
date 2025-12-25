@@ -277,9 +277,6 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
     // Check if already selected
     const existingGroupIdx = selectedGroups.findIndex(g => g.includes(idx));
     if (existingGroupIdx !== -1) {
-      // Toggle off: remove either the specific segment or the whole group?
-      // User said "tap to select", so let's just remove the group for simplicity, 
-      // or just remove the segment. Usually if they tap a word, they want it gone.
       setSelectedGroups(prev => prev.filter((_, i) => i !== existingGroupIdx));
       return;
     }
@@ -288,14 +285,28 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
     setSelectedGroups(prev => [...prev, [idx]]);
   };
 
-  const handlePointerEnter = (idx: number, isSelectable: boolean) => {
-    if (isDragging && isSelectable) {
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+
+    // Use elementFromPoint for robust hit-testing across touch and mouse
+    const element = document.elementFromPoint(e.clientX, e.clientY);
+    const target = element?.closest('[data-index]');
+    if (!target) return;
+
+    const idx = parseInt(target.getAttribute('data-index') || '-1', 10);
+    const isSelectable = target.getAttribute('data-selectable') === 'true';
+
+    if (idx !== -1 && isSelectable) {
       const isAlreadySelected = selectedGroups.some(g => g.includes(idx));
       if (!isAlreadySelected) {
         setSelectedGroups(prev => {
+          if (prev.length === 0) return [[idx]];
           const newGroups = [...prev];
-          const lastGroup = [...newGroups[newGroups.length - 1], idx];
-          newGroups[newGroups.length - 1] = lastGroup;
+          const lastGroup = [...newGroups[newGroups.length - 1]];
+          if (!lastGroup.includes(idx)) {
+            lastGroup.push(idx);
+            newGroups[newGroups.length - 1] = lastGroup;
+          }
           return newGroups;
         });
       }
@@ -593,8 +604,10 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
                     <div
                       className="flex flex-wrap justify-center gap-2 mb-10 select-none touch-none"
+                      onPointerMove={handlePointerMove}
                       onPointerLeave={handlePointerUp}
                       onPointerUp={handlePointerUp}
+                      style={{ touchAction: 'none' }}
                     >
                       {segments.map((char, idx) => {
                         const isSelectable = /[\u4e00-\u9fa5]|[a-zA-Z0-9']/.test(char);
@@ -609,9 +622,10 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                         return (
                           <button
                             key={idx}
+                            data-index={idx}
+                            data-selectable={isSelectable}
                             disabled={!isSelectable}
                             onPointerDown={() => handlePointerDown(idx, isSelectable)}
-                            onPointerEnter={() => handlePointerEnter(idx, isSelectable)}
                             className={`min-w-[3rem] h-12 sm:min-w-[3.5rem] sm:h-14 px-4 flex items-center justify-center text-2xl sm:text-3xl font-bold font-noto-serif-hk rounded-xl border-2 transition-all ${!isSelectable
                               ? 'text-white/20 border-white/5 cursor-default'
                               : isSelected
