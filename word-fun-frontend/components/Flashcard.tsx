@@ -136,18 +136,21 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
     : [{ chinese: data.example_cn, english: data.example_en }])
     .filter(ex => ex && ex.chinese && ex.chinese.trim() !== '');
 
-  // Dynamic Font Sizing Logic
+  // Dynamic Font Sizing Logic for the Front of the Card
   const getDynamicFontSize = (text: string) => {
-    if (!text) return "text-[4rem] sm:text-[5.5rem]";
+    if (!text) return "text-[4rem]";
     const len = text.length;
-    // Aggressively tuned to fill mobile card width (~20-22rem space)
-    // Note: 1rem = 16px usually. 
 
-    if (len <= 1) return "text-[17rem] sm:text-[20rem]"; // ~272px wide
-    if (len === 2) return "text-[10.5rem] sm:text-[13rem]"; // ~336px wide
-    if (len === 3) return "text-[7rem] sm:text-[9.5rem]"; // ~336px wide
-    if (len === 4) return "text-[5.2rem] sm:text-[7rem]"; // ~332px wide
-    return "text-[4rem] sm:text-[5.5rem]"; // 5+ chars
+    // Optimized for a ~24rem card width with small margins
+    // Sizes are tuned so (len * font-size) stays under usable width to prevent premature wrap
+    if (len <= 1) return "text-[12rem] sm:text-[14rem]";
+    if (len === 2) return "text-[9rem] sm:text-[10.5rem]";
+    if (len === 3) return "text-[6.2rem] sm:text-[7.2rem]";
+    if (len === 4) return "text-[4.8rem] sm:text-[5.5rem]";
+    if (len === 5) return "text-[4rem] sm:text-[4.5rem]";
+
+    // For 6+ characters, we wrap and use a smaller size
+    return "text-[3.2rem] sm:text-[3.8rem]";
   };
 
   const [expandedExample, setExpandedExample] = React.useState<string | null>(null);
@@ -204,16 +207,19 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
     };
   }, [masteryThreshold]);
 
-  // Split text into selectable segments (Simple splitting, no pre-grouping)
+  // Split text into selectable segments
+  // We prioritize character-level splitting for Chinese and word-level for English
   const segments = React.useMemo(() => {
     if (!expandedExample) return [];
-    const lemmas = lemmaCache[expandedExample];
-    if (lemmas && lemmas.length > 0) {
-      return lemmas.map(l => l.text);
-    }
-    const segmentRegex = /[\u4e00-\u9fa5]|[a-zA-Z0-9']+|./g;
+
+    // Improved regex:
+    // 1. Match individual Chinese characters (including extensions)
+    // 2. Match whole English words/numbers
+    // 3. Match whitespace
+    // 4. Match any other single character (punctuation, symbols)
+    const segmentRegex = /[\u4e00-\u9fa5\u3400-\u4dbf\u20000-\u2a6df]|[a-zA-Z0-9']+|[ \t\n\r]+|./gu;
     return expandedExample.match(segmentRegex) || [];
-  }, [expandedExample, lemmaCache]);
+  }, [expandedExample]);
 
   // Map segments to highlighted words for display view
   const highlightMap = React.useMemo(() => {
@@ -222,19 +228,37 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
     const lemmas = lemmaCache[expandedExample];
     // Use Lemmas for more accurate matching if available
+    // BUT we must map them back to our custom segments
     if (lemmas && lemmas.length > 0) {
-      lemmas.forEach((token, idx) => {
+      // Create a mapping from character position to lemma color/data
+      const charHighlightMap = new Map<number, { color: string, data: FlashcardData }>();
+      let charPos = 0;
+      lemmas.forEach(token => {
         const lemma = token.lemma.toLowerCase();
-        // Check if this lemma matches any of our known words (by root or character)
         const matchedWord = wordMap.get(lemma);
         if (matchedWord) {
-          map.set(idx, getWordHighlightData(matchedWord));
+          const highlight = getWordHighlightData(matchedWord);
+          for (let i = 0; i < token.text.length; i++) {
+            charHighlightMap.set(charPos + i, highlight);
+          }
         }
+        charPos += token.text.length;
       });
+
+      // Now map those char highlights to our segments
+      let segmentPos = 0;
+      segments.forEach((seg, idx) => {
+        const segHighlight = charHighlightMap.get(segmentPos);
+        if (segHighlight) {
+          map.set(idx, segHighlight);
+        }
+        segmentPos += seg.length;
+      });
+
       return map;
     }
 
-    // Fallback to substring matching if no lemmas (legacy or wait state)
+    // Fallback to substring matching if no lemmas
     const sortedVocab = [...allWords].sort((a, b) => b.character.length - a.character.length);
 
     sortedVocab.forEach(word => {
@@ -252,7 +276,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
           if (segStart >= lastIdx && segEnd <= lastIdx + charToMatch.length) {
             // Only count as part of this word if it's not punctuation or symbols
-            if (/[\u4e00-\u9fa5]|[a-zA-Z0-9']/.test(seg)) {
+            if (/\p{L}|\p{N}/u.test(seg)) {
               matchingSegmentIndices.push(i);
             }
           }
@@ -400,11 +424,11 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
             </div>
           )}
 
-          <div className="flex-1 flex flex-col items-center justify-center z-10 w-full">
+          <div className="flex-1 flex flex-col items-center justify-center z-10 w-full px-4 sm:px-8">
 
-            {/* Dynamic Font Size Container */}
-            <div className="w-full flex items-center justify-center px-0">
-              <h2 className={`${getDynamicFontSize(data.character)} font-noto-serif-hk font-bold text-coffee leading-none whitespace-nowrap tracking-normal drop-shadow-sm`}>
+            {/* Dynamic Font Size Container with Responsive Margins and 5-Char Wrap Rule */}
+            <div className="w-full flex items-center justify-center">
+              <h2 className={`${getDynamicFontSize(data.character)} font-noto-serif-hk font-bold text-coffee leading-[1.1] break-all max-w-[5em] text-center tracking-normal drop-shadow-sm`}>
                 {data.character}
               </h2>
             </div>
@@ -579,7 +603,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                     <div className="flex flex-wrap justify-center gap-x-1 gap-y-3 px-4">
                       {segments.map((char, idx) => {
                         const highlight = highlightMap.get(idx);
-                        const isSelectable = /[\u4e00-\u9fa5]|[a-zA-Z0-9']/.test(char);
+                        const isSelectable = /\p{L}|\p{N}/u.test(char);
 
                         if (!isSelectable) {
                           return (
@@ -634,7 +658,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                       style={{ touchAction: 'none' }}
                     >
                       {segments.map((char, idx) => {
-                        const isSelectable = /[\u4e00-\u9fa5]|[a-zA-Z0-9']/.test(char);
+                        const isSelectable = /\p{L}|\p{N}/u.test(char);
                         const isSpace = char === ' ';
 
                         if (isSpace) return <div key={idx} className="w-4 h-12 sm:h-14" />;
