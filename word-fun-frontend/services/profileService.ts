@@ -114,6 +114,22 @@ export const batchAddWords = async (
     return response.json();
 };
 
+export const validateWords = async (
+    profileId: string,
+    words: string[]
+): Promise<{ text: string; isValid: boolean; rootForm?: string; language: 'en' | 'zh' }[]> => {
+    const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/${profileId}/words/validate`, {
+        method: 'POST',
+        body: JSON.stringify({ words })
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to validate words');
+    }
+
+    return response.json();
+};
+
 export const fetchProfileTags = async (profileId: string): Promise<string[]> => {
     const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/${profileId}/tags`, {
         method: 'GET',
@@ -134,6 +150,19 @@ export const deleteWord = async (profileId: string, wordId: string): Promise<voi
     if (!response.ok) {
         throw new Error('Failed to delete word');
     }
+};
+
+export const analyzeSentence = async (text: string | string[]): Promise<any> => {
+    const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/nlp/analyze`, {
+        method: 'POST',
+        body: JSON.stringify({ text })
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to analyze sentence');
+    }
+
+    return response.json();
 };
 
 

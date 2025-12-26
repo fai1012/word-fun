@@ -4,6 +4,7 @@ import { aiService } from './aiService';
 import { pronunciationService } from './pronunciationService';
 import { storageService } from './storageService';
 import { queueService } from './queueService';
+import { wordValidationService } from './wordValidationService';
 
 class WordService {
     private getCollection(userId: string, profileId: string) {
@@ -19,23 +20,29 @@ class WordService {
         }
 
         const wordsCollection = this.getCollection(userId, profileId);
-
-        // 2. Check for Duplicates (Case-insensitive check could be better, but strict text match for now)
-        const duplicateSnapshot = await wordsCollection.where('text', '==', text).limit(1).get();
-        if (!duplicateSnapshot.empty) {
-            throw new Error('Word already exists');
-        }
-
-        const wordsRef = wordsCollection.doc();
         const now = new Date();
 
         const isChinese = (s: string) => /[\u4e00-\u9fa5]/.test(s);
         const language = isChinese(text) ? 'zh' : 'en';
 
+        // 2. Extract root form early for duplication check
+        const validation = await wordValidationService.validateWord(text);
+        const rootForm = validation.rootForm;
+        const normalizedText = rootForm || text;
+
+        // 3. Check for Duplicates using normalized text
+        const duplicateSnapshot = await wordsCollection.where('text', '==', normalizedText).limit(1).get();
+        if (!duplicateSnapshot.empty) {
+            throw new Error('Word already exists');
+        }
+
+        const wordsRef = wordsCollection.doc();
+
         const newWord: Word = {
             id: wordsRef.id,
-            text,
+            text: normalizedText, // Store root form as primary text
             language,
+            rootForm,
             revisedCount: 0,
             correctCount: 0,
             examples,
@@ -149,16 +156,27 @@ class WordService {
 
         if (normalizedInputs.length === 0) return { added: 0, skipped: 0 };
 
-        // Deduplicate localized inputs (if the same word appears multiple times in the batch)
-        const consolidatedInputs = new Map<string, string[]>();
-        for (const { text, tags } of normalizedInputs) {
-            const currentTags = consolidatedInputs.get(text) || [];
-            consolidatedInputs.set(text, Array.from(new Set([...currentTags, ...tags])));
+        const isChinese = (text: string) => /[\u4e00-\u9fa5]/.test(text);
+
+        // 2. Pre-process words to get root forms and consolidated tags
+        const consolidatedInputs = new Map<string, { tags: string[]; rootForm?: string }>();
+        for (const input of normalizedInputs) {
+            const validation = await wordValidationService.validateWord(input.text);
+            const targetText = validation.rootForm || input.text;
+
+            const existingEntry = consolidatedInputs.get(targetText);
+            if (existingEntry) {
+                existingEntry.tags = Array.from(new Set([...existingEntry.tags, ...input.tags]));
+            } else {
+                consolidatedInputs.set(targetText, {
+                    tags: input.tags,
+                    rootForm: validation.rootForm
+                });
+            }
         }
 
-        // 2. Check existing (Optimization: fetch all texts to check duplicates locally avoids N reads)
+        // 3. Check existing using root forms
         const snapshot = await wordsCollection.select('text', 'tags').get();
-        // Map: text -> { id, tags }
         const existingDataMap = new Map<string, { id: string; tags: string[] }>();
         snapshot.docs.forEach(doc => {
             const data = doc.data();
@@ -170,20 +188,18 @@ class WordService {
 
         const batch = db.batch();
         let addedCount = 0;
-        let skippedCount = 0; // "Skipped" now mainly means duplicate word (though tags might still be merged)
+        let skippedCount = 0;
         const now = new Date();
-        const newWords: Word[] = []; // Capture for AI
+        const newWords: Word[] = [];
 
-        const isChinese = (text: string) => /[\u4e00-\u9fa5]/.test(text);
-
-        for (const [text, tags] of consolidatedInputs) {
+        for (const [text, info] of consolidatedInputs) {
             if (existingDataMap.has(text)) {
                 // Word exists: Check if we need to merge new tags
                 const existing = existingDataMap.get(text)!;
-                if (tags.length > 0) {
+                if (info.tags.length > 0) {
                     const currentTags = new Set(existing.tags);
                     let hasNewTag = false;
-                    for (const t of tags) {
+                    for (const t of info.tags) {
                         if (!currentTags.has(t)) {
                             currentTags.add(t);
                             hasNewTag = true;
@@ -206,10 +222,11 @@ class WordService {
                 id: docRef.id,
                 text,
                 language,
+                rootForm: info.rootForm,
                 revisedCount: 0,
                 correctCount: 0,
                 examples: [],
-                tags,
+                tags: info.tags,
                 createdAt: now
             };
             batch.set(docRef, newWord);
@@ -240,6 +257,10 @@ class WordService {
     async deleteWord(userId: string, profileId: string, wordId: string): Promise<void> {
         const wordRef = this.getCollection(userId, profileId).doc(wordId);
         await wordRef.delete();
+    }
+
+    async validateWord(text: string): Promise<{ isValid: boolean; rootForm?: string; language: 'en' | 'zh' }> {
+        return wordValidationService.validateWord(text);
     }
 }
 

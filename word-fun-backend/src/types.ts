@@ -100,6 +100,7 @@ export interface Word {
     examples: (string | { chinese: string; english: string })[];
     tags?: string[];
     pronunciationUrl?: string; // Public URL of the audio file
+    rootForm?: string; // Root form of the word (e.g., "run" for "running")
     createdAt: Date;
     lastReviewedAt?: Date;
     masteredAt?: Date;

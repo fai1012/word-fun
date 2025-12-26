@@ -61,6 +61,7 @@ export interface FlashcardData {
   correctCount?: number;
   tags?: string[];
   pronunciationUrl?: string; // Generated audio URL
+  rootForm?: string; // Root form of the word
   lastReviewedAt?: Date;
   masteredAt?: Date;
 }
