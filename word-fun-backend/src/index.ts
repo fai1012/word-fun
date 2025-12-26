@@ -61,7 +61,9 @@ import adminRoutes from './routes/adminRoutes';
 app.use('/api/admin', adminRoutes);
 
 import queueRoutes from './routes/queueRoutes';
+import nlpRoutes from './routes/nlpRoutes';
 app.use('/api/queue', queueRoutes);
+app.use('/api/nlp', nlpRoutes);
 
 
 // Protected Routes (example)

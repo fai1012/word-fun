@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle, AlertCircle, Tag, X, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { batchAddWords, fetchProfileTags } from '../services/profileService';
+import { batchAddWords, fetchProfileTags, validateWords } from '../services/profileService';
 import { fetchWordPacks, WordPackData } from '../services/wordPackService';
 import { BookOpen, Check, Loader2 } from 'lucide-react';
 
@@ -28,6 +28,11 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
     const [packs, setPacks] = useState<WordPackData[]>([]);
     const [loadingPacks, setLoadingPacks] = useState(false);
     const [selectedPackForPreview, setSelectedPackForPreview] = useState<WordPackData | null>(null);
+
+    // Validation Modal State
+    const [showValidationModal, setShowValidationModal] = useState(false);
+    const [invalidWordsFound, setInvalidWordsFound] = useState<string[]>([]);
+    const [pendingWords, setPendingWords] = useState<string[]>([]);
 
     useEffect(() => {
         const loadTags = async () => {
@@ -120,16 +125,14 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
         setError(null);
         setResult(null);
 
-        const words = text.split('\n');
+        const words = text.split('\n').map(w => w.trim()).filter(w => w.length > 0);
 
         // Validation: No mixed languages in a single line
         const hasChinese = (s: string) => /[\u4e00-\u9fa5]/.test(s);
         const hasEnglish = (s: string) => /[a-zA-Z]/.test(s);
 
         for (let i = 0; i < words.length; i++) {
-            const line = words[i].trim();
-            if (line.length === 0) continue;
-
+            const line = words[i];
             if (hasChinese(line) && hasEnglish(line)) {
                 setError(`Line ${i + 1}: Cannot mix English and Chinese in the same word ("${line}").`);
                 setIsSubmitting(false);
@@ -137,6 +140,30 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
             }
         }
 
+        try {
+            // Pre-check for validity
+            const validationResults = await validateWords(profileId, words);
+            const invalidWords = validationResults.filter(r => !r.isValid);
+
+            if (invalidWords.length > 0) {
+                setInvalidWordsFound(invalidWords.map(w => w.text));
+                setPendingWords(words);
+                setShowValidationModal(true);
+                setIsSubmitting(false);
+                return;
+            }
+
+            await processAddWords(words);
+        } catch (err: any) {
+            setError(err.message || 'Failed to add words');
+            setIsSubmitting(false);
+        }
+    };
+
+    const processAddWords = async (words: string[]) => {
+        setIsSubmitting(true);
+        setError(null);
+        setResult(null);
         try {
             const res = await batchAddWords(profileId, words, selectedTags);
             setResult(res);
@@ -152,6 +179,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
             setError(err.message || 'Failed to add words');
         } finally {
             setIsSubmitting(false);
+            setShowValidationModal(false);
         }
     };
 
@@ -405,6 +433,49 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                                 </button>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+            {/* Validation Confirmation Modal */}
+            {showValidationModal && (
+                <div className="absolute inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white w-full max-w-sm rounded-3xl p-6 border-4 border-coffee shadow-2xl animate-in zoom-in-95 flex flex-col gap-6">
+                        <div className="flex flex-col items-center text-center gap-3">
+                            <div className="w-16 h-16 bg-salmon/20 rounded-full flex items-center justify-center">
+                                <AlertCircle className="w-10 h-10 text-salmon" />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-xl text-coffee">Wait a second!</h3>
+                                <p className="text-sm font-bold text-coffee/60 mt-1">
+                                    Some words look a bit unusual. Are you sure they're correct?
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-cream/50 border-2 border-coffee/5 p-4 rounded-2xl max-h-40 overflow-y-auto">
+                            <div className="flex flex-wrap gap-2">
+                                {invalidWordsFound.map((word, idx) => (
+                                    <span key={idx} className="bg-white border-2 border-coffee/10 px-3 py-1 rounded-full text-xs font-black text-coffee/70">
+                                        {word}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={() => processAddWords(pendingWords)}
+                                className="w-full bg-salmon text-white font-black py-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all"
+                            >
+                                Yes, Add Anyway
+                            </button>
+                            <button
+                                onClick={() => setShowValidationModal(false)}
+                                className="w-full bg-coffee/5 text-coffee font-black py-4 rounded-2xl hover:bg-coffee/10 transition-colors border-2 border-coffee/10"
+                            >
+                                Let me check
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

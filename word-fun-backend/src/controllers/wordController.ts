@@ -106,6 +106,35 @@ class WordController {
     }
 
     /**
+     * Validate a list of words.
+     * POST /api/profiles/:profileId/words/validate
+     */
+    async validateWords(req: AuthenticatedRequest, res: Response): Promise<void> {
+        try {
+            const { profileId } = req.params;
+            const { words } = req.body;
+
+            if (!words || !Array.isArray(words)) {
+                res.status(400).json({ error: 'Missing words array' });
+                return;
+            }
+
+            const results = await Promise.all(words.map(async (w: string) => {
+                const text = typeof w === 'string' ? w : (w as any).text;
+                return {
+                    text,
+                    ...(await wordService.validateWord(text))
+                };
+            }));
+
+            res.status(200).json(results);
+        } catch (error) {
+            console.error('Error validating words:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
+    /**
      * Get all unique tags for a profile.
      * GET /api/profiles/:profileId/tags
      */

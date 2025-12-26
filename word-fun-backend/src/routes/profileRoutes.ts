@@ -277,6 +277,7 @@ router.delete('/:profileId/words/:wordId', wordController.deleteWord.bind(wordCo
  *                   type: integer
  */
 router.post('/:profileId/words/batch', wordController.batchAddWords.bind(wordController));
+router.post('/:profileId/words/validate', wordController.validateWords.bind(wordController));
 
 /**
  * @swagger
