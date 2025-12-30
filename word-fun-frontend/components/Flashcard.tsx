@@ -159,6 +159,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
   const [selectedGroups, setSelectedGroups] = React.useState<number[][]>([]);
   const [isAddingWords, setIsAddingWords] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
+  const [dragStartIdx, setDragStartIdx] = React.useState<number | null>(null);
   const [infoWord, setInfoWord] = React.useState<FlashcardData | null>(null);
 
   // Pre-fetch lemmas for all examples when data changes
@@ -181,6 +182,19 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
     fetchAllLemmas();
   }, [data.id, data.character, data.examples]);
+
+  // Reset all local UI states when the card changes
+  useEffect(() => {
+    setExpandedExample(null);
+    setIsPickerMode(false);
+    setSelectedGroups([]);
+    setSwipedIndex(null);
+    setRegeneratingIndex(null);
+    setActiveSwipeIndex(null);
+    setCurrentSwipeOffset(0);
+    setDragStartIdx(null);
+    setInfoWord(null);
+  }, [data.id, data.character]);
 
   // Current expanded lemmas helper
   const expandedLemmas = expandedExample ? (lemmaCache[expandedExample] || []) : [];
@@ -254,12 +268,14 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
         }
         segmentPos += seg.length;
       });
-
-      return map;
     }
 
-    // Fallback to substring matching if no lemmas
+    // Always run greedy substring matching to ensure all characters are covered
     const sortedVocab = [...allWords].sort((a, b) => b.character.length - a.character.length);
+
+    // Track potential matches for each segment index
+    // Each segment can have multiple overlapping candidates
+    const segmentCandidates = new Array(segments.length).fill(null).map(() => [] as { length: number, start: number, highlight: { color: string, data: FlashcardData } }[]);
 
     sortedVocab.forEach(word => {
       const charToMatch = word.character.toLowerCase();
@@ -275,7 +291,6 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
           const segEnd = currentPos + seg.length;
 
           if (segStart >= lastIdx && segEnd <= lastIdx + charToMatch.length) {
-            // Only count as part of this word if it's not punctuation or symbols
             if (/\p{L}|\p{N}/u.test(seg)) {
               matchingSegmentIndices.push(i);
             }
@@ -283,11 +298,32 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
           currentPos = segEnd;
         }
 
-        const isConflict = matchingSegmentIndices.some(idx => map.has(idx));
-        if (!isConflict && matchingSegmentIndices.length > 0) {
+        if (matchingSegmentIndices.length > 0) {
           const highlight = getWordHighlightData(word);
-          matchingSegmentIndices.forEach(idx => map.set(idx, highlight));
+          const candidate = {
+            length: word.character.length,
+            start: lastIdx,
+            highlight
+          };
+          matchingSegmentIndices.forEach(idx => {
+            segmentCandidates[idx].push(candidate);
+          });
         }
+      }
+    });
+
+    // Now, for each segment, pick the "best" match
+    // Preference: 1. NLP Lemma (if already set) 2. Longest word 3. Earliest match
+    segmentCandidates.forEach((candidates, idx) => {
+      if (map.has(idx)) return; // Keep NLP lemma matches as priority if they exist
+
+      if (candidates.length > 0) {
+        // Sort candidates: Longest first, then earliest start
+        candidates.sort((a, b) => {
+          if (b.length !== a.length) return b.length - a.length;
+          return a.start - b.start;
+        });
+        map.set(idx, candidates[0].highlight);
       }
     });
 
@@ -330,39 +366,47 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
     }
 
     setIsDragging(true);
+    setDragStartIdx(idx);
     setSelectedGroups(prev => [...prev, [idx]]);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || dragStartIdx === null) return;
 
     // Use elementFromPoint for robust hit-testing across touch and mouse
     const element = document.elementFromPoint(e.clientX, e.clientY);
     const target = element?.closest('[data-index]');
     if (!target) return;
 
-    const idx = parseInt(target.getAttribute('data-index') || '-1', 10);
+    const currentIdx = parseInt(target.getAttribute('data-index') || '-1', 10);
     const isSelectable = target.getAttribute('data-selectable') === 'true';
 
-    if (idx !== -1 && isSelectable) {
-      const isAlreadySelected = selectedGroups.some(g => g.includes(idx));
-      if (!isAlreadySelected) {
-        setSelectedGroups(prev => {
-          if (prev.length === 0) return [[idx]];
-          const newGroups = [...prev];
-          const lastGroup = [...newGroups[newGroups.length - 1]];
-          if (!lastGroup.includes(idx)) {
-            lastGroup.push(idx);
-            newGroups[newGroups.length - 1] = lastGroup;
+    if (currentIdx !== -1 && isSelectable) {
+      const min = Math.min(dragStartIdx, currentIdx);
+      const max = Math.max(dragStartIdx, currentIdx);
+
+      setSelectedGroups(prev => {
+        if (prev.length === 0) return [[]];
+        const newGroups = [...prev];
+        const currentRange: number[] = [];
+
+        // Fill the current group with all selectable indices in the range
+        for (let i = min; i <= max; i++) {
+          const char = segments[i];
+          if (/\p{L}|\p{N}/u.test(char)) {
+            currentRange.push(i);
           }
-          return newGroups;
-        });
-      }
+        }
+
+        newGroups[newGroups.length - 1] = currentRange;
+        return newGroups;
+      });
     }
   };
 
   const handlePointerUp = () => {
     setIsDragging(false);
+    setDragStartIdx(null);
   };
 
   const handleAddSelected = async (e: React.MouseEvent) => {
@@ -371,7 +415,9 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
     const wordsToAdd: string[] = selectedGroups.map(group => {
       let word = "";
-      group.forEach((idx, i) => {
+      // Sort indices so sequence matches the example text regardless of drag direction
+      const sortedGroup = [...group].sort((a, b) => a - b);
+      sortedGroup.forEach((idx, i) => {
         const seg = segments[idx];
         const isEnglish = /^[a-zA-Z0-9']+$/.test(seg);
         if (i > 0 && isEnglish) {
@@ -601,40 +647,61 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                 {!isPickerMode ? (
                   <>
                     <div className="flex flex-wrap justify-center gap-x-1 gap-y-3 px-4">
-                      {segments.map((char, idx) => {
-                        const highlight = highlightMap.get(idx);
-                        const isSelectable = /\p{L}|\p{N}/u.test(char);
+                      {(() => {
+                        const elements = [];
+                        for (let i = 0; i < segments.length; i++) {
+                          const char = segments[i];
+                          const highlight = highlightMap.get(i);
+                          const isSelectable = /\p{L}|\p{N}/u.test(char);
 
-                        if (!isSelectable) {
-                          return (
-                            <span key={idx} className="text-4xl sm:text-5xl font-noto-serif-hk font-bold leading-relaxed text-white/60">
-                              {char}
+                          if (!isSelectable) {
+                            elements.push(
+                              <span key={i} className="text-4xl sm:text-5xl font-noto-serif-hk font-bold leading-relaxed text-white/60">
+                                {char}
+                              </span>
+                            );
+                            continue;
+                          }
+
+                          // Group consecutive segments that belong to the same word
+                          const group = [char];
+                          let j = i + 1;
+                          while (j < segments.length) {
+                            const nextHighlight = highlightMap.get(j);
+                            // If both have highlights and they match the same word ID, group them
+                            if (highlight && nextHighlight && highlight.data.id === nextHighlight.data.id) {
+                              group.push(segments[j]);
+                              j++;
+                            } else {
+                              break;
+                            }
+                          }
+
+                          elements.push(
+                            <span
+                              key={i}
+                              onClick={(e) => {
+                                if (highlight) {
+                                  e.stopPropagation();
+                                  setInfoWord(highlight.data);
+                                }
+                              }}
+                              className="text-4xl sm:text-5xl font-noto-serif-hk font-bold leading-relaxed drop-shadow-lg transition-all active:scale-95"
+                              style={{
+                                color: highlight ? highlight.color : 'white',
+                                cursor: highlight ? 'pointer' : 'default',
+                                textDecoration: highlight ? 'underline' : 'none',
+                                textDecorationColor: highlight ? 'rgba(255,255,255,0.2)' : 'transparent',
+                                textUnderlineOffset: '8px'
+                              }}
+                            >
+                              {group.join('')}
                             </span>
                           );
+                          i = j - 1; // Skip the grouped segments
                         }
-
-                        return (
-                          <span
-                            key={idx}
-                            onClick={(e) => {
-                              if (highlight) {
-                                e.stopPropagation();
-                                setInfoWord(highlight.data);
-                              }
-                            }}
-                            className="text-4xl sm:text-5xl font-noto-serif-hk font-bold leading-relaxed drop-shadow-lg transition-all active:scale-95"
-                            style={{
-                              color: highlight ? highlight.color : 'white',
-                              cursor: highlight ? 'pointer' : 'default',
-                              textDecoration: highlight ? 'underline' : 'none',
-                              textDecorationColor: highlight ? 'rgba(255,255,255,0.2)' : 'transparent',
-                              textUnderlineOffset: '8px'
-                            }}
-                          >
-                            {char}
-                          </span>
-                        );
-                      })}
+                        return elements;
+                      })()}
                     </div>
                     <div className="mt-8 flex flex-col items-center gap-4">
                       <button
@@ -651,7 +718,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                     <h4 className="text-slate-400 text-xs font-black uppercase tracking-widest mb-6 border-b border-white/10 pb-2 w-full text-center">Select characters to add</h4>
 
                     <div
-                      className="flex flex-wrap justify-center gap-2 mb-10 select-none touch-none"
+                      className="flex flex-wrap justify-center gap-1.5 mb-10 select-none touch-none"
                       onPointerMove={handlePointerMove}
                       onPointerLeave={handlePointerUp}
                       onPointerUp={handlePointerUp}
