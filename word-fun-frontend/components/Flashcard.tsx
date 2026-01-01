@@ -122,9 +122,21 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
     setInteractionMode('none');
   };
 
-  // Calculate generic accuracy for display
-  // Calculate mastery progress for display
+  // Mastery percentage for display
   const masteryPercentage = Math.min(100, Math.round(((data.correctCount || 0) / masteryThreshold) * 100));
+
+  // Orientation Detection
+  const [isLandscape, setIsLandscape] = React.useState(window.matchMedia('(orientation: landscape)').matches);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(orientation: landscape)');
+    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  // Language Detection Helper
+  const isChinese = (text: string) => /[\u4e00-\u9fa5]/.test(text) || data.language === 'zh';
 
   // Determine isMastered based on threshold
   const isMastered = (data.correctCount || 0) >= masteryThreshold;
@@ -141,16 +153,26 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
     if (!text) return "text-[4rem]";
     const len = text.length;
 
+    // Adjust sizes if in landscape (shallower height)
+    if (isLandscape) {
+      if (len <= 1) return "text-[8rem]";
+      if (len === 2) return "text-[6rem]";
+      if (len === 3) return "text-[4.5rem]";
+      if (len === 4) return "text-[3.5rem]";
+      if (len === 5) return "text-[3rem]";
+      return "text-[2.5rem]";
+    }
+
     // Optimized for a ~24rem card width with small margins
     // Sizes are tuned so (len * font-size) stays under usable width to prevent premature wrap
-    if (len <= 1) return "text-[12rem] sm:text-[14rem]";
-    if (len === 2) return "text-[9rem] sm:text-[10.5rem]";
-    if (len === 3) return "text-[6.2rem] sm:text-[7.2rem]";
-    if (len === 4) return "text-[4.8rem] sm:text-[5.5rem]";
-    if (len === 5) return "text-[4rem] sm:text-[4.5rem]";
+    if (len <= 1) return "text-[12.5rem] sm:text-[14.5rem]";
+    if (len === 2) return "text-[10rem] sm:text-[11.5rem]";
+    if (len === 3) return "text-[7.5rem] sm:text-[8.5rem]";
+    if (len === 4) return "text-[5.5rem] sm:text-[6.2rem]";
+    if (len === 5) return "text-[4.5rem] sm:text-[5.2rem]";
 
     // For 6+ characters, we wrap and use a smaller size
-    return "text-[3.2rem] sm:text-[3.8rem]";
+    return "text-[3.8rem] sm:text-[4.2rem]";
   };
 
   const [expandedExample, setExpandedExample] = React.useState<string | null>(null);
@@ -445,7 +467,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
   return (
     <div
-      className={`relative h-full w-auto aspect-[3/4] max-w-full perspective-1000 group mx-auto cursor-default`}
+      className={`relative h-full w-auto aspect-[3/4] landscape:aspect-[3/2] max-w-full perspective-1000 group mx-auto cursor-default transition-all duration-300`}
       onClick={() => {
         if (swipedIndex !== null) setSwipedIndex(null);
       }}
@@ -473,9 +495,20 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
           <div className="flex-1 flex flex-col items-center justify-center z-10 w-full px-4 sm:px-8">
 
             {/* Dynamic Font Size Container with Responsive Margins and 5-Char Wrap Rule */}
-            <div className="w-full flex items-center justify-center">
-              <h2 className={`${getDynamicFontSize(data.character)} font-noto-serif-hk font-bold text-coffee leading-[1.1] break-all max-w-[5em] text-center tracking-normal drop-shadow-sm`}>
-                {data.character}
+            <div className={`w-full flex items-center justify-center ${!isLandscape && isChinese(data.character) ? 'h-full py-12' : ''}`}>
+              <h2 className={`
+                ${getDynamicFontSize(data.character)} 
+                font-noto-serif-hk font-bold text-coffee leading-[1.1] text-center drop-shadow-sm
+                ${isLandscape ? 'tracking-[0.15em] flex gap-x-8 sm:gap-x-12' : !isLandscape && isChinese(data.character) ? 'flex flex-col gap-6 sm:gap-10' : 'break-all max-w-[5em] tracking-normal'}
+              `}
+              >
+                {(isLandscape || (!isLandscape && isChinese(data.character))) ? (
+                  data.character.split('').map((char, i) => (
+                    <span key={i} className="block">{char}</span>
+                  ))
+                ) : (
+                  data.character
+                )}
               </h2>
             </div>
 
@@ -528,8 +561,19 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
             {/* Main Word Info - Increased size when no examples */}
             <div className={`flex flex-col items-center text-center transition-all duration-500 ${displayExamples.length === 0 ? 'flex-1 justify-end pb-4' : 'mb-4 shrink-0'}`}>
-              <h3 className={`${displayExamples.length === 0 ? 'text-7xl sm:text-9xl' : 'text-4xl sm:text-6xl'} font-noto-serif-hk font-bold mb-1 leading-tight text-white drop-shadow-md`}>
-                {data.character}
+              <h3 className={`
+                ${displayExamples.length === 0 ? 'text-7xl sm:text-9xl' : 'text-4xl sm:text-6xl'} 
+                font-noto-serif-hk font-bold mb-1 leading-tight text-white drop-shadow-md
+                ${isLandscape ? 'flex gap-x-4 tracking-widest' : !isLandscape && isChinese(data.character) ? 'flex flex-col gap-2' : ''}
+              `}
+              >
+                {(isLandscape || (!isLandscape && isChinese(data.character))) ? (
+                  data.character.split('').map((char, i) => (
+                    <span key={i} className="block">{char}</span>
+                  ))
+                ) : (
+                  data.character
+                )}
               </h3>
               {isMastered && (
                 <div className="mt-2 flex items-center gap-1 text-yolk text-xs font-bold uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-full border border-yolk/30">
@@ -663,14 +707,24 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                             continue;
                           }
 
-                          // Group consecutive segments that belong to the same word
+                          // Group consecutive segments that should stay together
                           const group = [char];
                           let j = i + 1;
                           while (j < segments.length) {
+                            const nextChar = segments[j];
                             const nextHighlight = highlightMap.get(j);
-                            // If both have highlights and they match the same word ID, group them
-                            if (highlight && nextHighlight && highlight.data.id === nextHighlight.data.id) {
-                              group.push(segments[j]);
+                            const nextIsSelectable = /\p{L}|\p{N}/u.test(nextChar);
+
+                            if (!nextIsSelectable) break;
+
+                            // Group if:
+                            // 1. Both have the same highlight (same word ID)
+                            // 2. Both have NO highlight (plain word)
+                            const sameHighlight = highlight && nextHighlight && highlight.data.id === nextHighlight.data.id;
+                            const neitherHighlighted = !highlight && !nextHighlight;
+
+                            if (sameHighlight || neitherHighlighted) {
+                              group.push(nextChar);
                               j++;
                             } else {
                               break;
@@ -686,7 +740,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                                   setInfoWord(highlight.data);
                                 }
                               }}
-                              className="text-4xl sm:text-5xl font-noto-serif-hk font-bold leading-relaxed drop-shadow-lg transition-all active:scale-95"
+                              className="text-4xl sm:text-5xl font-noto-serif-hk font-bold leading-relaxed drop-shadow-lg transition-all active:scale-95 whitespace-nowrap"
                               style={{
                                 color: highlight ? highlight.color : 'white',
                                 cursor: highlight ? 'pointer' : 'default',
