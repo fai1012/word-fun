@@ -1043,8 +1043,9 @@ const App: React.FC = () => {
                 </header>
 
                 {sessionQueue.length > 0 && (
-                    <div className="w-full h-full flex flex-col items-center pb-safe px-4">
-                        <div className="w-full max-w-xs bg-coffee/10 h-4 rounded-full overflow-hidden shrink-0 mt-6 mb-4 border-2 border-white ring-2 ring-coffee/10 relative">
+                    <div className="w-full flex-1 flex flex-col items-center pb-safe px-4 landscape:px-2 min-h-0">
+                        {/* Progress Bar Container */}
+                        <div className="w-full max-w-xs bg-coffee/10 h-4 landscape:h-2 rounded-full overflow-hidden shrink-0 mt-6 landscape:mt-2 mb-4 landscape:mb-2 border-2 border-white ring-2 ring-coffee/10 relative">
                             <div className="absolute inset-0 w-full h-full opacity-20 bg-[radial-gradient(circle,_transparent_20%,_#fff_20%,_#fff_80%,_transparent_80%,_transparent),_radial-gradient(circle,_transparent_20%,_#fff_20%,_#fff_80%,_transparent_80%,_transparent)] bg-[length:10px_10px] bg-[position:0_0,_5px_5px] animate-[slide_2s_linear_infinite]"></div>
                             <div
                                 className={`h-full transition-all duration-300 relative ${isRevisionMode ? 'bg-yolk' : 'bg-salmon'}`}
@@ -1054,21 +1055,69 @@ const App: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="flex-1 w-full flex items-center justify-center min-h-0 py-2">
-                            <Flashcard
-                                data={sessionQueue[currentIndex]}
-                                allWords={flashcards}
-                                isFlipped={isCardFlipped}
-                                onFlip={handleFlip}
-                                autoPlaySound={autoPlaySound}
-                                onRegenerate={() => handleRegenerateCard(sessionQueue[currentIndex])}
-                                onRegenerateExample={handleRegenerateSingleExample}
-                                masteryThreshold={masteryThreshold}
-                                onAddWords={handleBatchAddWords}
-                            />
+                        {/* Middle Row: Left Button | Card | Right Button */}
+                        <div className="flex-1 w-full flex flex-col landscape:flex-row items-center justify-center min-h-0 py-2 landscape:py-0 landscape:gap-4">
+
+                            {/* LEFT ACTION (Portrait: Bottom Left | Landscape: Side Left) */}
+                            <div className="hidden landscape:flex landscape:w-32 landscape:h-full items-center justify-end shrink-0">
+                                {!isCardFlipped ? (
+                                    <button
+                                        onClick={() => handleRate(false)}
+                                        className={`p-4 rounded-3xl border-2 font-black text-sm shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === false ? 'bg-salmon text-white border-coffee ring-2 ring-salmon ring-offset-2' : 'bg-white border-coffee/20 text-coffee/60 hover:bg-salmon/10 hover:text-salmon'}`}
+                                    >
+                                        <X className="w-6 h-6 stroke-[3]" />
+                                        Forgot
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleFlip}
+                                        className="p-4 rounded-3xl bg-white text-coffee font-black text-sm border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
+                                    >
+                                        <RotateCcw className="w-5 h-5 stroke-[3]" />
+                                        Flip Back
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* THE CARD */}
+                            <div className="flex-1 flex items-center justify-center min-h-0 w-full landscape:h-full">
+                                <Flashcard
+                                    data={sessionQueue[currentIndex]}
+                                    allWords={flashcards}
+                                    isFlipped={isCardFlipped}
+                                    onFlip={handleFlip}
+                                    autoPlaySound={autoPlaySound}
+                                    onRegenerate={() => handleRegenerateCard(sessionQueue[currentIndex])}
+                                    onRegenerateExample={handleRegenerateSingleExample}
+                                    masteryThreshold={masteryThreshold}
+                                    onAddWords={handleBatchAddWords}
+                                />
+                            </div>
+
+                            {/* RIGHT ACTION (Portrait: Bottom Right | Landscape: Side Right) */}
+                            <div className="hidden landscape:flex landscape:w-32 landscape:h-full items-center justify-start shrink-0">
+                                {!isCardFlipped ? (
+                                    <button
+                                        onClick={() => handleRate(true)}
+                                        className={`p-4 rounded-3xl font-black text-sm border-2 shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === true ? 'bg-matcha text-coffee border-coffee ring-2 ring-matcha ring-offset-2' : 'bg-matcha border-coffee text-coffee'}`}
+                                    >
+                                        <Check className="w-6 h-6 stroke-[3]" />
+                                        Got it
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleNextCard}
+                                        className="p-4 rounded-3xl bg-coffee text-cream font-black text-sm border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
+                                    >
+                                        Next
+                                        <ArrowLeft className="w-5 h-5 rotate-180 stroke-[3]" />
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="w-full max-w-md shrink-0 py-4 flex items-center justify-center gap-3 h-24">
+                        {/* BOTTOM ACTIONS (PORTRAIT ONLY) */}
+                        <div className="w-full max-w-md shrink-0 py-4 flex landscape:hidden items-center justify-center gap-3 h-24">
                             {!isCardFlipped ? (
                                 <>
                                     <button
@@ -1283,7 +1332,7 @@ const App: React.FC = () => {
                                     currentProfile={currentProfile}
                                     onProfileSwitch={handleProfileSync}
                                 >
-                                    <div className="flex-1 overflow-hidden h-screen pb-20">
+                                    <div className="flex-1 overflow-hidden h-full pb-20">
                                         <AddWordsScreen
                                             profileId={currentProfile?.id || ''}
                                             onBack={() => { }}

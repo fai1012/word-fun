@@ -147,7 +147,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center pt-4 pb-8 px-4 w-full max-w-lg mx-auto text-center overflow-y-auto">
+    <div className="flex flex-col items-center pt-2 pb-24 px-4 w-full h-full overflow-y-auto min-h-0 text-center custom-scrollbar">
 
       {/* Application Logo / Avatar */}
       <div className="mb-6 relative group cursor-default">
