@@ -113,9 +113,8 @@ const App: React.FC = () => {
             const timer2 = setTimeout(() => setAnimationStage(2), 800);  // First try bonus
             const timer3 = setTimeout(() => setAnimationStage(3), 1200); // Mastered count
             const timer4 = setTimeout(() => setAnimationStage(4), 1600); // Total EXP gained
-            const timer5 = setTimeout(() => setAnimationStage(5), 2200); // EXP bar appears (static at old value)
+            const timer5 = setTimeout(() => setAnimationStage(5), 2200); // EXP bar appears
             const timer6 = setTimeout(() => setAnimationStage(6), 2600); // EXP bar starts animating
-            const timer7 = setTimeout(() => setAnimationStage(7), 4500); // Button appears
             return () => {
                 clearTimeout(timer1);
                 clearTimeout(timer2);
@@ -123,7 +122,6 @@ const App: React.FC = () => {
                 clearTimeout(timer4);
                 clearTimeout(timer5);
                 clearTimeout(timer6);
-                clearTimeout(timer7);
             };
         } else {
             setAnimationStage(0);
@@ -142,13 +140,13 @@ const App: React.FC = () => {
 
             // Calculate level-up milestones (thresholds between old and new)
             const milestones: number[] = [oldExp];
-            let current = oldExp;
+            let currentExp = oldExp;
             while (true) {
-                const info = getLevelInfo(current);
+                const info = getLevelInfo(currentExp);
                 const threshold = info.totalExpToCurrentLevel + info.nextLevelThreshold;
-                if (threshold <= newExp && threshold > current) {
+                if (threshold < newExp) {
                     milestones.push(threshold);
-                    current = threshold;
+                    currentExp = threshold;
                 } else {
                     break;
                 }
@@ -156,79 +154,30 @@ const App: React.FC = () => {
             milestones.push(newExp);
 
             const startTime = performance.now();
-            const segmentDuration = 1200; // Time per segment (fill to 100% OR fill from 0)
-            const pauseDuration = 400; // Pause at 100% before resetting to 0
+            const segmentDuration = 1000; // Time per segment (fill to 100% OR fill from 0)
+            const pauseDuration = 800; // Pause at 100% before resetting to 0
 
             let animationFrame: number;
             const animate = (currentTime: number) => {
                 const elapsed = currentTime - startTime;
                 const totalSegments = milestones.length - 1;
+                let cI = 0, cS = 0, cW = false;
 
-                // Calculate total time including pauses at level-ups
-                let timeOffset = 0;
-                let segmentIndex = 0;
-
-                // Find which segment we're in, accounting for pauses
                 for (let i = 0; i < totalSegments; i++) {
-                    const segmentEnd = timeOffset + segmentDuration;
-                    const isLevelUp = i < totalSegments - 1; // Not the final segment
-                    const pauseAfter = isLevelUp ? pauseDuration : 0;
-
-                    if (elapsed < segmentEnd) {
-                        segmentIndex = i;
-                        break;
-                    } else if (elapsed < segmentEnd + pauseAfter) {
-                        // We're in a pause after a level-up
-                        segmentIndex = i;
-                        break;
-                    }
-
-                    timeOffset = segmentEnd + pauseAfter;
-                    segmentIndex = i + 1;
+                    const mE = cS + segmentDuration, wL = (i < totalSegments - 1) ? pauseDuration : 0;
+                    if (elapsed <= mE) { cI = i; break; }
+                    else if (elapsed <= mE + wL) { cI = i; cW = true; break; }
+                    cS = mE + wL; cI = i + 1;
                 }
-
-                segmentIndex = Math.min(segmentIndex, totalSegments - 1);
-
-                const start = milestones[segmentIndex];
-                const end = milestones[segmentIndex + 1];
-                const isLastSegment = segmentIndex === totalSegments - 1;
-
-                // Calculate time for this segment start
-                let segmentStartTime = 0;
-                for (let i = 0; i < segmentIndex; i++) {
-                    segmentStartTime += segmentDuration;
-                    if (i < totalSegments - 1) segmentStartTime += pauseDuration;
-                }
-
-                const segmentElapsed = elapsed - segmentStartTime;
-                const animationTime = Math.min(segmentElapsed, segmentDuration);
-                const segmentProgress = animationTime / segmentDuration;
-
-                // Check if we're in the pause phase
-                const isPausing = segmentElapsed > segmentDuration && !isLastSegment;
-
-                // Ease out cubic for smooth animation
-                const easedProgress = segmentProgress >= 1 ? 1 : 1 - Math.pow(1 - segmentProgress, 3);
-                const currentValue = Math.floor(start + (end - start) * easedProgress);
-
-                setAnimatedTotalExp(currentValue);
-
-                // If we've filled to a level threshold, show "100%" state
-                if ((segmentProgress >= 1 || isPausing) && !isLastSegment) {
-                    setIsAtMaxThreshold(true);
-                } else {
-                    setIsAtMaxThreshold(false);
-                }
-
-                // Calculate total animation time
-                const totalDuration = (totalSegments * segmentDuration) + ((totalSegments - 1) * pauseDuration);
-
-                if (elapsed < totalDuration) {
+                cI = Math.min(cI, totalSegments - 1);
+                const sE = milestones[cI], eE = milestones[cI + 1];
+                const sEl = elapsed - cS, sPr = Math.min(sEl / segmentDuration, 1), eP = 1 - Math.pow(1 - sPr, 3);
+                setAnimatedTotalExp(cW ? eE : Math.floor(sE + (eE - sE) * eP));
+                setIsAtMaxThreshold(cW);
+                if (elapsed < (totalSegments * segmentDuration + (totalSegments - 1) * pauseDuration)) {
                     animationFrame = requestAnimationFrame(animate);
                 } else {
-                    // Animation complete
-                    setAnimatedTotalExp(newExp);
-                    setIsAtMaxThreshold(false);
+                    setAnimatedTotalExp(newExp); setIsAtMaxThreshold(false); setAnimationStage(7);
                 }
             };
 
@@ -1027,7 +976,7 @@ const App: React.FC = () => {
                                         </div>
                                         <div className="w-full h-4 bg-coffee/10 rounded-full overflow-hidden border-2 border-coffee/20 p-0.5 relative shadow-inner">
                                             <div
-                                                className="h-full bg-gradient-to-r from-yolk to-salmon rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(255,179,0,0.4)]"
+                                                className={`h-full bg-gradient-to-r from-yolk to-salmon rounded-full transition-all ease-out shadow-[0_0_8px_rgba(255,179,0,0.4)] ${animationStage === 6 ? 'duration-0' : 'duration-1000'}`}
                                                 style={{ width: `${(displayInfo.expInLevel / displayInfo.nextLevelThreshold) * 100}%` }}
                                             >
                                                 <div className="absolute top-0 right-0 w-full h-1/2 bg-white/20 rounded-full"></div>
