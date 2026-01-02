@@ -343,7 +343,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
             {/* Word Pack Import Modal */}
             {showPackModal && (
                 <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                    <div className="bg-white w-full max-w-xl rounded-3xl p-6 border-4 border-coffee shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+                    <div className="bg-white w-full max-w-xl rounded-3xl p-6 border-4 border-coffee shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[85vh]">
                         <div className="flex justify-between items-center mb-4 shrink-0">
                             <div>
                                 <h3 className="font-black text-xl text-coffee">
@@ -369,8 +369,8 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                         {selectedPackForPreview.words.map((w, idx) => (
-                                            <div key={idx} className="bg-cream/40 border-2 border-coffee/5 p-3 rounded-2xl flex flex-col items-center justify-center gap-1 group">
-                                                <span className="text-lg font-black text-coffee">{w.character}</span>
+                                            <div key={idx} className="bg-cream/40 border-2 border-coffee/5 p-2 rounded-2xl flex flex-col items-center justify-center gap-1 group">
+                                                <span className="text-base font-black text-coffee">{w.character}</span>
                                                 <div className="flex flex-wrap gap-1 justify-center">
                                                     {w.tags.map(t => (
                                                         <span key={t} className="text-[10px] font-bold text-salmon/60 uppercase tracking-tight">#{t}</span>
@@ -419,16 +419,16 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                         </div>
 
                         {selectedPackForPreview && (
-                            <div className="mt-6 pt-6 border-t-4 border-coffee/5 flex gap-3 shrink-0">
+                            <div className="mt-4 pt-4 border-t-4 border-coffee/5 flex gap-3 shrink-0">
                                 <button
                                     onClick={() => setSelectedPackForPreview(null)}
-                                    className="flex-1 bg-coffee/5 text-coffee font-black py-4 rounded-2xl hover:bg-coffee/10 transition-colors border-2 border-coffee/10"
+                                    className="flex-1 bg-coffee/5 text-coffee font-black py-3 rounded-2xl hover:bg-coffee/10 transition-colors border-2 border-coffee/10"
                                 >
                                     Back
                                 </button>
                                 <button
                                     onClick={() => handleConfirmImport(selectedPackForPreview)}
-                                    className="flex-[2] bg-salmon text-white font-black py-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all flex items-center justify-center gap-2"
+                                    className="flex-[2] bg-salmon text-white font-black py-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all flex items-center justify-center gap-2"
                                 >
                                     Add All Words!
                                 </button>
