@@ -109,12 +109,13 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (isSessionCompleted) {
-            const timer1 = setTimeout(() => setAnimationStage(1), 400);
-            const timer2 = setTimeout(() => setAnimationStage(2), 800);
-            const timer3 = setTimeout(() => setAnimationStage(3), 1200);
-            const timer4 = setTimeout(() => setAnimationStage(4), 1600);
-            const timer5 = setTimeout(() => setAnimationStage(5), 2000);
-            const timer6 = setTimeout(() => setAnimationStage(6), 2800);
+            const timer1 = setTimeout(() => setAnimationStage(1), 400);  // Reviewed count
+            const timer2 = setTimeout(() => setAnimationStage(2), 800);  // First try bonus
+            const timer3 = setTimeout(() => setAnimationStage(3), 1200); // Mastered count
+            const timer4 = setTimeout(() => setAnimationStage(4), 1600); // Total EXP gained
+            const timer5 = setTimeout(() => setAnimationStage(5), 2200); // EXP bar appears (static at old value)
+            const timer6 = setTimeout(() => setAnimationStage(6), 2600); // EXP bar starts animating
+            const timer7 = setTimeout(() => setAnimationStage(7), 4500); // Button appears
             return () => {
                 clearTimeout(timer1);
                 clearTimeout(timer2);
@@ -122,6 +123,7 @@ const App: React.FC = () => {
                 clearTimeout(timer4);
                 clearTimeout(timer5);
                 clearTimeout(timer6);
+                clearTimeout(timer7);
             };
         } else {
             setAnimationStage(0);
@@ -131,18 +133,20 @@ const App: React.FC = () => {
     // EXP Count-up Animation Effect
     useEffect(() => {
         if (animationStage === 5 && sessionExpSnapshot) {
+            // Stage 5: Show bar at OLD value (before gain)
             setAnimatedTotalExp(sessionExpSnapshot.oldExp);
             setIsAtMaxThreshold(false);
         } else if (animationStage === 6 && sessionExpSnapshot) {
+            // Stage 6: Animate the bar from old to new value
             const { oldExp, newExp } = sessionExpSnapshot;
 
-            // Calculate milestones (thresholds between old and new)
+            // Calculate level-up milestones (thresholds between old and new)
             const milestones: number[] = [oldExp];
             let current = oldExp;
             while (true) {
                 const info = getLevelInfo(current);
                 const threshold = info.totalExpToCurrentLevel + info.nextLevelThreshold;
-                if (threshold < newExp) {
+                if (threshold <= newExp && threshold > current) {
                     milestones.push(threshold);
                     current = threshold;
                 } else {
@@ -152,37 +156,77 @@ const App: React.FC = () => {
             milestones.push(newExp);
 
             const startTime = performance.now();
-            const segmentDuration = 1000;
+            const segmentDuration = 1200; // Time per segment (fill to 100% OR fill from 0)
+            const pauseDuration = 400; // Pause at 100% before resetting to 0
 
             let animationFrame: number;
             const animate = (currentTime: number) => {
                 const elapsed = currentTime - startTime;
+                const totalSegments = milestones.length - 1;
 
-                // Which milestone segment are we in?
-                const segmentIndex = Math.min(Math.floor(elapsed / segmentDuration), milestones.length - 2);
-                const segmentElapsed = elapsed - (segmentIndex * segmentDuration);
-                const segmentProgress = Math.min(segmentElapsed / 800, 1); // 800ms animation, 200ms pause
+                // Calculate total time including pauses at level-ups
+                let timeOffset = 0;
+                let segmentIndex = 0;
+
+                // Find which segment we're in, accounting for pauses
+                for (let i = 0; i < totalSegments; i++) {
+                    const segmentEnd = timeOffset + segmentDuration;
+                    const isLevelUp = i < totalSegments - 1; // Not the final segment
+                    const pauseAfter = isLevelUp ? pauseDuration : 0;
+
+                    if (elapsed < segmentEnd) {
+                        segmentIndex = i;
+                        break;
+                    } else if (elapsed < segmentEnd + pauseAfter) {
+                        // We're in a pause after a level-up
+                        segmentIndex = i;
+                        break;
+                    }
+
+                    timeOffset = segmentEnd + pauseAfter;
+                    segmentIndex = i + 1;
+                }
+
+                segmentIndex = Math.min(segmentIndex, totalSegments - 1);
 
                 const start = milestones[segmentIndex];
                 const end = milestones[segmentIndex + 1];
-                const isLastSegment = segmentIndex === milestones.length - 2;
+                const isLastSegment = segmentIndex === totalSegments - 1;
 
-                // Ease out cubic
-                const easedProgress = segmentProgress === 1 ? 1 : 1 - Math.pow(1 - segmentProgress, 3);
+                // Calculate time for this segment start
+                let segmentStartTime = 0;
+                for (let i = 0; i < segmentIndex; i++) {
+                    segmentStartTime += segmentDuration;
+                    if (i < totalSegments - 1) segmentStartTime += pauseDuration;
+                }
+
+                const segmentElapsed = elapsed - segmentStartTime;
+                const animationTime = Math.min(segmentElapsed, segmentDuration);
+                const segmentProgress = animationTime / segmentDuration;
+
+                // Check if we're in the pause phase
+                const isPausing = segmentElapsed > segmentDuration && !isLastSegment;
+
+                // Ease out cubic for smooth animation
+                const easedProgress = segmentProgress >= 1 ? 1 : 1 - Math.pow(1 - segmentProgress, 3);
                 const currentValue = Math.floor(start + (end - start) * easedProgress);
 
                 setAnimatedTotalExp(currentValue);
 
-                // If we reached a threshold milestone (not the final end), mark as max
-                if (segmentProgress >= 1 && !isLastSegment) {
+                // If we've filled to a level threshold, show "100%" state
+                if ((segmentProgress >= 1 || isPausing) && !isLastSegment) {
                     setIsAtMaxThreshold(true);
                 } else {
                     setIsAtMaxThreshold(false);
                 }
 
-                if (elapsed < (milestones.length - 1) * segmentDuration) {
+                // Calculate total animation time
+                const totalDuration = (totalSegments * segmentDuration) + ((totalSegments - 1) * pauseDuration);
+
+                if (elapsed < totalDuration) {
                     animationFrame = requestAnimationFrame(animate);
                 } else {
+                    // Animation complete
                     setAnimatedTotalExp(newExp);
                     setIsAtMaxThreshold(false);
                 }
@@ -999,7 +1043,7 @@ const App: React.FC = () => {
 
                     <button
                         onClick={() => navigate(currentProfile ? `/profiles/${currentProfile.id}/study` : '/profiles')}
-                        className={`w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-300 hover:bg-slate-800 hover:-translate-y-1 transition-all flex items-center justify-center gap-2 ${animationStage < 6 ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-in fade-in slide-in-from-bottom-4 duration-500'}`}
+                        className={`w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-300 hover:bg-slate-800 hover:-translate-y-1 transition-all flex items-center justify-center gap-2 ${animationStage < 7 ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-in fade-in slide-in-from-bottom-4 duration-500'}`}
                     >
                         <Home className="w-5 h-5" />
                         Back to Home
