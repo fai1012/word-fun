@@ -95,10 +95,11 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
         setResult(null);
         setShowPackModal(false);
 
-        // Pass words with their tags from the pack
+        // Pass words with their tags and examples from the pack
         const words = pack.words.map(w => ({
             text: w.character,
-            tags: w.tags
+            tags: w.tags,
+            examples: w.examples
         }));
 
         try {

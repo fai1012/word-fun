@@ -140,17 +140,18 @@ class WordService {
         return Array.from(tagSet).sort();
     }
 
-    async batchAddWords(userId: string, profileId: string, inputWords: (string | { text: string; tags?: string[] })[], globalTags: string[] = []): Promise<{ added: number; skipped: number }> {
+    async batchAddWords(userId: string, profileId: string, inputWords: (string | { text: string; tags?: string[]; examples?: string[] })[], globalTags: string[] = []): Promise<{ added: number; skipped: number }> {
         const wordsCollection = this.getCollection(userId, profileId);
 
         // 1. Sanitize and normalize input
         const normalizedInputs = inputWords.map(input => {
             if (typeof input === 'string') {
-                return { text: input.trim(), tags: globalTags };
+                return { text: input.trim(), tags: globalTags, examples: [] as string[] };
             }
             return {
                 text: input.text.trim(),
-                tags: [...globalTags, ...(input.tags || [])]
+                tags: [...globalTags, ...(input.tags || [])],
+                examples: input.examples || []
             };
         }).filter(input => input.text.length > 0);
 
@@ -158,8 +159,8 @@ class WordService {
 
         const isChinese = (text: string) => /[\u4e00-\u9fa5]/.test(text);
 
-        // 2. Pre-process words to get root forms and consolidated tags
-        const consolidatedInputs = new Map<string, { tags: string[]; rootForm?: string }>();
+        // 2. Pre-process words to get root forms and consolidated tags/examples
+        const consolidatedInputs = new Map<string, { tags: string[]; rootForm?: string; examples: string[] }>();
         for (const input of normalizedInputs) {
             const validation = await wordValidationService.validateWord(input.text);
             const targetText = validation.rootForm || input.text;
@@ -167,10 +168,15 @@ class WordService {
             const existingEntry = consolidatedInputs.get(targetText);
             if (existingEntry) {
                 existingEntry.tags = Array.from(new Set([...existingEntry.tags, ...input.tags]));
+                // Keep the first examples if already set, otherwise use new examples
+                if (existingEntry.examples.length === 0 && input.examples.length > 0) {
+                    existingEntry.examples = input.examples;
+                }
             } else {
                 consolidatedInputs.set(targetText, {
                     tags: input.tags,
-                    rootForm: validation.rootForm
+                    rootForm: validation.rootForm,
+                    examples: input.examples
                 });
             }
         }
@@ -191,6 +197,7 @@ class WordService {
         let skippedCount = 0;
         const now = new Date();
         const newWords: Word[] = [];
+        const wordsNeedingExamples: Word[] = [];
 
         for (const [text, info] of consolidatedInputs) {
             if (existingDataMap.has(text)) {
@@ -225,12 +232,18 @@ class WordService {
                 rootForm: info.rootForm,
                 revisedCount: 0,
                 correctCount: 0,
-                examples: [],
+                examples: info.examples, // Use examples from word pack if provided
                 tags: info.tags,
                 createdAt: now
             };
             batch.set(docRef, newWord);
             newWords.push(newWord);
+
+            // Track words that need AI-generated examples
+            if (info.examples.length === 0) {
+                wordsNeedingExamples.push(newWord);
+            }
+
             addedCount++;
         }
 
@@ -240,8 +253,8 @@ class WordService {
         }
 
         if (addedCount > 0) {
-            // Trigger Background AI Generation via Queue (Persistent)
-            newWords.forEach(w => {
+            // Trigger Background AI Generation via Queue ONLY for words without examples
+            wordsNeedingExamples.forEach(w => {
                 queueService.addToQueue(w.id, w.text, userId, profileId)
                     .catch(err => console.error(`[WordService] Failed to add ${w.text} to queue`, err));
             });

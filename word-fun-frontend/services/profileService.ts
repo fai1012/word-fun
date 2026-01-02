@@ -99,7 +99,7 @@ export const updateProfile = async (profileId: string, updates: { displayName?: 
 
 export const batchAddWords = async (
     profileId: string,
-    words: (string | { text: string; tags: string[] })[],
+    words: (string | { text: string; tags?: string[]; examples?: string[] })[],
     tags: string[] = []
 ): Promise<{ added: number; skipped: number }> => {
     const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/${profileId}/words/batch`, {

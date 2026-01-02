@@ -74,6 +74,63 @@
       transform: rotateY(180deg);
       -webkit-transform: rotateY(180deg);
     }
+
+    /* Landscape Mode Blocker */
+    #landscape-blocker {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: linear-gradient(135deg, #FFF9F0 0%, #FFE4C4 100%);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    #landscape-blocker .rotate-icon {
+      font-size: 4rem;
+      animation: wiggle 1.5s ease-in-out infinite;
+    }
+
+    #landscape-blocker h2 {
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      font-weight: 800;
+      font-size: 1.5rem;
+      color: #5D4037;
+    }
+
+    #landscape-blocker p {
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      font-weight: 500;
+      font-size: 1rem;
+      color: #8D6E63;
+    }
+
+    @keyframes wiggle {
+
+      0%,
+      100% {
+        transform: rotate(-10deg);
+      }
+
+      50% {
+        transform: rotate(10deg);
+      }
+    }
+
+    /* Show blocker in landscape mode on mobile/tablet */
+    @media screen and (orientation: landscape) and (max-height: 600px) {
+      #landscape-blocker {
+        display: flex;
+      }
+
+      #root {
+        display: none;
+      }
+    }
   </style>
   <script type="importmap">
 {
@@ -91,6 +148,13 @@
 </head>
 
 <body class="bg-cream text-coffee font-rounded antialiased overscroll-none selection:bg-salmon selection:text-white">
+  <!-- Landscape Mode Blocker -->
+  <div id="landscape-blocker">
+    <div class="rotate-icon">📱</div>
+    <h2>Please Rotate Your Device</h2>
+    <p>This app works best in portrait mode</p>
+  </div>
+
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
