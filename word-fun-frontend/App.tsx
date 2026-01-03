@@ -1064,7 +1064,7 @@ const App: React.FC = () => {
                                 {!isCardFlipped ? (
                                     <button
                                         onClick={() => handleRate(false)}
-                                        className={`p-4 rounded-3xl border-2 font-black text-sm shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === false ? 'bg-salmon text-white border-coffee ring-2 ring-salmon ring-offset-2' : 'bg-white border-coffee/20 text-coffee/60 hover:bg-salmon/10 hover:text-salmon'}`}
+                                        className={`p-4 rounded-3xl border-2 font-black text-sm shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.2)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === false ? 'bg-salmon text-white border-coffee ring-2 ring-salmon ring-offset-2' : 'bg-white border-coffee/20 text-coffee/60 hover:bg-salmon/10 hover:text-salmon'}`}
                                     >
                                         <X className="w-6 h-6 stroke-[3]" />
                                         Forgot
@@ -1072,7 +1072,7 @@ const App: React.FC = () => {
                                 ) : (
                                     <button
                                         onClick={handleFlip}
-                                        className="p-4 rounded-3xl bg-white text-coffee font-black text-sm border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
+                                        className="p-4 rounded-3xl bg-white text-coffee font-black text-sm border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
                                     >
                                         <RotateCcw className="w-5 h-5 stroke-[3]" />
                                         Flip Back
@@ -1100,7 +1100,7 @@ const App: React.FC = () => {
                                 {!isCardFlipped ? (
                                     <button
                                         onClick={() => handleRate(true)}
-                                        className={`p-4 rounded-3xl font-black text-sm border-2 shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === true ? 'bg-matcha text-coffee border-coffee ring-2 ring-matcha ring-offset-2' : 'bg-matcha border-coffee text-coffee'}`}
+                                        className={`p-4 rounded-3xl font-black text-sm border-2 shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === true ? 'bg-matcha text-coffee border-coffee ring-2 ring-matcha ring-offset-2' : 'bg-matcha border-coffee text-coffee'}`}
                                     >
                                         <Check className="w-6 h-6 stroke-[3]" />
                                         Got it
@@ -1108,7 +1108,7 @@ const App: React.FC = () => {
                                 ) : (
                                     <button
                                         onClick={handleNextCard}
-                                        className="p-4 rounded-3xl bg-coffee text-cream font-black text-sm border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
+                                        className="p-4 rounded-3xl bg-coffee text-cream font-black text-sm border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.4)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
                                     >
                                         Next
                                         <ArrowLeft className="w-5 h-5 rotate-180 stroke-[3]" />
@@ -1123,7 +1123,7 @@ const App: React.FC = () => {
                                 <>
                                     <button
                                         onClick={() => handleRate(false)}
-                                        className={`flex-1 py-4 rounded-3xl border-2 font-black text-lg shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.2)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 ${pendingScore === false ? 'bg-salmon text-white border-coffee ring-2 ring-salmon ring-offset-2' : 'bg-white border-coffee/20 text-coffee/60 hover:bg-salmon/10 hover:text-salmon hover:border-salmon'}`}
+                                        className={`flex-1 py-4 rounded-3xl border-2 font-black text-lg shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.2)] hover:shadow-[0.125rem_0.125rem_0px_0px_rgba(93,64,55,0.2)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 ${pendingScore === false ? 'bg-salmon text-white border-coffee ring-2 ring-salmon ring-offset-2' : 'bg-white border-coffee/20 text-coffee/60 hover:bg-salmon/10 hover:text-salmon hover:border-salmon'}`}
                                     >
                                         <X className="w-6 h-6 stroke-[3]" />
                                         Forgot
@@ -1131,7 +1131,7 @@ const App: React.FC = () => {
 
                                     <button
                                         onClick={() => handleRate(true)}
-                                        className={`flex-1 py-4 rounded-3xl font-black text-lg border-2 shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 ${pendingScore === true ? 'bg-matcha text-coffee border-coffee ring-2 ring-matcha ring-offset-2' : 'bg-matcha border-coffee text-coffee'}`}
+                                        className={`flex-1 py-4 rounded-3xl font-black text-lg border-2 shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-[0.125rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 ${pendingScore === true ? 'bg-matcha text-coffee border-coffee ring-2 ring-matcha ring-offset-2' : 'bg-matcha border-coffee text-coffee'}`}
                                     >
                                         <Check className="w-6 h-6 stroke-[3]" />
                                         Got it
@@ -1141,14 +1141,14 @@ const App: React.FC = () => {
                                 <>
                                     <button
                                         onClick={handleFlip}
-                                        className="flex-1 py-4 rounded-3xl bg-white text-coffee font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
+                                        className="flex-1 py-4 rounded-3xl bg-white text-coffee font-black text-lg border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-[0.125rem_0.125rem_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
                                     >
                                         <RotateCcw className="w-5 h-5 stroke-[3]" />
                                         Flip Back
                                     </button>
                                     <button
                                         onClick={handleNextCard}
-                                        className="flex-[2] py-4 rounded-3xl bg-coffee text-cream font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
+                                        className="flex-[2] py-4 rounded-3xl bg-coffee text-cream font-black text-lg border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[0.125rem_0.125rem_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
                                     >
                                         Next Card <ArrowLeft className="w-5 h-5 rotate-180 stroke-[3]" />
                                     </button>
