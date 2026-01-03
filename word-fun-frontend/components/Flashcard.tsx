@@ -529,10 +529,10 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
               <h2 className={`
                 ${getDynamicFontSize(data.character)} 
                 font-noto-serif-hk font-bold text-coffee leading-[1.1] text-center drop-shadow-sm
-                ${isLandscape ? 'tracking-[0.15em] flex gap-x-8 sm:gap-x-12' : !isLandscape && isChinese(data.character) ? 'flex flex-col gap-6 sm:gap-10' : 'break-all max-w-[5em] tracking-normal'}
+                ${isChinese(data.character) ? (isLandscape ? 'tracking-[0.15em] flex gap-x-8 sm:gap-x-12' : 'flex flex-col gap-6 sm:gap-10') : 'break-all max-w-[5em] tracking-normal'}
               `}
               >
-                {(isLandscape || (!isLandscape && isChinese(data.character))) ? (
+                {(isChinese(data.character) && (isLandscape || !isLandscape)) ? (
                   data.character.split('').map((char, i) => (
                     <span key={i} className="block">{char}</span>
                   ))
@@ -594,10 +594,10 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
               <h3 className={`
                 ${displayExamples.length === 0 ? 'text-7xl sm:text-9xl' : 'text-4xl sm:text-6xl'} 
                 font-noto-serif-hk font-bold mb-1 leading-tight text-white drop-shadow-md
-                ${isLandscape ? 'flex gap-x-4 tracking-widest' : ''}
+                ${isLandscape && isChinese(data.character) ? 'flex gap-x-4 tracking-widest' : ''}
               `}
               >
-                {isLandscape ? (
+                {(isLandscape && isChinese(data.character)) ? (
                   data.character.split('').map((char, i) => (
                     <span key={i} className="block">{char}</span>
                   ))

@@ -4,6 +4,7 @@ export interface Example {
 }
 
 export interface User {
+  id: string;
   email: string;
   name: string;
   picture: string;
@@ -14,6 +15,7 @@ export interface Profile {
   userId: string;
   displayName: string;
   avatarId: string;
+  createdAt: Date;
   stats?: {
     totalWords: number;
     learningWords: number;
@@ -24,8 +26,10 @@ export interface Profile {
     totalEn: number;
     learningEn: number;
     masteredEn: number;
+    [key: string]: any;
   };
   exp: number;
+  level: number;
 }
 
 export interface ProfileSyncResponse {
@@ -41,10 +45,7 @@ export interface ProfileSyncResponse {
 export interface AuthResponse {
   token: string;
   refresh_token: string;
-  user_id: string;
-  email: string;
-  name: string;
-  expired_at: number;
+  user: User;
 }
 
 export interface FlashcardData {

@@ -21,7 +21,7 @@ class ProfileController {
             const { email, name, picture } = user;
 
             // 1. Ensure User Account Exists (and update metadata)
-            const syncedUser = await userService.syncUser(userId, email, name);
+            const syncedUser = await userService.syncUser(userId, email, name, picture);
 
             // 2. Fetch Profiles for this User
             const profiles = await profileService.getProfiles(userId);
@@ -65,12 +65,13 @@ class ProfileController {
             const user = req.user as JwtPayload;
             const userId = user.id || user.sub;
             const { profileId } = req.params;
-            const { displayName, avatarId, exp } = req.body;
+            const { displayName, avatarId, exp, level } = req.body;
 
-            const updates: { displayName?: string; avatarId?: string; exp?: number } = {};
+            const updates: { displayName?: string; avatarId?: string; exp?: number; level?: number } = {};
             if (displayName) updates.displayName = displayName;
             if (avatarId) updates.avatarId = avatarId;
             if (typeof exp === 'number') updates.exp = exp;
+            if (typeof level === 'number') updates.level = level;
 
             if (Object.keys(updates).length > 0) {
                 await profileService.updateProfile(userId, profileId, updates);

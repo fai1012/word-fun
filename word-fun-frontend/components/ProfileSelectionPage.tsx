@@ -130,8 +130,8 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
     }
 
     return (
-        <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-4 font-rounded text-coffee">
-            <div className="w-full max-w-md">
+        <div className="w-full h-full bg-cream flex flex-col items-center p-4 py-12 overflow-y-auto font-rounded text-coffee">
+            <div className="w-full max-w-md shrink-0">
                 <h1 className="text-4xl font-black text-coffee text-center mb-2 tracking-tight">Who is learning?</h1>
                 <p className="text-coffee/60 text-center mb-10 font-medium">Select a profile to continue</p>
 

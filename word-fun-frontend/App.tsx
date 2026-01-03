@@ -199,6 +199,17 @@ const App: React.FC = () => {
         try {
             const data = await syncAndGetProfiles();
             setProfiles(data.profiles);
+            // Ensure global user state has the ID and latest info from backend
+            if (data.user && user?.id !== data.user.id) {
+                const updatedUser: User = {
+                    id: data.user.id,
+                    email: data.user.email,
+                    name: data.user.name,
+                    picture: data.user.photoURL || user?.picture || ''
+                };
+                setUser(updatedUser);
+                localStorage.setItem('word_fun_user', JSON.stringify(updatedUser));
+            }
         } catch (e) {
             console.error("Failed to load profiles", e);
             setErrorMsg("Failed to load profiles. Please try again.");
@@ -355,7 +366,7 @@ const App: React.FC = () => {
         if (user && location.pathname === '/profiles') {
             loadAllProfiles();
         }
-    }, [location.pathname, user]);
+    }, [location.pathname, user?.id]);
 
     // Reload words whenever to ensure fresh data (including pronunciationUrl)
     useEffect(() => {
@@ -770,18 +781,22 @@ const App: React.FC = () => {
         setIsSessionCompleted(true);
 
         try {
+            // Calculate new level
+            const levelInfo = getLevelInfo(newTotalExp);
+            const newLevel = levelInfo.level;
+
             // Update Backend
             if (user && user.id) {
-                await updateProfile(currentProfile.id, { exp: newTotalExp });
+                await updateProfile(currentProfile.id, { exp: newTotalExp, level: newLevel });
             }
 
             // Update Local State
-            const updatedProfile = { ...currentProfile, exp: newTotalExp };
+            const updatedProfile = { ...currentProfile, exp: newTotalExp, level: newLevel };
             setCurrentProfile(updatedProfile);
             setProfiles(prev => (prev || []).map(p => (p && p.id === updatedProfile.id) ? updatedProfile : p));
             localStorage.setItem('word_fun_profile', JSON.stringify(updatedProfile));
 
-            console.log(`[EXP] Gained ${gain} EXP. New total: ${newTotalExp}`);
+            console.log(`[EXP] Gained ${gain} EXP. New total: ${newTotalExp}. Level: ${newLevel}`);
         } catch (err) {
             console.error("Failed to save EXP gain", err);
         }
@@ -806,17 +821,10 @@ const App: React.FC = () => {
             // We use the ID Token for display info because our backend auth response might be minimal
             const decoded: any = jwtDecode(googleResponse.credential);
 
-            const userProfile: User = {
-                email: decoded.email,
-                name: decoded.name,
-                picture: decoded.picture
-            };
-
-            console.log("User successfully logged in:", userProfile);
-
             // 3. Persist Session
-            setUser(userProfile);
-            localStorage.setItem('word_fun_user', JSON.stringify(userProfile));
+            // Use the user object directly from the backend response which has the ID
+            setUser(authData.user);
+            localStorage.setItem('word_fun_user', JSON.stringify(authData.user));
 
             if (authData.token) {
                 localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, authData.token);
