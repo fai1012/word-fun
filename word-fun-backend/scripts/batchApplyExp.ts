@@ -73,10 +73,37 @@ async function batchApplyExp() {
                 wordCount++;
             });
 
+            // Level Calculation Logic (Mirrored from frontend levelService.ts)
+            // L0->L1: 100
+            // L1->L2: 130
+            // L2->L3: 150 (Increases by 20 thereafter)
+            const getLevelInfo = (totalExp: number) => {
+                let level = 0;
+                let expRemaining = totalExp;
+                let nextThreshold = 100;
+
+                while (expRemaining >= nextThreshold) {
+                    expRemaining -= nextThreshold;
+                    level++;
+                    if (level === 1) {
+                        nextThreshold = 130;
+                    } else {
+                        nextThreshold = 130 + ((level - 1) * 20);
+                    }
+                }
+                return level;
+            };
+
+            const calculatedLevel = getLevelInfo(calculatedExp);
+
             console.log(`    Words Processed: ${wordCount}`);
             console.log(`    Calculated EXP: ${calculatedExp}`);
+            console.log(`    Calculated Level: ${calculatedLevel}`);
 
-            await profileDoc.ref.update({ exp: calculatedExp });
+            await profileDoc.ref.update({
+                exp: calculatedExp,
+                level: calculatedLevel
+            });
             console.log(`    Status: Updated Successfully`);
             totalProfilesUpdated++;
         }

@@ -216,7 +216,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       )}
 
       {reviewedCount > 0 ? (
-        <div className="mb-6 w-full px-2">
+        <div className="mb-6 w-full max-w-lg mx-auto px-2">
           <div
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
@@ -289,7 +289,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </>
       )}
 
-      <div className="w-full space-y-3">
+      <div className="w-full max-w-lg space-y-3">
         {totalCards > 0 ? (
           <div className="w-full p-5 bg-cream rounded-4xl shadow-[6px_6px_0px_0px_rgba(93,64,55,0.2)] border-4 border-coffee mb-2 relative overflow-hidden text-left">
             <div className="flex items-center justify-between mb-3 px-1">
@@ -457,15 +457,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             animation: indeterminate-bar 2s infinite linear;
         }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
+          width: 0px;
+          background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(93,64,55,0.05);
-          border-radius: 10px;
+          background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(93,64,55,0.2);
-          border-radius: 10px;
+          background: transparent;
         }
       `}</style>
     </div>

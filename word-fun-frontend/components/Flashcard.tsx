@@ -125,15 +125,29 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
   // Mastery percentage for display
   const masteryPercentage = Math.min(100, Math.round(((data.correctCount || 0) / masteryThreshold) * 100));
 
-  // Orientation Detection
-  const [isLandscape, setIsLandscape] = React.useState(window.matchMedia('(orientation: landscape)').matches);
+  // Orientation & Dimension Detection
+  // We track dimensions to determine if we are "Width Limited" (e.g. iPad Landscape) or "Height Limited" (e.g. Phone Landscape)
+  const [windowDims, setWindowDims] = React.useState({ w: window.innerWidth, h: window.innerHeight });
 
   useEffect(() => {
-    const mql = window.matchMedia('(orientation: landscape)');
-    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
-    mql.addEventListener('change', handler);
-    return () => mql.removeEventListener('change', handler);
+    const handleResize = () => {
+      setWindowDims({ w: window.innerWidth, h: window.innerHeight });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const isLandscape = windowDims.w > windowDims.h;
+
+  // Calculate if the container/window is "squarer" than the card
+  // Card Ratios: Landscape 3/2 (1.5), Portrait 3/4 (0.75)
+  const cardRatio = isLandscape ? 1.5 : 0.75;
+  const screenRatio = windowDims.w / windowDims.h;
+
+  // If Screen Ratio < Card Ratio, we are strictly width-limited (the card is too wide for the screen height-match)
+  // We must use w-full h-auto.
+  // Otherwise, we are height-limited, using h-full w-auto.
+  const isWidthLimited = screenRatio < cardRatio;
 
   // Language Detection Helper
   const isChinese = (text: string) => /[\u4e00-\u9fa5]/.test(text) || data.language === 'zh';
@@ -155,24 +169,24 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
     // Adjust sizes if in landscape (shallower height)
     if (isLandscape) {
-      if (len <= 1) return "text-[8rem]";
-      if (len === 2) return "text-[6rem]";
-      if (len === 3) return "text-[4.5rem]";
-      if (len === 4) return "text-[3.5rem]";
-      if (len === 5) return "text-[3rem]";
-      return "text-[2.5rem]";
+      if (len <= 1) return "text-[8rem] lg:text-[10rem]";
+      if (len === 2) return "text-[6rem] lg:text-[8rem]";
+      if (len === 3) return "text-[4.5rem] lg:text-[6rem]";
+      if (len === 4) return "text-[3.5rem] lg:text-[5rem]";
+      if (len === 5) return "text-[3rem] lg:text-[4rem]";
+      return "text-[2.5rem] lg:text-[3.5rem]";
     }
 
-    // Optimized for a ~24rem card width with small margins
-    // Sizes are tuned so (len * font-size) stays under usable width to prevent premature wrap
-    if (len <= 1) return "text-[12.5rem] sm:text-[14.5rem]";
-    if (len === 2) return "text-[10rem] sm:text-[11.5rem]";
-    if (len === 3) return "text-[7.5rem] sm:text-[8.5rem]";
-    if (len === 4) return "text-[5.5rem] sm:text-[6.2rem]";
-    if (len === 5) return "text-[4.5rem] sm:text-[5.2rem]";
+    // Portrait Mode (Mobile & Tablet)
+    // Optimized for width but bumped up for impact
+    if (len <= 1) return "text-[12rem] sm:text-[16rem] md:text-[20rem]";
+    if (len === 2) return "text-[10rem] sm:text-[12rem] md:text-[16rem]";
+    if (len === 3) return "text-[7.5rem] sm:text-[9rem] md:text-[12rem]";
+    if (len === 4) return "text-[5.5rem] sm:text-[7rem] md:text-[9rem]";
+    if (len === 5) return "text-[4.5rem] sm:text-[6rem] md:text-[8rem]";
 
-    // For 6+ characters, we wrap and use a smaller size
-    return "text-[3.8rem] sm:text-[4.2rem]";
+    // For 6+ characters
+    return "text-[3.8rem] sm:text-[5rem] md:text-[6.5rem]";
   };
 
   const [expandedExample, setExpandedExample] = React.useState<string | null>(null);
@@ -497,7 +511,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
   return (
     <div
-      className={`relative h-full w-auto aspect-[3/4] landscape:aspect-[3/2] max-w-full perspective-1000 group mx-auto cursor-default transition-all duration-300`}
+      className={`relative ${isWidthLimited ? 'w-full h-auto' : 'h-full w-auto'} aspect-[3/4] landscape:aspect-[3/2] max-w-full max-h-full perspective-1000 group mx-auto cursor-default transition-all duration-300`}
       onClick={() => {
         if (swipedIndex !== null) setSwipedIndex(null);
       }}
@@ -508,12 +522,12 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
       >
         {/* FRONT OF CARD */}
         <div
-          className="absolute inset-0 w-full h-full bg-cream rounded-4xl border-4 border-coffee flex flex-col items-center justify-center p-1 sm:p-4 text-center overflow-hidden shadow-[6px_6px_0px_0px_rgba(93,64,55,0.2)]"
+          className="absolute inset-0 w-full h-full bg-cream rounded-4xl border-4 border-coffee flex flex-col items-center justify-center p-1 sm:p-4 text-center overflow-hidden shadow-[0.4rem_0.4rem_0px_0px_rgba(93,64,55,0.2)]"
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', zIndex: isFlipped ? 0 : 1 }}
         >
           {/* Decorative Corners */}
-          <div className="absolute top-0 left-0 w-12 h-12 sm:w-16 sm:h-16 border-t-[6px] border-l-[6px] border-coffee/10 rounded-tl-4xl m-5"></div>
-          <div className="absolute bottom-0 right-0 w-12 h-12 sm:w-16 sm:h-16 border-b-[6px] border-r-[6px] border-coffee/10 rounded-br-4xl m-5"></div>
+          <div className="absolute top-0 left-0 w-12 h-12 sm:w-16 sm:h-16 border-t-[0.4rem] border-l-[0.4rem] border-coffee/10 rounded-tl-4xl m-5"></div>
+          <div className="absolute bottom-0 right-0 w-12 h-12 sm:w-16 sm:h-16 border-b-[0.4rem] border-r-[0.4rem] border-coffee/10 rounded-br-4xl m-5"></div>
 
           {/* Mastery Indicator Crown */}
           {isMastered && (
@@ -562,7 +576,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
         {/* BACK OF CARD */}
         <div
-          className="absolute inset-0 w-full h-full rotate-y-180 bg-coffee text-cream rounded-4xl border-4 border-coffee flex flex-col overflow-hidden shadow-[6px_6px_0px_0px_rgba(93,64,55,0.2)]"
+          className="absolute inset-0 w-full h-full rotate-y-180 bg-coffee text-cream rounded-4xl border-4 border-coffee flex flex-col overflow-hidden shadow-[0.4rem_0.4rem_0px_0px_rgba(93,64,55,0.2)]"
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', zIndex: isFlipped ? 1 : 0 }}
         >
           {/* Scrollable Container for Back Content */}
