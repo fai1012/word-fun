@@ -8,7 +8,7 @@ class UserService {
      * Syncs a user: checks if they exist, creates them if not.
      * Updates lastLoginAt on every sync.
      */
-    async syncUser(userId: string, email?: string, name?: string): Promise<User> {
+    async syncUser(userId: string, email?: string, name?: string, photoURL?: string): Promise<User> {
         const userRef = db.collection(COLLECTION_NAME).doc(userId);
         const doc = await userRef.get();
 
@@ -20,6 +20,7 @@ class UserService {
                 id: userId,
                 email,
                 name,
+                photoURL,
                 createdAt: now,
                 lastLoginAt: now,
                 isAdmin: false,
@@ -31,6 +32,7 @@ class UserService {
             const updates: Partial<User> = { lastLoginAt: now };
             if (email) updates.email = email;
             if (name) updates.name = name;
+            if (photoURL) updates.photoURL = photoURL;
 
             await userRef.update(updates);
 

@@ -46,6 +46,7 @@ class ProfileService {
                     avatarId: data.avatarId,
                     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
                     exp: data.exp || 0,
+                    level: data.level || 0,
                     stats: {
                         totalWords,
                         masteredWords,
@@ -65,6 +66,7 @@ class ProfileService {
                     avatarId: data.avatarId,
                     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
                     exp: data.exp || 0,
+                    level: data.level || 0,
                     stats: {
                         totalWords: 0,
                         masteredWords: 0,
@@ -95,6 +97,7 @@ class ProfileService {
             avatarId,
             createdAt: now,
             exp: 0,
+            level: 0,
             stats: {}
         };
 
@@ -106,7 +109,7 @@ class ProfileService {
      * updateProfile
      * Updates an existing profile.
      */
-    async updateProfile(userId: string, profileId: string, updates: { displayName?: string; avatarId?: string; exp?: number }): Promise<void> {
+    async updateProfile(userId: string, profileId: string, updates: { displayName?: string; avatarId?: string; exp?: number; level?: number }): Promise<void> {
         const profileRef = db.collection('users').doc(userId).collection('profiles').doc(profileId);
         await profileRef.update(updates);
     }

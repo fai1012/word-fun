@@ -58,7 +58,7 @@ def validate_word(text):
 
 def lemmatize_sentence(text):
     doc = nlp(text)
-    return [{"text": token.text, "lemma": token.lemma_, "pos": token.pos_} for token in doc]
+    return [{"text": token.text, "lemma": token.lemma_, "pos": token.pos_, "idx": token.idx} for token in doc]
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

@@ -66,6 +66,7 @@ export interface Profile {
     createdAt: Date;
     stats?: Record<string, any>;
     exp: number;
+    level: number;
 }
 
 /**

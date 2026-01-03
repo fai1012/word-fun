@@ -253,7 +253,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
     // 2. Match whole English words/numbers
     // 3. Match whitespace
     // 4. Match any other single character (punctuation, symbols)
-    const segmentRegex = /[\u4e00-\u9fa5\u3400-\u4dbf\u20000-\u2a6df]|[a-zA-Z0-9']+|[ \t\n\r]+|./gu;
+    const segmentRegex = /[\u4e00-\u9fa5\u3400-\u4dbf\u{20000}-\u{2a6df}]|[a-zA-Z0-9']+|[ \t\n\r]+|./gu;
     return expandedExample.match(segmentRegex) || [];
   }, [expandedExample]);
 
@@ -268,17 +268,28 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
     if (lemmas && lemmas.length > 0) {
       // Create a mapping from character position to lemma color/data
       const charHighlightMap = new Map<number, { color: string, data: FlashcardData }>();
-      let charPos = 0;
+      let currentSearchPos = 0;
+
       lemmas.forEach(token => {
-        const lemma = token.lemma.toLowerCase();
+        const lemma = (token.lemma || "").toLowerCase();
         const matchedWord = wordMap.get(lemma);
-        if (matchedWord) {
+
+        // Use the idx from backend if available, otherwise search for it
+        let startIdx = token.idx;
+        if (typeof startIdx !== 'number') {
+          startIdx = expandedExample.indexOf(token.text, currentSearchPos);
+        }
+
+        if (startIdx !== -1 && matchedWord) {
           const highlight = getWordHighlightData(matchedWord);
           for (let i = 0; i < token.text.length; i++) {
-            charHighlightMap.set(charPos + i, highlight);
+            charHighlightMap.set(startIdx + i, highlight);
           }
         }
-        charPos += token.text.length;
+
+        if (typeof startIdx === 'number') {
+          currentSearchPos = startIdx + token.text.length;
+        }
       });
 
       // Now map those char highlights to our segments
@@ -301,9 +312,28 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
     sortedVocab.forEach(word => {
       const charToMatch = word.character.toLowerCase();
-      let lastIdx = -1;
+      const isAlphanumeric = /[a-zA-Z0-9]/.test(charToMatch);
 
-      while ((lastIdx = expandedExample.toLowerCase().indexOf(charToMatch, lastIdx + 1)) !== -1) {
+      let matches: { index: number, length: number }[] = [];
+
+      if (isAlphanumeric) {
+        // Use regex with word boundaries for English/alphanumeric words
+        // Need to escape special regex chars in word just in case
+        const escaped = charToMatch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
+        let match;
+        while ((match = regex.exec(expandedExample)) !== null) {
+          matches.push({ index: match.index, length: match[0].length });
+        }
+      } else {
+        // Standard indexOf for Chinese/other non-alphanumeric words
+        let lastIdx = -1;
+        while ((lastIdx = expandedExample.toLowerCase().indexOf(charToMatch, lastIdx + 1)) !== -1) {
+          matches.push({ index: lastIdx, length: charToMatch.length });
+        }
+      }
+
+      matches.forEach(({ index, length }) => {
         let currentPos = 0;
         const matchingSegmentIndices: number[] = [];
 
@@ -312,7 +342,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
           const segStart = currentPos;
           const segEnd = currentPos + seg.length;
 
-          if (segStart >= lastIdx && segEnd <= lastIdx + charToMatch.length) {
+          if (segStart >= index && segEnd <= index + length) {
             if (/\p{L}|\p{N}/u.test(seg)) {
               matchingSegmentIndices.push(i);
             }
@@ -323,15 +353,15 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
         if (matchingSegmentIndices.length > 0) {
           const highlight = getWordHighlightData(word);
           const candidate = {
-            length: word.character.length,
-            start: lastIdx,
+            length: length,
+            start: index,
             highlight
           };
           matchingSegmentIndices.forEach(idx => {
             segmentCandidates[idx].push(candidate);
           });
         }
-      }
+      });
     });
 
     // Now, for each segment, pick the "best" match
@@ -499,10 +529,10 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
               <h2 className={`
                 ${getDynamicFontSize(data.character)} 
                 font-noto-serif-hk font-bold text-coffee leading-[1.1] text-center drop-shadow-sm
-                ${isLandscape ? 'tracking-[0.15em] flex gap-x-8 sm:gap-x-12' : !isLandscape && isChinese(data.character) ? 'flex flex-col gap-6 sm:gap-10' : 'break-all max-w-[5em] tracking-normal'}
+                ${isChinese(data.character) ? (isLandscape ? 'tracking-[0.15em] flex gap-x-8 sm:gap-x-12' : 'flex flex-col gap-6 sm:gap-10') : 'break-all max-w-[5em] tracking-normal'}
               `}
               >
-                {(isLandscape || (!isLandscape && isChinese(data.character))) ? (
+                {(isChinese(data.character) && (isLandscape || !isLandscape)) ? (
                   data.character.split('').map((char, i) => (
                     <span key={i} className="block">{char}</span>
                   ))
@@ -564,10 +594,10 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
               <h3 className={`
                 ${displayExamples.length === 0 ? 'text-7xl sm:text-9xl' : 'text-4xl sm:text-6xl'} 
                 font-noto-serif-hk font-bold mb-1 leading-tight text-white drop-shadow-md
-                ${isLandscape ? 'flex gap-x-4 tracking-widest' : !isLandscape && isChinese(data.character) ? 'flex flex-col gap-2' : ''}
+                ${isLandscape && isChinese(data.character) ? 'flex gap-x-4 tracking-widest' : ''}
               `}
               >
-                {(isLandscape || (!isLandscape && isChinese(data.character))) ? (
+                {(isLandscape && isChinese(data.character)) ? (
                   data.character.split('').map((char, i) => (
                     <span key={i} className="block">{char}</span>
                   ))

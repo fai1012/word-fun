@@ -109,12 +109,12 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (isSessionCompleted) {
-            const timer1 = setTimeout(() => setAnimationStage(1), 400);
-            const timer2 = setTimeout(() => setAnimationStage(2), 800);
-            const timer3 = setTimeout(() => setAnimationStage(3), 1200);
-            const timer4 = setTimeout(() => setAnimationStage(4), 1600);
-            const timer5 = setTimeout(() => setAnimationStage(5), 2000);
-            const timer6 = setTimeout(() => setAnimationStage(6), 2800);
+            const timer1 = setTimeout(() => setAnimationStage(1), 400);  // Reviewed count
+            const timer2 = setTimeout(() => setAnimationStage(2), 800);  // First try bonus
+            const timer3 = setTimeout(() => setAnimationStage(3), 1200); // Mastered count
+            const timer4 = setTimeout(() => setAnimationStage(4), 1600); // Total EXP gained
+            const timer5 = setTimeout(() => setAnimationStage(5), 2200); // EXP bar appears
+            const timer6 = setTimeout(() => setAnimationStage(6), 2600); // EXP bar starts animating
             return () => {
                 clearTimeout(timer1);
                 clearTimeout(timer2);
@@ -131,20 +131,22 @@ const App: React.FC = () => {
     // EXP Count-up Animation Effect
     useEffect(() => {
         if (animationStage === 5 && sessionExpSnapshot) {
+            // Stage 5: Show bar at OLD value (before gain)
             setAnimatedTotalExp(sessionExpSnapshot.oldExp);
             setIsAtMaxThreshold(false);
         } else if (animationStage === 6 && sessionExpSnapshot) {
+            // Stage 6: Animate the bar from old to new value
             const { oldExp, newExp } = sessionExpSnapshot;
 
-            // Calculate milestones (thresholds between old and new)
+            // Calculate level-up milestones (thresholds between old and new)
             const milestones: number[] = [oldExp];
-            let current = oldExp;
+            let currentExp = oldExp;
             while (true) {
-                const info = getLevelInfo(current);
+                const info = getLevelInfo(currentExp);
                 const threshold = info.totalExpToCurrentLevel + info.nextLevelThreshold;
                 if (threshold < newExp) {
                     milestones.push(threshold);
-                    current = threshold;
+                    currentExp = threshold;
                 } else {
                     break;
                 }
@@ -152,39 +154,30 @@ const App: React.FC = () => {
             milestones.push(newExp);
 
             const startTime = performance.now();
-            const segmentDuration = 1000;
+            const segmentDuration = 1000; // Time per segment (fill to 100% OR fill from 0)
+            const pauseDuration = 800; // Pause at 100% before resetting to 0
 
             let animationFrame: number;
             const animate = (currentTime: number) => {
                 const elapsed = currentTime - startTime;
+                const totalSegments = milestones.length - 1;
+                let cI = 0, cS = 0, cW = false;
 
-                // Which milestone segment are we in?
-                const segmentIndex = Math.min(Math.floor(elapsed / segmentDuration), milestones.length - 2);
-                const segmentElapsed = elapsed - (segmentIndex * segmentDuration);
-                const segmentProgress = Math.min(segmentElapsed / 800, 1); // 800ms animation, 200ms pause
-
-                const start = milestones[segmentIndex];
-                const end = milestones[segmentIndex + 1];
-                const isLastSegment = segmentIndex === milestones.length - 2;
-
-                // Ease out cubic
-                const easedProgress = segmentProgress === 1 ? 1 : 1 - Math.pow(1 - segmentProgress, 3);
-                const currentValue = Math.floor(start + (end - start) * easedProgress);
-
-                setAnimatedTotalExp(currentValue);
-
-                // If we reached a threshold milestone (not the final end), mark as max
-                if (segmentProgress >= 1 && !isLastSegment) {
-                    setIsAtMaxThreshold(true);
-                } else {
-                    setIsAtMaxThreshold(false);
+                for (let i = 0; i < totalSegments; i++) {
+                    const mE = cS + segmentDuration, wL = (i < totalSegments - 1) ? pauseDuration : 0;
+                    if (elapsed <= mE) { cI = i; break; }
+                    else if (elapsed <= mE + wL) { cI = i; cW = true; break; }
+                    cS = mE + wL; cI = i + 1;
                 }
-
-                if (elapsed < (milestones.length - 1) * segmentDuration) {
+                cI = Math.min(cI, totalSegments - 1);
+                const sE = milestones[cI], eE = milestones[cI + 1];
+                const sEl = elapsed - cS, sPr = Math.min(sEl / segmentDuration, 1), eP = 1 - Math.pow(1 - sPr, 3);
+                setAnimatedTotalExp(cW ? eE : Math.floor(sE + (eE - sE) * eP));
+                setIsAtMaxThreshold(cW);
+                if (elapsed < (totalSegments * segmentDuration + (totalSegments - 1) * pauseDuration)) {
                     animationFrame = requestAnimationFrame(animate);
                 } else {
-                    setAnimatedTotalExp(newExp);
-                    setIsAtMaxThreshold(false);
+                    setAnimatedTotalExp(newExp); setIsAtMaxThreshold(false); setAnimationStage(7);
                 }
             };
 
@@ -206,6 +199,17 @@ const App: React.FC = () => {
         try {
             const data = await syncAndGetProfiles();
             setProfiles(data.profiles);
+            // Ensure global user state has the ID and latest info from backend
+            if (data.user && user?.id !== data.user.id) {
+                const updatedUser: User = {
+                    id: data.user.id,
+                    email: data.user.email,
+                    name: data.user.name,
+                    picture: data.user.photoURL || user?.picture || ''
+                };
+                setUser(updatedUser);
+                localStorage.setItem('word_fun_user', JSON.stringify(updatedUser));
+            }
         } catch (e) {
             console.error("Failed to load profiles", e);
             setErrorMsg("Failed to load profiles. Please try again.");
@@ -362,7 +366,7 @@ const App: React.FC = () => {
         if (user && location.pathname === '/profiles') {
             loadAllProfiles();
         }
-    }, [location.pathname, user]);
+    }, [location.pathname, user?.id]);
 
     // Reload words whenever to ensure fresh data (including pronunciationUrl)
     useEffect(() => {
@@ -777,18 +781,22 @@ const App: React.FC = () => {
         setIsSessionCompleted(true);
 
         try {
+            // Calculate new level
+            const levelInfo = getLevelInfo(newTotalExp);
+            const newLevel = levelInfo.level;
+
             // Update Backend
             if (user && user.id) {
-                await updateProfile(currentProfile.id, { exp: newTotalExp });
+                await updateProfile(currentProfile.id, { exp: newTotalExp, level: newLevel });
             }
 
             // Update Local State
-            const updatedProfile = { ...currentProfile, exp: newTotalExp };
+            const updatedProfile = { ...currentProfile, exp: newTotalExp, level: newLevel };
             setCurrentProfile(updatedProfile);
             setProfiles(prev => (prev || []).map(p => (p && p.id === updatedProfile.id) ? updatedProfile : p));
             localStorage.setItem('word_fun_profile', JSON.stringify(updatedProfile));
 
-            console.log(`[EXP] Gained ${gain} EXP. New total: ${newTotalExp}`);
+            console.log(`[EXP] Gained ${gain} EXP. New total: ${newTotalExp}. Level: ${newLevel}`);
         } catch (err) {
             console.error("Failed to save EXP gain", err);
         }
@@ -813,17 +821,10 @@ const App: React.FC = () => {
             // We use the ID Token for display info because our backend auth response might be minimal
             const decoded: any = jwtDecode(googleResponse.credential);
 
-            const userProfile: User = {
-                email: decoded.email,
-                name: decoded.name,
-                picture: decoded.picture
-            };
-
-            console.log("User successfully logged in:", userProfile);
-
             // 3. Persist Session
-            setUser(userProfile);
-            localStorage.setItem('word_fun_user', JSON.stringify(userProfile));
+            // Use the user object directly from the backend response which has the ID
+            setUser(authData.user);
+            localStorage.setItem('word_fun_user', JSON.stringify(authData.user));
 
             if (authData.token) {
                 localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, authData.token);
@@ -983,7 +984,7 @@ const App: React.FC = () => {
                                         </div>
                                         <div className="w-full h-4 bg-coffee/10 rounded-full overflow-hidden border-2 border-coffee/20 p-0.5 relative shadow-inner">
                                             <div
-                                                className="h-full bg-gradient-to-r from-yolk to-salmon rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(255,179,0,0.4)]"
+                                                className={`h-full bg-gradient-to-r from-yolk to-salmon rounded-full transition-all ease-out shadow-[0_0_8px_rgba(255,179,0,0.4)] ${animationStage === 6 ? 'duration-0' : 'duration-1000'}`}
                                                 style={{ width: `${(displayInfo.expInLevel / displayInfo.nextLevelThreshold) * 100}%` }}
                                             >
                                                 <div className="absolute top-0 right-0 w-full h-1/2 bg-white/20 rounded-full"></div>
@@ -999,7 +1000,7 @@ const App: React.FC = () => {
 
                     <button
                         onClick={() => navigate(currentProfile ? `/profiles/${currentProfile.id}/study` : '/profiles')}
-                        className={`w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-300 hover:bg-slate-800 hover:-translate-y-1 transition-all flex items-center justify-center gap-2 ${animationStage < 6 ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-in fade-in slide-in-from-bottom-4 duration-500'}`}
+                        className={`w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-300 hover:bg-slate-800 hover:-translate-y-1 transition-all flex items-center justify-center gap-2 ${animationStage < 7 ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-in fade-in slide-in-from-bottom-4 duration-500'}`}
                     >
                         <Home className="w-5 h-5" />
                         Back to Home

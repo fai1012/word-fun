@@ -7,6 +7,7 @@ export interface WordPackData {
     words: {
         character: string;
         tags: string[];
+        examples?: string[];
     }[];
 }
 
