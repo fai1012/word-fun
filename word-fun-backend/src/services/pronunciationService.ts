@@ -15,7 +15,13 @@ export const pronunciationService = {
 
         if (doc.exists) {
             console.log(`[Pronunciation] Found existing pronunciation for "${word}"`);
-            return doc.data() as Pronunciation;
+            const data = doc.data() as Pronunciation;
+            // Prefer storagePath
+            const path = data.storagePath || data.audioUrl;
+            return {
+                ...data,
+                audioUrl: storageService.getUrl(path)
+            };
         }
 
         console.log(`[Pronunciation] Generatng new pronunciation for "${word}"`);
@@ -97,3 +103,4 @@ export const pronunciationService = {
         return results;
     }
 };
+

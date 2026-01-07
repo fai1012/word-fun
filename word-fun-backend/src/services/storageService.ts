@@ -32,24 +32,26 @@ export const storageService = {
         return destination;
     },
 
-    getUrl(path: string): string {
-        if (!path) return '';
-        if (path.startsWith('http')) return path; // Already a full URL
+    getUrl(pathOrUrl: string): string {
+        if (!pathOrUrl) return '';
 
-        // Encode each path segment for URL (handles Chinese characters)
-        // Split by '/', encode each segment, rejoin
-        const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/');
-
-        const cdnHost = process.env.CDN_HOST;
-        if (cdnHost) {
-            // Remove trailing slash if present
-            const host = cdnHost.endsWith('/') ? cdnHost.slice(0, -1) : cdnHost;
-            // Remove leading slash from path if present
-            const cleanPath = encodedPath.startsWith('/') ? encodedPath.slice(1) : encodedPath;
-            return `${host}/${cleanPath}`;
+        // If it's already our backend serving URL (starts with /api), return as is
+        if (pathOrUrl.startsWith('/api/pronunciations/serve')) {
+            return pathOrUrl;
         }
 
-        // Fallback to direct storage URL if no CDN (though this will be 403 for private buckets without auth)
-        return `https://storage.googleapis.com/${bucketName}/${encodedPath}`;
+        // Otherwise, treat it as a relative path and wrap it
+        return `/api/pronunciations/serve?path=${encodeURIComponent(pathOrUrl)}`;
+    },
+
+    async getFileStream(path: string): Promise<NodeJS.ReadableStream> {
+        const file = bucket.file(path);
+        const [exists] = await file.exists();
+        if (!exists) {
+            throw new Error(`File not found: ${path}`);
+        }
+        return file.createReadStream();
     }
 };
+
+

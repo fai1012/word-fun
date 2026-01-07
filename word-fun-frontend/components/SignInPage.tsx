@@ -8,7 +8,7 @@ interface SignInPageProps {
     onLoginError: () => void;
 }
 
-const PANDA_LOGO_URL = 'https://cdn.word-fun.popular-c.io/assets/panda-logo.png';
+const PANDA_LOGO_URL = 'https://gen-lang-client-0834078301.web.app/assets_panda-logo.png';
 
 export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess, onLoginError }) => {
     return (

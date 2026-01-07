@@ -65,6 +65,10 @@ import nlpRoutes from './routes/nlpRoutes';
 app.use('/api/queue', queueRoutes);
 app.use('/api/nlp', nlpRoutes);
 
+import pronunciationRoutes from './routes/pronunciationRoutes';
+app.use('/api/pronunciations', pronunciationRoutes);
+
+
 
 // Protected Routes (example)
 app.get('/api/protected', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
