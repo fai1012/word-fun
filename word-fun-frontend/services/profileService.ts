@@ -13,6 +13,14 @@ if (!BACKEND_SERVICE_URL) {
 
 import { fetchWithAuth } from './apiClient';
 
+const formatPronunciationUrl = (url?: string) => {
+    if (!url) return url;
+    if (url.startsWith('http')) return url;
+    // Relative path needs prefixing
+    return `${BACKEND_SERVICE_URL}${url}`;
+};
+
+
 export const syncAndGetProfiles = async (): Promise<ProfileSyncResponse> => {
     const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles`, {
         method: 'POST',
@@ -48,8 +56,13 @@ export const fetchProfileWords = async (profileId: string): Promise<any[]> => {
         throw new Error('Failed to fetch words');
     }
 
-    return response.json();
+    const words = await response.json();
+    return words.map((w: any) => ({
+        ...w,
+        pronunciationUrl: formatPronunciationUrl(w.pronunciationUrl)
+    }));
 };
+
 
 export const updateWord = async (
     profileId: string,
@@ -107,12 +120,16 @@ export const batchAddWords = async (
         body: JSON.stringify({ words, tags })
     });
 
-    if (!response.ok) {
-        throw new Error('Failed to add words');
+    const result = await response.json();
+    if (result.addedWords) {
+        result.addedWords = result.addedWords.map((w: any) => ({
+            ...w,
+            pronunciationUrl: formatPronunciationUrl(w.pronunciationUrl)
+        }));
     }
-
-    return response.json();
+    return result;
 };
+
 
 export const validateWords = async (
     profileId: string,
