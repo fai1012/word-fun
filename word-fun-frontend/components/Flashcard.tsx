@@ -543,7 +543,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
               <h2 className={`
                 ${getDynamicFontSize(data.character)} 
                 font-noto-serif-hk font-bold text-coffee leading-[1.1] text-center drop-shadow-sm
-                ${isChinese(data.character) ? (isLandscape ? 'tracking-[0.15em] flex gap-x-8 sm:gap-x-12' : 'flex flex-col gap-6 sm:gap-10') : 'break-all max-w-[5em] tracking-normal'}
+                ${isChinese(data.character) ? (isLandscape ? 'tracking-[0.15em] flex gap-x-8 sm:gap-x-12' : 'flex flex-col gap-6 sm:gap-10') : (data.character.trim().includes(' ') ? 'break-words max-w-[90%] tracking-normal' : 'whitespace-nowrap max-w-full tracking-normal')}
               `}
               >
                 {(isChinese(data.character) && (isLandscape || !isLandscape)) ? (
