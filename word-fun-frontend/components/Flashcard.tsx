@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { FlashcardData } from '../types';
 import { Volume2, Check, Target, RefreshCw, Crown, Trash2, Plus, Minimize2 } from 'lucide-react';
 import { analyzeSentence } from '../services/profileService';
+import { useI18n } from '../services/i18nService';
 
 interface FlashcardProps {
   data: FlashcardData;
@@ -16,6 +17,7 @@ interface FlashcardProps {
 }
 
 export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFlipped, onFlip, autoPlaySound, onRegenerate, onRegenerateExample, masteryThreshold, onAddWords }) => {
+  const { t } = useI18n();
   const [regeneratingIndex, setRegeneratingIndex] = React.useState<number | null>(null);
   const [swipedIndex, setSwipedIndex] = React.useState<number | null>(null);
 
@@ -585,10 +587,10 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
             {/* Header */}
             <div className="flex justify-between items-start mb-2 shrink-0">
               <div className="flex flex-col">
-                <div className="text-salmon text-[10px] font-black uppercase tracking-widest">Word</div>
+                <div className="text-salmon text-[10px] font-bold uppercase tracking-widest">{t('study.word_label')}</div>
                 <div className="flex items-center gap-2 mt-1 text-[10px] text-latte">
-                  <span className="bg-white/10 px-2 py-1 rounded-full font-bold">Rev: {data.revisedCount || 0}</span>
-                  <span className="bg-matcha/20 text-matcha px-2 py-1 rounded-full font-bold">OK: {data.correctCount || 0}</span>
+                  <span className="bg-white/10 px-2 py-1 rounded-full font-bold">{t('study.review_label')}: {data.revisedCount || 0}</span>
+                  <span className="bg-matcha/20 text-matcha px-2 py-1 rounded-full font-bold">{t('study.correct_label')}: {data.correctCount || 0}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -621,7 +623,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
               </h3>
               {isMastered && (
                 <div className="mt-2 flex items-center gap-1 text-yolk text-xs font-bold uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-full border border-yolk/30">
-                  <Crown className="w-3 h-3 fill-yolk" /> Mastered
+                  <Crown className="w-3 h-3 fill-yolk" /> {t('study.mastered_tag')}
                 </div>
               )}
             </div>
@@ -629,7 +631,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
             {/* Examples Section */}
             <div className={`flex flex-col min-h-0 ${displayExamples.length > 0 ? 'mt-2 pt-4 border-t-2 border-white/10 flex-1' : 'flex-1 justify-start pt-4'}`}>
               {displayExamples.length > 0 && (
-                <div className="text-[10px] text-latte/70 font-black uppercase tracking-widest mb-3 shrink-0">Examples</div>
+                <div className="text-[10px] text-latte/70 font-bold uppercase tracking-widest mb-3 shrink-0">{t('study.examples_label')}</div>
               )}
 
               {displayExamples.length > 0 ? (
@@ -711,7 +713,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                 </div>
               ) : (
                 <div className="flex flex-col items-center text-latte/40 text-[13px] font-bold gap-3 transition-opacity duration-1000 animate-pulse mt-4">
-                  <p className="tracking-wide">Working on examples...</p>
+                  <p className="tracking-wide">{t('study.generating_examples')}</p>
                   <RefreshCw className="w-5 h-5 animate-spin opacity-40" />
                 </div>
               )}
@@ -807,13 +809,13 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                         className="px-6 py-2.5 bg-salmon text-white rounded-full font-bold shadow-lg shadow-salmon/20 active:scale-95 transition-transform flex items-center gap-2"
                       >
                         <Plus className="w-4 h-4 stroke-[3]" />
-                        Add Word
+                        {t('study.add_word')}
                       </button>
                     </div>
                   </>
                 ) : (
                   <div className="w-full flex flex-col items-center animate-in zoom-in-95 duration-200">
-                    <h4 className="text-slate-400 text-xs font-black uppercase tracking-widest mb-6 border-b border-white/10 pb-2 w-full text-center">Select characters to add</h4>
+                    <h4 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-6 border-b border-white/10 pb-2 w-full text-center">{t('study.select_chars')}</h4>
 
                     <div
                       className="flex flex-wrap justify-center gap-1.5 mb-10 select-none touch-none"
@@ -857,7 +859,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                         onClick={(e) => { e.stopPropagation(); setIsPickerMode(false); setSelectedGroups([]); }}
                         className="flex-1 py-3 bg-white/10 text-white rounded-2xl font-bold hover:bg-white/20 transition-colors"
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </button>
                       <button
                         onClick={handleAddSelected}
@@ -872,7 +874,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                         ) : (
                           <>
                             <Check className="w-5 h-5 stroke-[3]" />
-                            Add Selected
+                            {t('study.add_selected')}
                           </>
                         )}
                       </button>
@@ -896,19 +898,19 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col items-center text-center">
-              <div className="text-latte text-[10px] font-black uppercase tracking-[0.2em] mb-1">Vocabulary Info</div>
+              <div className="text-latte text-[10px] font-bold uppercase tracking-[0.2em] mb-1">{t('study.vocab_info')}</div>
               <h5 className="text-5xl font-noto-serif-hk font-bold text-white mb-6 underline decoration-white/10 underline-offset-8">
                 {infoWord.character}
               </h5>
 
               <div className="grid grid-cols-2 gap-4 w-full mb-8">
                 <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                  <div className="text-salmon text-[10px] font-black uppercase tracking-wider mb-1">Attempts</div>
-                  <div className="text-2xl font-black text-white">{infoWord.revisedCount || 0}</div>
+                  <div className="text-salmon text-[10px] font-bold uppercase tracking-wider mb-1">{t('study.attempts_label')}</div>
+                  <div className="text-2xl font-bold text-white">{infoWord.revisedCount || 0}</div>
                 </div>
                 <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                  <div className="text-matcha text-[10px] font-black uppercase tracking-wider mb-1">Correct</div>
-                  <div className="text-2xl font-black text-white">{infoWord.correctCount || 0}</div>
+                  <div className="text-matcha text-[10px] font-bold uppercase tracking-wider mb-1">{t('study.correct_short')}</div>
+                  <div className="text-2xl font-bold text-white">{infoWord.correctCount || 0}</div>
                 </div>
               </div>
 
@@ -916,7 +918,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
                 onClick={() => setInfoWord(null)}
                 className="w-full py-3 bg-white/10 text-white rounded-2xl font-bold hover:bg-white/20 transition-colors"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
           </div>

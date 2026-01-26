@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { batchAddWords, fetchProfileTags, validateWords } from '../services/profileService';
 import { fetchWordPacks, WordPackData } from '../services/wordPackService';
 import { BookOpen, Check, Loader2 } from 'lucide-react';
+import { useI18n } from '../services/i18nService';
 
 interface AddWordsScreenProps {
     profileId: string;
@@ -12,6 +13,7 @@ interface AddWordsScreenProps {
 }
 
 export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBack, onWordsAdded }) => {
+    const { t } = useI18n();
     const [text, setText] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [result, setResult] = useState<{ added: number; skipped: number } | null>(null);
@@ -111,7 +113,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                 setAvailableTags(updatedTags);
             }
         } catch (err: any) {
-            setError(err.message || 'Failed to import word pack');
+            setError(err.message || t('add.error_failed_import'));
         } finally {
             setIsSubmitting(false);
             setSelectedPackForPreview(null);
@@ -135,7 +137,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
         for (let i = 0; i < words.length; i++) {
             const line = words[i];
             if (hasChinese(line) && hasEnglish(line)) {
-                setError(`Line ${i + 1}: Cannot mix English and Chinese in the same word ("${line}").`);
+                setError(t('add.error_mixed_lang', [i + 1, line]));
                 setIsSubmitting(false);
                 return;
             }
@@ -156,7 +158,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
 
             await processAddWords(words);
         } catch (err: any) {
-            setError(err.message || 'Failed to add words');
+            setError(err.message || t('add.error_failed_add'));
             setIsSubmitting(false);
         }
     };
@@ -177,7 +179,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                 setAvailableTags(updatedTags);
             }
         } catch (err: any) {
-            setError(err.message || 'Failed to add words');
+            setError(err.message || t('add.error_failed_add'));
         } finally {
             setIsSubmitting(false);
             setShowValidationModal(false);
@@ -205,11 +207,11 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                                     <BookOpen className="w-6 h-6 text-white" />
                                 </div>
                                 <div className="text-left relative z-10">
-                                    <h3 className="font-black text-lg text-coffee group-hover:text-salmon transition-colors">
-                                        Add some common words by category!
+                                    <h3 className="font-bold text-lg text-coffee group-hover:text-salmon transition-colors">
+                                        {t('add.category_cta')}
                                     </h3>
                                     <p className="text-xs font-bold text-coffee/50">
-                                        Don't want to type? Pick a ready-made pack.
+                                        {t('add.category_desc')}
                                     </p>
                                 </div>
                                 <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white/50 to-transparent pointer-events-none" />
@@ -217,8 +219,8 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                         </div>
 
                         <div className="flex justify-between items-center mb-3">
-                            <label className="block text-xs font-black text-coffee uppercase tracking-wider opacity-60">
-                                Or paste your own words (one per line)
+                            <label className="block text-xs font-bold text-coffee uppercase tracking-wider opacity-60">
+                                {t('add.paste_label')}
                             </label>
                         </div>
                         <textarea
@@ -230,7 +232,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                         />
 
                         {/* 
-                        <label className="block text-xs font-black text-coffee uppercase tracking-wider opacity-60 mb-3">
+                        <label className="block text-xs font-bold text-coffee uppercase tracking-wider opacity-60 mb-3">
                             Tags (Add tag to group words for revision.)
                         </label>
                         <div className="relative" ref={autocompleteRef}>
@@ -281,7 +283,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                                     {tagInput && !availableTags.includes(tagInput) && (
                                         <button
                                             onClick={() => handleAddTag(tagInput)}
-                                            className="w-full px-3 py-2 text-left bg-salmon/5 hover:bg-salmon/10 text-salmon font-black text-xs rounded-xl transition-colors flex items-center gap-2"
+                                            className="w-full px-3 py-2 text-left bg-salmon/5 hover:bg-salmon/10 text-salmon font-bold text-xs rounded-xl transition-colors flex items-center gap-2"
                                         >
                                             <Plus className="w-3 h-3" />
                                             Create tag "{tagInput}"
@@ -293,7 +295,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                         */}
 
                         <p className="mt-4 text-xs font-bold text-coffee/40">
-                            Duplicates will be automatically skipped. New tags will be merged.
+                            {t('add.duplicate_note')}
                         </p>
                     </div>
 
@@ -308,17 +310,17 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                         <div className="bg-matcha/10 text-matcha p-5 rounded-2xl border-2 border-matcha/20 animate-in fade-in slide-in-from-bottom-2 shadow-sm">
                             <div className="flex items-center gap-3 mb-2">
                                 <CheckCircle className="w-6 h-6 shrink-0 stroke-[2.5]" />
-                                <p className="font-black text-lg">Processed!</p>
+                                <p className="font-bold text-lg">{t('add.processed')}</p>
                             </div>
                             <p className="text-sm font-medium ml-9 opacity-80 leading-relaxed">
-                                Added {result.added} new words.<br />
-                                Skipped {result.skipped} duplicates.
+                                {t('add.added_count', [result.added])}<br />
+                                {t('add.skipped_count', [result.skipped])}
                             </p>
                             <button
                                 onClick={() => navigate(`/profiles/${profileId}/study`)}
-                                className="mt-3 ml-9 text-xs font-black text-matcha underline decoration-2 underline-offset-4 hover:opacity-80 transition-opacity"
+                                className="mt-3 ml-9 text-xs font-bold text-matcha underline decoration-2 underline-offset-4 hover:opacity-80 transition-opacity"
                             >
-                                Go to Study →
+                                {t('add.go_to_study')}
                             </button>
                         </div>
                     )}
@@ -326,15 +328,15 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                     <button
                         onClick={handleSubmit}
                         disabled={isSubmitting || !text.trim()}
-                        className="w-full bg-salmon text-white font-black text-lg py-4 rounded-2xl border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:active:transform-none"
+                        className="w-full bg-salmon text-white font-bold text-lg py-4 rounded-2xl border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:active:transform-none"
                     >
                         {isSubmitting ? (
                             <>
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                Adding...
+                                {t('add.adding_status')}
                             </>
                         ) : (
-                            'Add Words'
+                            t('add.add_button')
                         )}
                     </button>
                 </div>
@@ -346,11 +348,11 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                     <div className="bg-white w-full max-w-xl rounded-3xl p-6 border-4 border-coffee shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[85vh]">
                         <div className="flex justify-between items-center mb-4 shrink-0">
                             <div>
-                                <h3 className="font-black text-xl text-coffee">
-                                    {selectedPackForPreview ? selectedPackForPreview.name : 'Choose a category!'}
+                                <h3 className="font-bold text-xl text-coffee">
+                                    {selectedPackForPreview ? selectedPackForPreview.name : t('add.choose_category')}
                                 </h3>
                                 {selectedPackForPreview && (
-                                    <p className="text-xs font-bold text-coffee/40">Previewing {selectedPackForPreview.words.length} words</p>
+                                    <p className="text-xs font-bold text-coffee/40">{t('add.previewing_count', [selectedPackForPreview.words.length])}</p>
                                 )}
                             </div>
                             <button onClick={() => setShowPackModal(false)} className="text-coffee/50 hover:text-coffee transition-colors p-2">
@@ -358,11 +360,11 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto min-h-0 space-y-3 pr-2 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto min-h-0 space-y-3 pr-2 ">
                             {loadingPacks ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-3">
                                     <Loader2 className="w-10 h-10 animate-spin text-salmon" />
-                                    <p className="text-sm font-black text-coffee/40">Loading packs...</p>
+                                    <p className="text-sm font-bold text-coffee/40">{t('add.loading_packs')}</p>
                                 </div>
                             ) : selectedPackForPreview ? (
                                 // PREVIEW MODE
@@ -370,7 +372,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                         {selectedPackForPreview.words.map((w, idx) => (
                                             <div key={idx} className="bg-cream/40 border-2 border-coffee/5 p-2 rounded-2xl flex flex-col items-center justify-center gap-1 group">
-                                                <span className="text-base font-black text-coffee">{w.character}</span>
+                                                <span className="text-base font-bold text-coffee">{w.character}</span>
                                                 <div className="flex flex-wrap gap-1 justify-center">
                                                     {w.tags.map(t => (
                                                         <span key={t} className="text-[10px] font-bold text-salmon/60 uppercase tracking-tight">#{t}</span>
@@ -384,14 +386,14 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                                             <Check className="w-5 h-5 text-matcha" />
                                         </div>
                                         <p className="text-xs font-bold text-matcha/80 leading-relaxed">
-                                            Great choice! These words will be added to your study list. We'll even generate AI examples for you automatically.
+                                            {t('add.import_success_note')}
                                         </p>
                                     </div>
                                 </div>
                             ) : packs.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-20 opacity-30">
                                     <BookOpen className="w-16 h-16 mb-4" />
-                                    <p className="text-center font-bold">No word packs available yet.</p>
+                                    <p className="text-center font-bold">{t('add.no_packs')}</p>
                                 </div>
                             ) : (
                                 // LIST MODE
@@ -406,12 +408,12 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                                                 <span className="text-xl">📚</span>
                                             </div>
                                             <div>
-                                                <h4 className="font-black text-lg text-coffee group-hover:text-salmon transition-colors">{pack.name}</h4>
+                                                <h4 className="font-bold text-lg text-coffee group-hover:text-salmon transition-colors">{pack.name}</h4>
                                                 <p className="text-xs font-bold text-coffee/40 uppercase tracking-widest">{pack.words.length} Words</p>
                                             </div>
                                         </div>
-                                        <div className="bg-salmon text-white px-4 py-2 rounded-full text-xs font-black shadow-[2px_2px_0px_0px_rgba(93,64,55,0.4)] group-hover:translate-x-[-2px] transition-transform">
-                                            View Pack
+                                        <div className="bg-salmon text-white px-4 py-2 rounded-full text-xs font-bold shadow-[2px_2px_0px_0px_rgba(93,64,55,0.4)] group-hover:translate-x-[-2px] transition-transform">
+                                            {t('add.view_pack')}
                                         </div>
                                     </button>
                                 ))
@@ -422,15 +424,15 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                             <div className="mt-4 pt-4 border-t-4 border-coffee/5 flex gap-3 shrink-0">
                                 <button
                                     onClick={() => setSelectedPackForPreview(null)}
-                                    className="flex-1 bg-coffee/5 text-coffee font-black py-3 rounded-2xl hover:bg-coffee/10 transition-colors border-2 border-coffee/10"
+                                    className="flex-1 bg-coffee/5 text-coffee font-bold py-3 rounded-2xl hover:bg-coffee/10 transition-colors border-2 border-coffee/10"
                                 >
-                                    Back
+                                    {t('common.back')}
                                 </button>
                                 <button
                                     onClick={() => handleConfirmImport(selectedPackForPreview)}
-                                    className="flex-[2] bg-salmon text-white font-black py-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all flex items-center justify-center gap-2"
+                                    className="flex-[2] bg-salmon text-white font-bold py-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all flex items-center justify-center gap-2"
                                 >
-                                    Add All Words!
+                                    {t('add.add_all_button')}
                                 </button>
                             </div>
                         )}
@@ -446,9 +448,9 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                                 <AlertCircle className="w-10 h-10 text-salmon" />
                             </div>
                             <div>
-                                <h3 className="font-black text-xl text-coffee">Wait a second!</h3>
+                                <h3 className="font-bold text-xl text-coffee">{t('add.validation_title')}</h3>
                                 <p className="text-sm font-bold text-coffee/60 mt-1">
-                                    Some words look a bit unusual. Are you sure they're correct?
+                                    {t('add.validation_desc')}
                                 </p>
                             </div>
                         </div>
@@ -456,7 +458,7 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                         <div className="bg-cream/50 border-2 border-coffee/5 p-4 rounded-2xl max-h-40 overflow-y-auto">
                             <div className="flex flex-wrap gap-2">
                                 {invalidWordsFound.map((word, idx) => (
-                                    <span key={idx} className="bg-white border-2 border-coffee/10 px-3 py-1 rounded-full text-xs font-black text-coffee/70">
+                                    <span key={idx} className="bg-white border-2 border-coffee/10 px-3 py-1 rounded-full text-xs font-bold text-coffee/70">
                                         {word}
                                     </span>
                                 ))}
@@ -466,15 +468,15 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                         <div className="flex flex-col gap-2">
                             <button
                                 onClick={() => processAddWords(pendingWords)}
-                                className="w-full bg-salmon text-white font-black py-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all"
+                                className="w-full bg-salmon text-white font-bold py-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all"
                             >
-                                Yes, Add Anyway
+                                {t('add.validation_confirm')}
                             </button>
                             <button
                                 onClick={() => setShowValidationModal(false)}
-                                className="w-full bg-coffee/5 text-coffee font-black py-4 rounded-2xl hover:bg-coffee/10 transition-colors border-2 border-coffee/10"
+                                className="w-full bg-coffee/5 text-coffee font-bold py-4 rounded-2xl hover:bg-coffee/10 transition-colors border-2 border-coffee/10"
                             >
-                                Let me check
+                                {t('add.validation_cancel')}
                             </button>
                         </div>
                     </div>

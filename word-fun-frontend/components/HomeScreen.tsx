@@ -3,6 +3,7 @@ import { Layers, Sparkles, Plus, ChevronLeft, ChevronRight, Tags, Play, X, Check
 import { getLevelInfo } from '../services/levelService';
 import { AVATAR_MAP } from './AvatarPicker';
 import { fetchProfileTags } from '../services/profileService';
+import { useI18n } from '../services/i18nService';
 
 interface HomeScreenProps {
   profileId: string;
@@ -41,6 +42,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   reviewedThisWeek = 0,
   exp = 0
 }) => {
+  const { t } = useI18n();
   const totalCards = cardCountZh + cardCountEn;
   const avatarSrc = avatarId ? AVATAR_MAP[avatarId] : null;
 
@@ -66,25 +68,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   const slideData = [
     {
-      label: "Today's Progress",
-      primary: { label: "Reviewed", value: reviewedToday, color: "text-salmon" },
-      secondary: { label: "Mastered", value: masteredToday, color: "text-indigo-500" },
+      label: t('home.progress_today'),
+      primary: { label: t('home.reviewed'), value: reviewedToday, color: "text-salmon" },
+      secondary: { label: t('home.mastered'), value: masteredToday, color: "text-indigo-500" },
       icon: <Sparkles className="w-5 h-5 text-salmon" />,
-      tag: "Dailies"
+      tag: t('home.tag_dailies')
     },
     {
-      label: "Last 7 Days",
-      primary: { label: "Reviewed", value: reviewedThisWeek, color: "text-salmon" },
-      secondary: { label: "Mastered", value: masteredThisWeek, color: "text-indigo-500" },
+      label: t('home.progress_week'),
+      primary: { label: t('home.reviewed'), value: reviewedThisWeek, color: "text-salmon" },
+      secondary: { label: t('home.mastered'), value: masteredThisWeek, color: "text-indigo-500" },
       icon: <Layers className="w-5 h-5 text-indigo-500" />,
-      tag: "Weekly"
+      tag: t('home.tag_weekly')
     },
     {
-      label: "Overall Record",
-      primary: { label: "Total Reviewed", value: reviewedCount, color: "text-salmon" },
-      secondary: { label: "Total Mastered", value: masteredCount, color: "text-indigo-500" },
+      label: t('home.progress_total'),
+      primary: { label: t('home.total_reviewed'), value: reviewedCount, color: "text-salmon" },
+      secondary: { label: t('home.total_mastered'), value: masteredCount, color: "text-indigo-500" },
       icon: <img src={avatarSrc || ''} className="w-5 h-5 rounded-full" alt="" />,
-      tag: "All Time"
+      tag: t('home.tag_all_time')
     }
   ];
 
@@ -147,7 +149,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center pt-2 pb-24 px-4 w-full h-full overflow-y-auto min-h-0 text-center custom-scrollbar">
+    <div className="flex flex-col items-center pt-2 pb-24 px-4 w-full text-center">
 
       {/* Application Logo / Avatar */}
       <div className="mb-6 relative group cursor-default">
@@ -187,8 +189,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       {profileName && (
         <div className="flex flex-col items-center mb-6">
-          <h1 className="text-3xl font-extrabold text-slate-800 mb-2 tracking-tight">
-            Hi, {profileName}!
+          <h1 className="text-3xl font-bold text-slate-800 mb-2 tracking-tight">
+            {t('home.welcome', [profileName])}
           </h1>
           {(() => {
             const info = getLevelInfo(exp);
@@ -196,9 +198,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <div className="flex flex-col items-center w-full max-w-[200px] gap-1.5">
                 <div className="flex justify-between items-end w-full px-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="bg-coffee text-cream px-2 py-0.5 rounded-lg text-xs font-black shadow-sm">LV. {info.level}</span>
+                    <span className="bg-coffee text-cream px-2 py-0.5 rounded-lg text-xs font-bold shadow-sm">LV. {info.level}</span>
                   </div>
-                  <span className="text-[10px] font-black text-coffee/30 uppercase tracking-widest leading-none">
+                  <span className="text-[10px] font-bold text-coffee/30 uppercase tracking-widest leading-none">
                     {info.expInLevel} / {info.nextLevelThreshold}
                   </span>
                 </div>
@@ -231,18 +233,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               >
                 {slideData.map((slide, i) => (
                   <div key={i} className="min-w-full flex flex-col justify-center items-center px-8">
-                    <span className="inline-block px-3 py-0.5 bg-coffee/5 text-coffee/60 text-[10px] font-black uppercase tracking-widest rounded-full mb-2 border border-coffee/10">{slide.tag}</span>
-                    <h2 className="text-lg font-black text-coffee mb-0.5 flex items-center gap-2">
+                    <span className="inline-block px-3 py-0.5 bg-coffee/5 text-coffee/60 text-[10px] font-bold uppercase tracking-widest rounded-full mb-2 border border-coffee/10">{slide.tag}</span>
+                    <h2 className="text-lg font-bold text-coffee mb-0.5 flex items-center gap-2">
                       {slide.label}
                     </h2>
                     <div className="flex items-baseline gap-6 mt-2">
                       <div className="text-center">
-                        <div className={`text-3xl font-black ${slide.primary.color}`}>{slide.primary.value}</div>
+                        <div className={`text-3xl font-bold ${slide.primary.color}`}>{slide.primary.value}</div>
                         <div className="text-[10px] font-bold text-coffee/40 uppercase tracking-wider">{slide.primary.label}</div>
                       </div>
                       <div className="w-px h-8 bg-coffee/10 self-center"></div>
                       <div className="text-center">
-                        <div className={`text-3xl font-black ${slide.secondary.color}`}>{slide.secondary.value}</div>
+                        <div className={`text-3xl font-bold ${slide.secondary.color}`}>{slide.secondary.value}</div>
                         <div className="text-[10px] font-bold text-coffee/40 uppercase tracking-wider">{slide.secondary.label}</div>
                       </div>
                     </div>
@@ -276,15 +278,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               ))}
             </div>
           </div>
-          <p className="text-coffee/20 text-[10px] font-black mt-2 uppercase tracking-widest">Swipe to see more progress! ✨</p>
+          <p className="text-coffee/20 text-[10px] font-bold mt-2 uppercase tracking-widest">{t('home.swipe_more')}</p>
         </div>
       ) : (
         <>
-          <h1 className="text-3xl font-black text-slate-800 mb-1 tracking-tight">
-            Haven't started yet?
+          <h1 className="text-3xl font-bold text-slate-800 mb-1 tracking-tight">
+            {t('home.haven_t_started')}
           </h1>
           <p className="text-coffee/60 text-base mb-6 max-w-xs mx-auto leading-relaxed font-bold">
-            Time for a Challenge!
+            {t('home.time_for_challenge')}
           </p>
         </>
       )}
@@ -298,11 +300,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   <Layers className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-bold text-coffee font-rounded text-base leading-none">Ready to Study</div>
+                  <div className="font-bold text-coffee font-rounded text-base leading-none">{t('home.ready_to_study')}</div>
                   <div className="text-[10px] text-coffee/60 flex items-center gap-1.5 font-bold mt-1">
-                    <span className="text-salmon">{cardCountZh} Chinese</span>
+                    <span className="text-salmon">{t('home.lang_zh', [cardCountZh])}</span>
                     <span className="w-1 h-1 rounded-full bg-coffee/20"></span>
-                    <span className="text-indigo-500">{cardCountEn} English</span>
+                    <span className="text-indigo-500">{t('home.lang_en', [cardCountEn])}</span>
                   </div>
                 </div>
               </div>
@@ -311,18 +313,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => openGameModeDialog('zh')}
-                className="w-full py-3 bg-salmon text-white rounded-2xl font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex flex-col items-center justify-center leading-tight"
+                className="w-full py-3 bg-salmon text-white rounded-2xl font-bold text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex flex-col items-center justify-center leading-tight"
               >
                 <span className="text-lg">中文</span>
-                <span className="text-[10px] opacity-90 font-bold uppercase tracking-wider">Chinese</span>
+                <span className="text-[10px] opacity-90 font-bold uppercase tracking-wider">{t('home.lang_zh', ['']).trim()}</span>
               </button>
 
               <button
                 onClick={() => openGameModeDialog('en')}
-                className="w-full py-3 bg-indigo-500 text-white rounded-2xl font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex flex-col items-center justify-center leading-tight"
+                className="w-full py-3 bg-indigo-500 text-white rounded-2xl font-bold text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,1)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex flex-col items-center justify-center leading-tight"
               >
                 <span className="text-lg font-serif">Aa</span>
-                <span className="text-[10px] opacity-90 font-bold uppercase tracking-wider">English</span>
+                <span className="text-[10px] opacity-90 font-bold uppercase tracking-wider">{t('home.lang_en', ['']).trim()}</span>
               </button>
             </div>
           </div>
@@ -335,17 +337,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-salmon/10 rounded-full blur-2xl animate-pulse delay-700"></div>
 
             <div className="relative z-10 w-full">
-              <h3 className="text-2xl font-black text-coffee mb-2">Start Your Journey!</h3>
+              <h3 className="text-2xl font-bold text-coffee mb-2">{t('home.empty_title')}</h3>
               <p className="text-coffee/70 font-bold text-sm mb-8 max-w-[200px] mx-auto leading-relaxed">
-                Your deck is empty. Add your first words to begin learning.
+                {t('home.empty_desc')}
               </p>
 
               <button
                 onClick={onManage}
-                className="w-full py-4 bg-salmon text-white rounded-2xl font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 group-hover:bg-salmon/90"
+                className="w-full py-4 bg-salmon text-white rounded-2xl font-bold text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 group-hover:bg-salmon/90"
               >
                 <Plus className="w-6 h-6 stroke-[4]" />
-                Add New Words
+                {t('home.add_words')}
               </button>
             </div>
           </div>
@@ -361,9 +363,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <div className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-2xl font-black text-coffee">Choose Mode</h3>
-                  <p className="text-coffee/40 text-xs font-black uppercase tracking-widest mt-1">
-                    {selectedLang === 'zh' ? 'Chinese Session' : 'English Session'}
+                  <h3 className="text-2xl font-bold text-coffee">{t('home.choose_mode')}</h3>
+                  <p className="text-coffee/40 text-xs font-bold uppercase tracking-widest mt-1">
+                    {selectedLang === 'zh' ? t('home.session_zh') : t('home.session_en')}
                   </p>
                 </div>
                 <button onClick={() => setIsDialogOpen(false)} className="p-2 hover:bg-coffee/5 rounded-full transition-colors">
@@ -380,8 +382,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="font-black text-lg">Overall</div>
-                    <div className={`text-xs font-bold ${!showTagSelector ? 'opacity-80' : 'text-coffee/40'}`}>Start with all words</div>
+                    <div className="font-bold text-lg">{t('home.mode_overall')}</div>
+                    <div className={`text-xs font-bold ${!showTagSelector ? 'opacity-80' : 'text-coffee/40'}`}>{t('home.mode_overall_desc')}</div>
                   </div>
                 </button>
 
@@ -393,8 +395,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <Tags className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="font-black text-lg">By Tag</div>
-                    <div className={`text-xs font-bold ${showTagSelector ? 'opacity-80' : 'text-coffee/40'}`}>Filter by categories</div>
+                    <div className="font-bold text-lg">{t('home.mode_tags')}</div>
+                    <div className={`text-xs font-bold ${showTagSelector ? 'opacity-80' : 'text-coffee/40'}`}>{t('home.mode_tags_desc')}</div>
                   </div>
                 </button>
               </div>
@@ -402,9 +404,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               {showTagSelector && (
                 <div className="mt-6 animate-in slide-in-from-top-4 duration-300">
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-[10px] font-black text-coffee/40 uppercase tracking-widest leading-none">Select Tags</span>
+                    <span className="text-[10px] font-bold text-coffee/40 uppercase tracking-widest leading-none">{t('home.select_tags')}</span>
                     {selectedTags.length > 0 && (
-                      <button onClick={() => setSelectedTags([])} className="text-[10px] font-black text-salmon uppercase tracking-widest leading-none underline">Clear</button>
+                      <button onClick={() => setSelectedTags([])} className="text-[10px] font-bold text-salmon uppercase tracking-widest leading-none underline">{t('common.cancel')}</button>
                     )}
                   </div>
 
@@ -413,12 +415,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       <div className="w-6 h-6 border-2 border-coffee/20 border-t-coffee rounded-full animate-spin" />
                     </div>
                   ) : availableTags.length > 0 ? (
-                    <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-2 ">
                       {availableTags.map(tag => (
                         <button
                           key={tag}
                           onClick={() => toggleTagSelection(tag)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-black border-2 transition-all flex items-center gap-1.5 ${selectedTags.includes(tag) ? 'bg-indigo-500 text-white border-coffee' : 'bg-white text-coffee/60 border-coffee/10 hover:border-coffee/20'}`}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all flex items-center gap-1.5 ${selectedTags.includes(tag) ? 'bg-indigo-500 text-white border-coffee' : 'bg-white text-coffee/60 border-coffee/10 hover:border-coffee/20'}`}
                         >
                           {selectedTags.includes(tag) && <Check className="w-3 h-3 stroke-[4]" />}
                           {tag}
@@ -426,7 +428,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-center py-4 text-sm font-bold text-coffee/30 bg-coffee/5 rounded-2xl border-2 border-dashed border-coffee/10">No tags found for this language.</p>
+                    <p className="text-center py-4 text-sm font-bold text-coffee/30 bg-coffee/5 rounded-2xl border-2 border-dashed border-coffee/10">{t('home.no_tags')}</p>
                   )}
                 </div>
               )}
@@ -436,10 +438,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <button
                 disabled={showTagSelector && selectedTags.length === 0}
                 onClick={handleStartGame}
-                className="w-full bg-slate-900 text-white font-black text-lg py-4 rounded-2xl border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
+                className="w-full bg-slate-900 text-white font-bold text-lg py-4 rounded-2xl border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
               >
                 <Play className="w-5 h-5 fill-white" />
-                Start Game
+                {t('home.start_game')}
               </button>
             </div>
           </div>
@@ -455,16 +457,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         .animate-indeterminate-bar {
             position: absolute;
             animation: indeterminate-bar 2s infinite linear;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 0px;
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: transparent;
         }
       `}</style>
     </div>

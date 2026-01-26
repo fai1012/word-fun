@@ -44,7 +44,7 @@ export const ProfileGuard: React.FC<ProfileGuardProps> = ({
                     <div className="absolute inset-0 bg-salmon/20 rounded-full blur-xl animate-pulse"></div>
                     <div className="relative w-12 h-12 border-4 border-coffee border-t-salmon rounded-full animate-spin"></div>
                 </div>
-                <div className="mt-4 text-coffee font-black text-lg animate-pulse">
+                <div className="mt-4 text-coffee font-bold text-lg animate-pulse">
                     Loading...
                 </div>
             </div>
@@ -60,7 +60,7 @@ export const ProfileGuard: React.FC<ProfileGuardProps> = ({
                     <div className="absolute inset-0 bg-salmon/20 rounded-full blur-xl animate-pulse"></div>
                     <div className="relative w-12 h-12 border-4 border-coffee border-t-salmon rounded-full animate-spin"></div>
                 </div>
-                <div className="mt-4 text-coffee font-black text-lg animate-pulse">
+                <div className="mt-4 text-coffee font-bold text-lg animate-pulse">
                     Syncing Profile...
                 </div>
             </div>

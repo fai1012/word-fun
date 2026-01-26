@@ -4,6 +4,7 @@ import { Profile, User } from '../types';
 import { createProfile, deleteProfile, updateProfile } from '../services/profileService';
 import { getLevelInfo } from '../services/levelService';
 import { AvatarPicker, AVATAR_MAP } from './AvatarPicker';
+import { useI18n } from '../services/i18nService';
 
 interface ProfileSelectionPageProps {
     onProfileSelect: (profile: Profile) => void;
@@ -22,6 +23,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
     isLoading: isExternalLoading = false,
     user
 }) => {
+    const { t } = useI18n();
 
 
     const [isLocalLoading, setIsLocalLoading] = useState(false);
@@ -49,7 +51,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                 await onProfilesChange();
                 setAvatarPickerProfile(null);
             } catch (e: any) {
-                setErrorMsg(e.message || "Failed to update avatar");
+                setErrorMsg(e.message || t('error.update_avatar'));
             } finally {
                 setIsLocalLoading(false);
             }
@@ -66,7 +68,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                 setNewProfileName('');
                 onProfileSelect(newProfile);
             } catch (e: any) {
-                setErrorMsg(e.message || "Failed to create profile");
+                setErrorMsg(e.message || t('error.create_profile'));
                 // If failed, maybe go back?
                 setIsCreatingAvatarSelection(false);
                 setIsCreating(true);
@@ -87,7 +89,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
             setEditingProfile(null);
             setEditName('');
         } catch (e: any) {
-            setErrorMsg(e.message || "Failed to update profile");
+            setErrorMsg(e.message || t('error.update_profile'));
         } finally {
             setIsLocalLoading(false);
         }
@@ -102,7 +104,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
             await onProfilesChange();
             setDeletingProfile(null);
         } catch (e: any) {
-            setErrorMsg(e.message || "Failed to delete profile");
+            setErrorMsg(e.message || t('error.delete_profile'));
         } finally {
             setIsLocalLoading(false);
         }
@@ -122,8 +124,8 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                     <div className="absolute inset-0 bg-salmon/20 rounded-full blur-xl animate-pulse"></div>
                     <div className="relative w-16 h-16 border-4 border-coffee border-t-salmon rounded-full animate-spin"></div>
                 </div>
-                <div className="text-coffee font-black text-xl animate-pulse">
-                    Loading Profiles...
+                <div className="text-coffee font-bold text-xl animate-pulse">
+                    {t('profile.loading_profiles')}
                 </div>
             </div>
         );
@@ -132,8 +134,8 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
     return (
         <div className="w-full h-full bg-cream flex flex-col items-center p-4 py-12 overflow-y-auto font-rounded text-coffee">
             <div className="w-full max-w-md shrink-0">
-                <h1 className="text-4xl font-black text-coffee text-center mb-2 tracking-tight">Who is learning?</h1>
-                <p className="text-coffee/60 text-center mb-10 font-medium">Select a profile to continue</p>
+                <h1 className="text-4xl font-bold text-coffee text-center mb-2 tracking-tight">{t('profile.selection_title')}</h1>
+                <p className="text-coffee/60 text-center mb-10 font-medium">{t('profile.selection_subtitle')}</p>
 
                 {errorMsg && (
                     <div className="bg-salmon/10 text-salmon border-2 border-salmon p-3 rounded-2xl mb-6 text-center text-sm font-bold shadow-sm">
@@ -175,7 +177,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="font-black text-coffee text-xl truncate">{profile.displayName}</h3>
+                                    <h3 className="font-bold text-coffee text-xl truncate">{profile.displayName}</h3>
                                     <div className="flex items-center text-xs text-coffee/60 mt-1 gap-2 font-bold">
                                         <span className="bg-coffee/5 px-2 py-0.5 rounded-lg border border-coffee/10">Lv {getLevelInfo(profile.exp || 0).level}</span>
 
@@ -184,7 +186,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                                 <span className="text-salmon">{profile.stats?.learningZh ?? 0}</span>
                                                 <span className="text-coffee/30">/</span>
                                                 <span>{profile.stats?.totalZh}</span>
-                                                <span className="ml-0.5 text-[10px] uppercase text-coffee/40">Zh</span>
+                                                <span className="ml-0.5 text-[10px] uppercase text-coffee/40">{t('common.zh_short')}</span>
                                             </span>
                                         )}
 
@@ -195,14 +197,14 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                                     <span className="text-indigo-500">{profile.stats?.learningEn ?? 0}</span>
                                                     <span className="text-coffee/30">/</span>
                                                     <span>{profile.stats?.totalEn}</span>
-                                                    <span className="ml-0.5 text-[10px] uppercase text-coffee/40">En</span>
+                                                    <span className="ml-0.5 text-[10px] uppercase text-coffee/40">{t('common.en_short')}</span>
                                                 </span>
                                             </>
                                         )}
 
                                         {/* Fallback for legacy (if new stats missing) */}
                                         {(!profile.stats?.totalZh && !profile.stats?.totalEn && (profile.stats?.totalWords || 0) > 0) && (
-                                            <span>{profile.stats?.learningWords || 0} / {profile.stats?.totalWords || 0} words</span>
+                                            <span>{profile.stats?.learningWords || 0} / {profile.stats?.totalWords || 0} {t('stats.total_words_label')}</span>
                                         )}
                                     </div>
                                 </div>
@@ -242,7 +244,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                         </div>
 
                         <div className="flex-1">
-                            <h3 className="font-bold text-lg">Add New Profile</h3>
+                            <h3 className="font-bold text-lg">{t('profile.add_new')}</h3>
                         </div>
                     </button>
 
@@ -254,7 +256,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                             {isEditMode ? <Check className="w-7 h-7 stroke-[3]" /> : <Pencil className="w-7 h-7 stroke-[3]" />}
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-bold text-lg">{isEditMode ? 'Done Editing' : 'Edit Profiles'}</h3>
+                            <h3 className="font-bold text-lg">{isEditMode ? t('profile.done_editing') : t('profile.edit_profiles')}</h3>
                         </div>
                     </button>
                 </div>
@@ -262,11 +264,11 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                 <div className="text-center mt-12">
                     {user && (
                         <p className="text-coffee/40 text-sm mb-3 font-medium">
-                            Logged in as <span className="font-bold text-coffee/70">{user.email}</span>
+                            {t('auth.logged_in_as', [user.email])}
                         </p>
                     )}
                     <button onClick={onLogout} className="text-salmon font-bold text-sm hover:text-salmon/80 underline decoration-2 underline-offset-4">
-                        Sign Out
+                        {t('auth.sign_out')}
                     </button>
                 </div>
             </div >
@@ -277,19 +279,19 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                     <div className="fixed inset-0 bg-coffee/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                         <div className="bg-cream rounded-3xl w-full max-w-sm p-6 shadow-2xl border-4 border-coffee animate-in zoom-in-95 duration-200">
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-black text-coffee">Create Profile</h2>
+                                <h2 className="text-2xl font-bold text-coffee">{t('profile.create_title')}</h2>
                                 <button onClick={() => setIsCreating(false)} className="text-coffee/40 hover:text-salmon transition-colors"><X className="w-6 h-6 stroke-[3]" /></button>
                             </div>
                             <form onSubmit={handleProceedToAvatarSelection}>
                                 <div className="mb-6">
-                                    <label className="block text-sm font-bold text-coffee/70 mb-2">Name</label>
+                                    <label className="block text-sm font-bold text-coffee/70 mb-2">{t('common.name')}</label>
                                     <input
                                         autoFocus
                                         type="text"
                                         value={newProfileName}
                                         onChange={e => setNewProfileName(e.target.value)}
                                         className="w-full px-4 py-3 rounded-xl bg-white border-2 border-coffee/20 focus:outline-none focus:ring-4 focus:ring-salmon/20 focus:border-salmon text-coffee font-bold placeholder:text-coffee/30"
-                                        placeholder="Enter your name"
+                                        placeholder={t('profile.name_placeholder')}
                                     />
                                 </div>
                                 <div className="flex gap-3">
@@ -298,14 +300,14 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                         onClick={() => setIsCreating(false)}
                                         className="flex-1 py-3 bg-white text-coffee/60 rounded-xl font-bold border-2 border-coffee/10 hover:bg-coffee/5 transition-colors"
                                     >
-                                        Cancel
+                                        {t('common.cancel')}
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={!newProfileName.trim() || isLoading}
                                         className="flex-1 py-3 bg-salmon text-white rounded-xl font-bold border-b-4 border-salmon/50 hover:border-salmon/70 hover:translate-y-[1px] active:border-b-0 active:translate-y-[4px] transition-all disabled:opacity-50 disabled:active:translate-y-0 disabled:active:border-b-4 shadow-sm"
                                     >
-                                        Choose Avatar
+                                        {t('profile.choose_avatar')}
                                     </button>
                                 </div>
                             </form>
@@ -320,19 +322,19 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                     <div className="fixed inset-0 bg-coffee/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                         <div className="bg-cream rounded-3xl w-full max-w-sm p-6 shadow-2xl border-4 border-coffee animate-in zoom-in-95 duration-200">
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-black text-coffee">Edit Profile</h2>
+                                <h2 className="text-2xl font-bold text-coffee">{t('profile.edit_title')}</h2>
                                 <button onClick={() => setEditingProfile(null)} className="text-coffee/40 hover:text-salmon transition-colors"><X className="w-6 h-6 stroke-[3]" /></button>
                             </div>
                             <form onSubmit={handleUpdateProfile}>
                                 <div className="mb-6">
-                                    <label className="block text-sm font-bold text-coffee/70 mb-2">Name</label>
+                                    <label className="block text-sm font-bold text-coffee/70 mb-2">{t('common.name')}</label>
                                     <input
                                         autoFocus
                                         type="text"
                                         value={editName}
                                         onChange={e => setEditName(e.target.value)}
                                         className="w-full px-4 py-3 rounded-xl bg-white border-2 border-coffee/20 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 text-coffee font-bold placeholder:text-coffee/30"
-                                        placeholder="Enter name"
+                                        placeholder={t('profile.name_placeholder')}
                                     />
                                 </div>
                                 <div className="flex gap-3">
@@ -341,14 +343,14 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                         onClick={() => setEditingProfile(null)}
                                         className="flex-1 py-3 bg-white text-coffee/60 rounded-xl font-bold border-2 border-coffee/10 hover:bg-coffee/5 transition-colors"
                                     >
-                                        Cancel
+                                        {t('common.cancel')}
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={!editName.trim() || isLoading}
                                         className="flex-1 py-3 bg-indigo-500 text-white rounded-xl font-bold border-b-4 border-indigo-700/50 hover:border-indigo-700/70 hover:translate-y-[1px] active:border-b-0 active:translate-y-[4px] transition-all disabled:opacity-50 disabled:active:translate-y-0 disabled:active:border-b-4 shadow-sm"
                                     >
-                                        {isLoading ? 'Saving...' : 'Save'}
+                                        {isLoading ? t('common.saving') : t('common.save')}
                                     </button>
                                 </div>
                             </form>
@@ -366,9 +368,9 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                 <div className="w-16 h-16 bg-salmon/10 rounded-full flex items-center justify-center text-salmon mb-4 border-2 border-salmon/20">
                                     <AlertTriangle className="w-8 h-8 stroke-[2.5]" />
                                 </div>
-                                <h2 className="text-2xl font-black text-coffee mb-2">Delete {deletingProfile.displayName}?</h2>
+                                <h2 className="text-2xl font-bold text-coffee mb-2">{t('profile.delete_confirm_title', [deletingProfile.displayName])}</h2>
                                 <p className="text-coffee/60 text-sm font-medium px-4 leading-relaxed">
-                                    This will permanently delete this profile and all its progress. This action cannot be undone.
+                                    {t('profile.delete_confirm_desc')}
                                 </p>
                             </div>
 
@@ -378,7 +380,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                     onClick={() => setDeletingProfile(null)}
                                     className="flex-1 py-3 bg-white text-coffee/60 rounded-xl font-bold border-2 border-coffee/10 hover:bg-coffee/5 transition-colors"
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button
                                     type="button"
@@ -386,7 +388,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                     disabled={isLoading}
                                     className="flex-1 py-3 bg-salmon text-white rounded-xl font-bold border-b-4 border-salmon/50 hover:border-salmon/70 hover:translate-y-[1px] active:border-b-0 active:translate-y-[4px] transition-all disabled:opacity-50 disabled:active:translate-y-0 disabled:active:border-b-4 shadow-sm"
                                 >
-                                    {isLoading ? 'Deleting...' : 'Delete'}
+                                    {isLoading ? t('common.deleting') : t('common.delete')}
                                 </button>
                             </div>
                         </div>

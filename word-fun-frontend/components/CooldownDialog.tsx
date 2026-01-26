@@ -48,19 +48,19 @@ export const CooldownDialog: React.FC<CooldownDialogProps> = ({
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-2xl font-black text-coffee mb-4 font-rounded">
+                    <h3 className="text-2xl font-bold text-coffee mb-4 font-rounded">
                         {title}
                     </h3>
 
                     {/* Message */}
-                    <p className="text-lg text-coffee/80 font-medium leading-relaxed mb-8 px-4">
+                    <p className="text-lg text-coffee/80 font-normal leading-relaxed mb-8 px-4">
                         {message}
                     </p>
 
                     {/* Action Button */}
                     <button
                         onClick={onClose}
-                        className="w-full py-4 bg-salmon text-white rounded-2xl font-black text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.2)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+                        className="w-full py-4 bg-salmon text-white rounded-2xl font-bold text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.2)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
                     >
                         {buttonText}
                     </button>

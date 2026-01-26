@@ -8,7 +8,8 @@ import {
     generateSingleExample
 } from './services/geminiService';
 import { loginWithGoogle } from './services/authService';
-import { fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles, createProfile, batchAddWords } from './services/profileService';
+import { updateProfile, createProfile, batchAddWords, fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles } from './services/profileService';
+import { i18n } from './services/i18nService';
 import { addToQueue } from './services/queueService';
 import { HomeScreen } from './components/HomeScreen';
 import { Flashcard } from './components/Flashcard';
@@ -22,8 +23,6 @@ import { SummaryScreen } from './components/SummaryScreen';
 import { PreferencesScreen } from './components/PreferencesScreen';
 import { getLevelInfo, EXP_SOURCES } from './services/levelService';
 import { ArrowLeft, Check, X, Repeat, Trophy, Home, RotateCcw, Star, Zap, AlertTriangle } from 'lucide-react';
-import { updateProfile } from './services/profileService';
-
 // Helper function for unbiased Fisher-Yates shuffle
 function shuffleArray<T>(array: T[]): T[] {
     const newArray = [...array];
@@ -39,6 +38,7 @@ const App: React.FC = () => {
     const location = useLocation();
 
     // Global App State
+    const { t } = i18n; // Use direct i18n.t here because it's the root component and many hooks are below it
     const [user, setUser] = useState<User | null>(null);
     const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
     const [profiles, setProfiles] = useState<Profile[]>([]); // Hoisted profiles state
@@ -49,8 +49,8 @@ const App: React.FC = () => {
     const [isSessionCompleted, setIsSessionCompleted] = useState(false);
     const [showCooldownDialog, setShowCooldownDialog] = useState(false);
     const [cooldownMessage, setCooldownMessage] = useState('');
-    const [cooldownTitle, setCooldownTitle] = useState('Great Job!');
-    const [cooldownButtonText, setCooldownButtonText] = useState("Okay, I'll be back!");
+    const [cooldownTitle, setCooldownTitle] = useState(t('cooldown.title'));
+    const [cooldownButtonText, setCooldownButtonText] = useState(t('cooldown.button'));
 
     // Data State
     const [flashcards, setFlashcards] = useState<FlashcardData[]>([]);
@@ -212,7 +212,7 @@ const App: React.FC = () => {
             }
         } catch (e) {
             console.error("Failed to load profiles", e);
-            setErrorMsg("Failed to load profiles. Please try again.");
+            setErrorMsg(t('error.load_profiles'));
         } finally {
             setIsProfilesLoading(false);
         }
@@ -252,7 +252,7 @@ const App: React.FC = () => {
         } catch (err: any) {
             console.error("Failed to load words", err);
             if (showLoading) setIsLoading(false);
-            setErrorMsg("Failed to load vocabulary.");
+            setErrorMsg(t('error.load_vocabulary'));
         }
     };
 
@@ -284,6 +284,9 @@ const App: React.FC = () => {
             const savedMastery = localStorage.getItem(STORAGE_KEYS.SETTING_MASTERY);
             const savedBatchSize = localStorage.getItem(STORAGE_KEYS.SETTING_BATCH_SIZE);
             const savedPenalty = localStorage.getItem(STORAGE_KEYS.SETTING_PENALTY);
+
+            // Initialize i18n
+            await i18n.init();
 
             // Check for user session
             const savedUser = localStorage.getItem('word_fun_user');
@@ -481,11 +484,11 @@ const App: React.FC = () => {
         }
 
         if (pool.length === 0) {
-            setCooldownTitle("Time to Add Words!");
-            const langText = lang === 'zh' ? 'Chinese' : lang === 'en' ? 'English' : '';
+            setCooldownTitle(t('cooldown.title_add_words'));
+            const langText = lang === 'zh' ? t('common.zh') : lang === 'en' ? t('common.en') : '';
             const tagText = selectedTags && selectedTags.length > 0 ? ` with tags: ${selectedTags.join(', ')}` : '';
-            setCooldownMessage(`No ${langText} cards available${tagText}! Add some words first.`);
-            setCooldownButtonText("Go to Add Words");
+            setCooldownMessage(t('cooldown.no_cards', [langText, tagText]));
+            setCooldownButtonText(t('cooldown.button_add_words'));
             setShowCooldownDialog(true);
             return;
         }
@@ -501,11 +504,11 @@ const App: React.FC = () => {
             return diff > cooldownMs;
         });
 
-        // If no eligible cards but the original pool was not empty, it means all are on cooldown
         if (eligiblePool.length === 0 && pool.length > 0) {
-            setCooldownTitle("Great Job!");
-            setCooldownMessage(`All your ${lang === 'all' ? '' : lang === 'zh' ? 'Chinese ' : 'English '}words have been reviewed recently.\nCome back in a few hours to let your memory settle!`);
-            setCooldownButtonText("Okay, I'll be back!");
+            setCooldownTitle(t('cooldown.title'));
+            const langReviewText = lang === 'all' ? '' : lang === 'zh' ? t('common.zh') + ' ' : t('common.en') + ' ';
+            setCooldownMessage(t('cooldown.all_reviewed', [langReviewText]));
+            setCooldownButtonText(t('cooldown.button'));
             setShowCooldownDialog(true);
             return;
         }
@@ -558,9 +561,9 @@ const App: React.FC = () => {
 
         if (selection.length === 0) {
             // This case might happen if eligiblePool was small but logic didn't pick any (unlikely with above logic but safe to keep)
-            setCooldownTitle("Great Job!");
-            setCooldownMessage(`You've caught up with all your reviews for now!\nGreat job keeping your streak.`);
-            setCooldownButtonText("Okay, I'll be back!");
+            setCooldownTitle(t('cooldown.title'));
+            setCooldownMessage(t('cooldown.caught_up'));
+            setCooldownButtonText(t('cooldown.button'));
             setShowCooldownDialog(true);
             return;
         }
@@ -885,9 +888,9 @@ const App: React.FC = () => {
                         </div>
                     </div>
 
-                    <h2 className="text-3xl font-black text-slate-800 mb-2">Congratulations!</h2>
+                    <h2 className="text-3xl font-bold text-slate-800 mb-2">{t('session.congratulations')}</h2>
                     <p className="text-slate-500 mb-6 text-lg">
-                        Session Complete
+                        {t('study.session_complete')}
                     </p>
 
                     <div className="flex items-center justify-center gap-2 mb-8">
@@ -912,31 +915,31 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="text-xs text-slate-400 font-medium mb-4 uppercase tracking-wide">
-                        {revisionRoundCount === 0 ? "Perfect Run!" : `${revisionRoundCount} Revision Round${revisionRoundCount !== 1 ? 's' : ''}`}
+                        {revisionRoundCount === 0 ? t('session.perfect_run') : t('study.revision_count', [revisionRoundCount])}
                     </div>
 
                     <div className="w-full bg-white/50 border-2 border-coffee/10 rounded-2xl p-4 mb-6 space-y-3 shadow-sm">
                         {animationStage >= 1 && (
                             <div className="flex justify-between items-center animate-in slide-in-from-left duration-300">
-                                <span className="text-xs font-black text-coffee uppercase opacity-60">Reviewed Words × {sessionExpBreakdown.reviewedCount}</span>
-                                <span className="font-black text-matcha-dark">+{sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW}</span>
+                                <span className="text-xs font-bold text-coffee uppercase opacity-60">{t('session.reviewed_words')} × {sessionExpBreakdown.reviewedCount}</span>
+                                <span className="font-bold text-matcha-dark">+{sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW}</span>
                             </div>
                         )}
                         {animationStage >= 2 && (
                             <div className="flex justify-between items-center animate-in slide-in-from-left duration-300">
-                                <span className="text-xs font-black text-coffee uppercase opacity-60">First Try Bonus × {sessionExpBreakdown.gotItCount}</span>
-                                <span className="font-black text-matcha-dark">+{sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT}</span>
+                                <span className="text-xs font-bold text-coffee uppercase opacity-60">{t('session.first_try_bonus')} × {sessionExpBreakdown.gotItCount}</span>
+                                <span className="font-bold text-matcha-dark">+{sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT}</span>
                             </div>
                         )}
                         {animationStage >= 3 && (
                             <div className="flex justify-between items-center animate-in slide-in-from-left duration-300">
-                                <span className="text-xs font-black text-coffee uppercase opacity-60">Newly Mastered × {sessionExpBreakdown.masteredCount}</span>
-                                <span className="font-black text-matcha-dark">+{sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED}</span>
+                                <span className="text-xs font-bold text-coffee uppercase opacity-60">{t('session.newly_mastered')} × {sessionExpBreakdown.masteredCount}</span>
+                                <span className="font-bold text-matcha-dark">+{sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED}</span>
                             </div>
                         )}
                         {animationStage >= 4 && (
-                            <div className="pt-2 border-t border-coffee/10 flex justify-between items-center font-black animate-in fade-in duration-500">
-                                <span className="text-coffee">Total Exp Gained</span>
+                            <div className="pt-2 border-t border-coffee/10 flex justify-between items-center font-bold animate-in fade-in duration-500">
+                                <span className="text-coffee">{t('session.total_exp_gained')}</span>
                                 <div className="flex items-center gap-1 text-yolk-dark">
                                     <Zap className="w-4 h-4 fill-yolk stroke-coffee" />
                                     <span>+{(sessionExpBreakdown.reviewedCount * EXP_SOURCES.REVIEW) + (sessionExpBreakdown.gotItCount * EXP_SOURCES.GOT_IT) + (sessionExpBreakdown.masteredCount * EXP_SOURCES.MASTERED)}</span>
@@ -971,15 +974,15 @@ const App: React.FC = () => {
                                     <>
                                         <div className="flex justify-between items-end mb-1">
                                             <div className="flex items-center gap-2">
-                                                <span className="bg-coffee text-cream px-2 py-0.5 rounded-lg text-xs font-black transition-all duration-500">
-                                                    LV. {displayInfo.level}
+                                                <span className="bg-coffee text-cream px-2 py-0.5 rounded-lg text-xs font-bold transition-all duration-500">
+                                                    {t('common.level_prefix')} {displayInfo.level}
                                                 </span>
                                                 {(displayIsLevelUp || isAtMaxThreshold) && (
-                                                    <span className="text-salmon font-black text-sm animate-bounce">LEVEL UP! 🎊</span>
+                                                    <span className="text-salmon font-bold text-sm animate-bounce">{t('session.level_up')} 🎊</span>
                                                 )}
                                             </div>
-                                            <span className="text-[10px] font-black text-coffee/40 uppercase tracking-widest transition-all duration-500">
-                                                {displayInfo.expInLevel} / {displayInfo.nextLevelThreshold} EXP
+                                            <span className="text-[10px] font-bold text-coffee/40 uppercase tracking-widest transition-all duration-500">
+                                                {displayInfo.expInLevel} / {displayInfo.nextLevelThreshold} {t('common.exp')}
                                             </span>
                                         </div>
                                         <div className="w-full h-4 bg-coffee/10 rounded-full overflow-hidden border-2 border-coffee/20 p-0.5 relative shadow-inner">
@@ -1003,7 +1006,7 @@ const App: React.FC = () => {
                         className={`w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-300 hover:bg-slate-800 hover:-translate-y-1 transition-all flex items-center justify-center gap-2 ${animationStage < 7 ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-in fade-in slide-in-from-bottom-4 duration-500'}`}
                     >
                         <Home className="w-5 h-5" />
-                        Back to Home
+                        {t('common.home')}
                     </button>
 
                     <style>{`
@@ -1025,18 +1028,18 @@ const App: React.FC = () => {
                         className="text-coffee/70 hover:text-salmon flex items-center gap-1 font-bold text-sm transition-colors rounded-full hover:bg-white/50 px-2 py-1"
                     >
                         <ArrowLeft className="w-5 h-5 stroke-[3]" />
-                        Exit
+                        {t('common.exit')}
                     </button>
 
                     {isRevisionMode ? (
                         <div className="flex items-center gap-2 px-3 py-1 bg-yolk text-coffee rounded-xl text-xs font-bold border-2 border-coffee shadow-[2px_2px_0px_0px_rgba(93,64,55,1)] transform -rotate-1">
                             <Repeat className="w-3 h-3 stroke-[3]" />
-                            Revision {revisionRoundCount}
+                            {t('study.revision_count', [revisionRoundCount])}
                         </div>
                     ) : (
                         <div className="font-bold text-coffee flex flex-col items-center leading-none">
-                            <span className="text-sm">Card {currentIndex + 1}</span>
-                            <span className="text-coffee/40 text-[10px] uppercase font-black tracking-widest">of {sessionQueue.length}</span>
+                            <span className="text-sm">{t('study.card_index', [currentIndex + 1])}</span>
+                            <span className="text-coffee/40 text-[10px] uppercase font-bold tracking-widest">{t('common.of')} {sessionQueue.length}</span>
                         </div>
                     )}
 
@@ -1044,9 +1047,9 @@ const App: React.FC = () => {
                 </header>
 
                 {sessionQueue.length > 0 && (
-                    <div className="w-full flex-1 flex flex-col items-center pb-safe px-4 landscape:px-2 min-h-0">
+                    <div className="w-full flex-1 flex flex-col items-center pb-safe px-4 md:px-6 relative min-h-0">
                         {/* Progress Bar Container */}
-                        <div className="w-full max-w-xs bg-coffee/10 h-4 landscape:h-2 rounded-full overflow-hidden shrink-0 mt-6 landscape:mt-2 mb-4 landscape:mb-2 border-2 border-white ring-2 ring-coffee/10 relative">
+                        <div className="w-full max-w-xs bg-coffee/10 h-4 md:h-2 rounded-full overflow-hidden shrink-0 mt-6 md:mt-2 mb-4 md:mb-2 border-2 border-white ring-2 ring-coffee/10 relative">
                             <div className="absolute inset-0 w-full h-full opacity-20 bg-[radial-gradient(circle,_transparent_20%,_#fff_20%,_#fff_80%,_transparent_80%,_transparent),_radial-gradient(circle,_transparent_20%,_#fff_20%,_#fff_80%,_transparent_80%,_transparent)] bg-[length:10px_10px] bg-[position:0_0,_5px_5px] animate-[slide_2s_linear_infinite]"></div>
                             <div
                                 className={`h-full transition-all duration-300 relative ${isRevisionMode ? 'bg-yolk' : 'bg-salmon'}`}
@@ -1056,32 +1059,32 @@ const App: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Middle Row: Left Button | Card | Right Button */}
-                        <div className="flex-1 w-full flex flex-col landscape:flex-row items-center justify-center min-h-0 py-2 landscape:py-0 landscape:gap-4">
+                        {/* Middle Row: Left | Card | Right */}
+                        <div className="flex-1 w-full flex flex-col md:grid md:grid-cols-[140px_minmax(0,1fr)_140px] items-center justify-center py-2 md:py-4 gap-4 min-h-0 overflow-visible">
 
-                            {/* LEFT ACTION (Portrait: Bottom Left | Landscape: Side Left) */}
-                            <div className="hidden landscape:flex landscape:w-32 landscape:h-full items-center justify-end shrink-0">
+                            {/* LEFT SIDE ACTION */}
+                            <div className="hidden md:flex flex-col items-end justify-center h-full shrink-0">
                                 {!isCardFlipped ? (
                                     <button
                                         onClick={() => handleRate(false)}
-                                        className={`p-4 rounded-3xl border-2 font-black text-sm shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.2)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === false ? 'bg-salmon text-white border-coffee ring-2 ring-salmon ring-offset-2' : 'bg-white border-coffee/20 text-coffee/60 hover:bg-salmon/10 hover:text-salmon'}`}
+                                        className={`p-4 rounded-3xl border-2 font-bold text-sm shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.2)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === false ? 'bg-salmon text-white border-coffee ring-2 ring-salmon ring-offset-2' : 'bg-white border-coffee/20 text-coffee/60 hover:bg-salmon/10 hover:text-salmon'}`}
                                     >
                                         <X className="w-6 h-6 stroke-[3]" />
-                                        Forgot
+                                        {t('study.forgot')}
                                     </button>
                                 ) : (
                                     <button
                                         onClick={handleFlip}
-                                        className="p-4 rounded-3xl bg-white text-coffee font-black text-sm border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
+                                        className="p-4 rounded-3xl bg-white text-coffee font-bold text-sm border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
                                     >
                                         <RotateCcw className="w-5 h-5 stroke-[3]" />
-                                        Flip Back
+                                        {t('study.flip_back')}
                                     </button>
                                 )}
                             </div>
 
-                            {/* THE CARD */}
-                            <div className="flex-1 flex items-center justify-center min-h-0 w-full landscape:h-full">
+                            {/* THE CARD CONTAINER */}
+                            <div className="flex items-center justify-center w-full h-full relative min-h-0 overflow-visible">
                                 <Flashcard
                                     data={sessionQueue[currentIndex]}
                                     allWords={flashcards}
@@ -1095,62 +1098,62 @@ const App: React.FC = () => {
                                 />
                             </div>
 
-                            {/* RIGHT ACTION (Portrait: Bottom Right | Landscape: Side Right) */}
-                            <div className="hidden landscape:flex landscape:w-32 landscape:h-full items-center justify-start shrink-0">
+                            {/* RIGHT SIDE ACTION */}
+                            <div className="hidden md:flex flex-col items-start justify-center h-full shrink-0">
                                 {!isCardFlipped ? (
                                     <button
                                         onClick={() => handleRate(true)}
-                                        className={`p-4 rounded-3xl font-black text-sm border-2 shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === true ? 'bg-matcha text-coffee border-coffee ring-2 ring-matcha ring-offset-2' : 'bg-matcha border-coffee text-coffee'}`}
+                                        className={`p-4 rounded-3xl font-bold text-sm border-2 shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === true ? 'bg-matcha text-coffee border-coffee ring-2 ring-matcha ring-offset-2' : 'bg-matcha border-coffee text-coffee'}`}
                                     >
                                         <Check className="w-6 h-6 stroke-[3]" />
-                                        Got it
+                                        {t('study.got_it')}
                                     </button>
                                 ) : (
                                     <button
                                         onClick={handleNextCard}
-                                        className="p-4 rounded-3xl bg-coffee text-cream font-black text-sm border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.4)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
+                                        className="p-4 rounded-3xl bg-coffee text-cream font-bold text-sm border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.4)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
                                     >
-                                        Next
+                                        {t('common.next')}
                                         <ArrowLeft className="w-5 h-5 rotate-180 stroke-[3]" />
                                     </button>
                                 )}
                             </div>
                         </div>
 
-                        {/* BOTTOM ACTIONS (PORTRAIT ONLY) */}
-                        <div className="w-full max-w-md shrink-0 py-4 flex landscape:hidden items-center justify-center gap-3 h-24">
+                        {/* BOTTOM ACTIONS (MOBILE ONLY) */}
+                        <div className="w-full max-w-md shrink-0 py-4 flex md:hidden items-center justify-center gap-3 h-24">
                             {!isCardFlipped ? (
                                 <>
                                     <button
                                         onClick={() => handleRate(false)}
-                                        className={`flex-1 py-4 rounded-3xl border-2 font-black text-lg shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.2)] hover:shadow-[0.125rem_0.125rem_0px_0px_rgba(93,64,55,0.2)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 ${pendingScore === false ? 'bg-salmon text-white border-coffee ring-2 ring-salmon ring-offset-2' : 'bg-white border-coffee/20 text-coffee/60 hover:bg-salmon/10 hover:text-salmon hover:border-salmon'}`}
+                                        className={`flex-1 py-4 rounded-3xl border-2 font-bold text-lg shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.2)] hover:shadow-[0.125rem_0.125rem_0px_0px_rgba(93,64,55,0.2)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 ${pendingScore === false ? 'bg-salmon text-white border-coffee ring-2 ring-salmon ring-offset-2' : 'bg-white border-coffee/20 text-coffee/60 hover:bg-salmon/10 hover:text-salmon hover:border-salmon'}`}
                                     >
                                         <X className="w-6 h-6 stroke-[3]" />
-                                        Forgot
+                                        {t('study.forgot')}
                                     </button>
 
                                     <button
                                         onClick={() => handleRate(true)}
-                                        className={`flex-1 py-4 rounded-3xl font-black text-lg border-2 shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-[0.125rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 ${pendingScore === true ? 'bg-matcha text-coffee border-coffee ring-2 ring-matcha ring-offset-2' : 'bg-matcha border-coffee text-coffee'}`}
+                                        className={`flex-1 py-4 rounded-3xl font-bold text-lg border-2 shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-[0.125rem_0.125rem_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 ${pendingScore === true ? 'bg-matcha text-coffee border-coffee ring-2 ring-matcha ring-offset-2' : 'bg-matcha border-coffee text-coffee'}`}
                                     >
                                         <Check className="w-6 h-6 stroke-[3]" />
-                                        Got it
+                                        {t('study.got_it')}
                                     </button>
                                 </>
                             ) : (
                                 <>
                                     <button
                                         onClick={handleFlip}
-                                        className="flex-1 py-4 rounded-3xl bg-white text-coffee font-black text-lg border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-[0.125rem_0.125rem_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
+                                        className="flex-1 py-4 rounded-3xl bg-white text-coffee font-bold text-lg border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-[0.125rem_0.125rem_0px_0px_rgba(93,64,55,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
                                     >
                                         <RotateCcw className="w-5 h-5 stroke-[3]" />
-                                        Flip Back
+                                        {t('study.flip_back')}
                                     </button>
                                     <button
                                         onClick={handleNextCard}
-                                        className="flex-[2] py-4 rounded-3xl bg-coffee text-cream font-black text-lg border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[0.125rem_0.125rem_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
+                                        className="flex-[2] py-4 rounded-3xl bg-coffee text-cream font-bold text-lg border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[0.125rem_0.125rem_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2"
                                     >
-                                        Next Card <ArrowLeft className="w-5 h-5 rotate-180 stroke-[3]" />
+                                        {t('study.next_card')} <ArrowLeft className="w-5 h-5 rotate-180 stroke-[3]" />
                                     </button>
                                 </>
                             )}
@@ -1168,8 +1171,8 @@ const App: React.FC = () => {
                     <div className="absolute inset-0 bg-salmon/20 rounded-full blur-xl animate-pulse"></div>
                     <div className="relative w-16 h-16 border-4 border-coffee border-t-salmon rounded-full animate-spin"></div>
                 </div>
-                <div className="text-coffee font-black text-xl animate-pulse">
-                    Loading Fun...
+                <div className="text-coffee font-bold text-xl animate-pulse">
+                    {t('common.loading_fun')}
                 </div>
             </div>
         );
@@ -1186,7 +1189,7 @@ const App: React.FC = () => {
             />
             {/* ... Global States ... */}
 
-            <main className="flex-1 flex flex-col w-full max-w-screen-xl mx-auto relative min-h-0 overflow-hidden">
+            <main className="flex-1 flex flex-col w-full max-w-screen-xl mx-auto relative min-h-0 overflow-y-auto overflow-x-hidden">
                 {errorMsg && (
                     <div className="mx-4 mt-4 bg-salmon/10 text-salmon border-2 border-salmon p-3 rounded-2xl flex items-center justify-between font-bold shadow-sm animate-in slide-in-from-top-4 duration-300">
                         <div className="flex items-center gap-2">
@@ -1410,7 +1413,7 @@ const App: React.FC = () => {
                     <Route path="*" element={<Navigate to={user ? "/profiles" : "/login"} replace />} />
                 </Routes>
             </main>
-        </div >
+        </div>
     );
 };
 

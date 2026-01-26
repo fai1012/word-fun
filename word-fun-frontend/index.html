@@ -29,7 +29,7 @@
             salmon: '#FFAB91',
           },
           fontFamily: {
-            rounded: ['"M PLUS Rounded 1c"', 'sans-serif'],
+            rounded: ['"M PLUS Rounded 1c"', 'ui-rounded', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"PingFang TC"', '"Microsoft JhengHei"', 'sans-serif'],
             serif: ['"Noto Serif HK"', 'serif'],
             hand: ['"Zhi Mang Xing"', 'cursive'],
           },
@@ -121,8 +121,8 @@
       }
     }
 
-    /* Show blocker in landscape mode on mobile/tablet */
-    @media screen and (orientation: landscape) and (max-height: 600px) {
+    /* Show blocker in landscape mode on small mobile devices only */
+    @media screen and (orientation: landscape) and (max-height: 500px) and (hover: none) and (pointer: coarse) {
       #landscape-blocker {
         display: flex;
       }
