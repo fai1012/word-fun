@@ -19,7 +19,8 @@ export const STORAGE_KEYS = {
     AUTH_TOKEN: 'hanzi_auth_token',
     REFRESH_TOKEN: 'hanzi_refresh_token',
     USER_INFO: 'word_fun_user',
-    THEME_PREFERENCE: 'theme_preference'
+    THEME_PREFERENCE: 'theme_preference',
+    LANGUAGE: 'word_fun_language'
 };
 
 /**

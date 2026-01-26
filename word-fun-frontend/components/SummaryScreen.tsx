@@ -4,6 +4,7 @@ import { FlashcardData } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
 import { TrendingUp, Circle, Trophy, BookOpen, Sparkles, X, Trash2, Plus, GripVertical, Tag, Check } from 'lucide-react';
 import { fetchProfileTags } from '../services/profileService';
+import { useI18n } from '../services/i18nService';
 
 interface SummaryScreenProps {
     profileId: string;
@@ -16,6 +17,7 @@ interface SummaryScreenProps {
 type FilterTab = 'MASTERED' | 'LEARNING' | 'NEW';
 
 export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, masteryThreshold, onUpdateWord, onDeleteWord }) => {
+    const { t } = useI18n();
     const [activeTab, setActiveTab] = useState<FilterTab>('LEARNING');
     const [languageFilter, setLanguageFilter] = useState<'all' | 'zh' | 'en'>('all');
     const [filteredModalAttributes, setFilteredModalAttributes] = useState<{ title: string, cards: FlashcardData[] } | null>(null);
@@ -114,13 +116,13 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
         const now = new Date();
         const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-        if (diffInSeconds < 60) return 'just now';
+        if (diffInSeconds < 60) return t('common.just_now');
         const diffInMinutes = Math.floor(diffInSeconds / 60);
-        if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+        if (diffInMinutes < 60) return t('common.m_ago', [diffInMinutes]);
         const diffInHours = Math.floor(diffInMinutes / 60);
-        if (diffInHours < 24) return `${diffInHours}h ago`;
+        if (diffInHours < 24) return t('common.h_ago', [diffInHours]);
         const diffInDays = Math.floor(diffInHours / 24);
-        if (diffInDays < 7) return `${diffInDays}d ago`;
+        if (diffInDays < 7) return t('common.d_ago', [diffInDays]);
         return date.toLocaleDateString();
     };
 
@@ -202,10 +204,10 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
 
     return (
         <div className="w-full max-w-lg mx-auto px-4 pb-24 pt-8 font-rounded text-coffee">
-            <h1 className="text-2xl font-black text-coffee mb-6 flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-coffee mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <TrendingUp className="w-7 h-7 text-salmon stroke-[3]" />
-                    <span className="tracking-tight">Progress</span>
+                    <span className="tracking-tight">{t('stats.title')}</span>
                 </div>
             </h1>
 
@@ -220,7 +222,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                             : 'text-coffee/50 hover:text-coffee/70'
                             }`}
                     >
-                        {lang === 'all' ? 'All' : lang === 'zh' ? 'Chinese' : 'English'}
+                        {lang === 'all' ? t('stats.all') : lang === 'zh' ? t('stats.zh') : t('stats.en')}
                     </button>
                 ))}
             </div>
@@ -228,18 +230,18 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
             {/* Stat Cards */}
             <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="bg-white p-5 rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee flex flex-col justify-center items-center text-center">
-                    <div className="text-coffee/50 text-[10px] font-black uppercase tracking-widest mb-1">Total Words</div>
-                    <div className="text-4xl font-black text-coffee">{totalCards}</div>
+                    <div className="text-coffee/50 text-[10px] font-bold uppercase tracking-widest mb-1">{t('stats.total_words')}</div>
+                    <div className="text-4xl font-bold text-coffee">{totalCards}</div>
                 </div>
                 <div className="bg-white p-5 rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee flex flex-col justify-center items-center text-center">
-                    <div className="text-coffee/50 text-[10px] font-black uppercase tracking-widest mb-1">Mastery</div>
-                    <div className="text-4xl font-black text-salmon">{masteryRate}%</div>
+                    <div className="text-coffee/50 text-[10px] font-bold uppercase tracking-widest mb-1">{t('stats.mastery')}</div>
+                    <div className="text-4xl font-bold text-salmon">{masteryRate}%</div>
                 </div>
             </div>
 
             {/* Progress Bar */}
             <div className="bg-white p-6 rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee mb-8">
-                <h3 className="text-sm font-black text-coffee mb-4 uppercase tracking-wide opacity-80">Deck Status</h3>
+                <h3 className="text-sm font-bold text-coffee mb-4 uppercase tracking-wide opacity-80">{t('stats.deck_status')}</h3>
 
                 <div className="flex h-5 rounded-full overflow-hidden bg-coffee/10 mb-5 border-2 border-coffee/10">
                     <div className="bg-matcha transition-all duration-1000 border-r-2 border-white/20" style={{ width: `${totalCards > 0 ? (masteredCards.length / totalCards) * 100 : 0}%` }}></div>
@@ -249,22 +251,22 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                 <div className="flex justify-between text-xs font-bold text-coffee/60">
                     <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full bg-matcha border border-coffee/20"></div>
-                        <span>Mastered ({masteredCards.length})</span>
+                        <span>{t('stats.mastered_label', [masteredCards.length])}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full bg-yolk border border-coffee/20"></div>
-                        <span>Learning ({learningCards.length})</span>
+                        <span>{t('stats.learning_label', [learningCards.length])}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full bg-coffee/20"></div>
-                        <span>New ({newCards.length})</span>
+                        <span>{t('stats.new_label', [newCards.length])}</span>
                     </div>
                 </div>
             </div>
 
             {/* Recent Activity Section */}
-            <h3 className="text-lg font-black text-coffee mb-4 flex items-center gap-2">
-                Recent Activity
+            <h3 className="text-lg font-bold text-coffee mb-4 flex items-center gap-2">
+                {t('stats.recent_activity')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 {/* Mastered Stats - Only show if we have data or generic empty state? Standard UI */}
@@ -273,7 +275,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                         <div className="p-1.5 bg-matcha/20 text-matcha rounded-lg border border-matcha/30">
                             <Trophy className="w-4 h-4" />
                         </div>
-                        <h4 className="font-bold text-coffee text-sm">Newly Mastered</h4>
+                        <h4 className="font-bold text-coffee text-sm">{t('stats.newly_mastered')}</h4>
                     </div>
                     <div className="flex justify-between items-start">
                         <button
@@ -284,12 +286,12 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                                     const diffTime = Math.abs(new Date().getTime() - d.getTime());
                                     return diffTime <= (7 * 24 * 60 * 60 * 1000);
                                 });
-                                setFilteredModalAttributes({ title: 'Newly Mastered (Last 7 Days)', cards: list });
+                                setFilteredModalAttributes({ title: t('stats.modal_title_mastered_week'), cards: list });
                             }}
                             className="text-left group cursor-pointer hover:bg-slate-50 p-2 -ml-2 rounded-xl transition-colors"
                         >
-                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-salmon transition-colors">Last 7 Days</div>
-                            <div className="text-2xl font-black text-coffee group-hover:text-salmon transition-colors">
+                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-salmon transition-colors">{t('stats.period_week')}</div>
+                            <div className="text-2xl font-bold text-coffee group-hover:text-salmon transition-colors">
                                 {filteredCards.filter(c => {
                                     if (!c.masteredAt) return false;
                                     const d = new Date(c.masteredAt);
@@ -306,12 +308,12 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                                     const today = new Date();
                                     return d.toDateString() === today.toDateString();
                                 });
-                                setFilteredModalAttributes({ title: 'Newly Mastered (Today)', cards: list });
+                                setFilteredModalAttributes({ title: t('stats.modal_title_mastered_today'), cards: list });
                             }}
                             className="text-right group cursor-pointer hover:bg-slate-50 p-2 -mr-2 rounded-xl transition-colors"
                         >
-                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-salmon transition-colors">Today</div>
-                            <div className="text-2xl font-black text-coffee group-hover:text-salmon transition-colors">
+                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-salmon transition-colors">{t('stats.period_today')}</div>
+                            <div className="text-2xl font-bold text-coffee group-hover:text-salmon transition-colors">
                                 {filteredCards.filter(c => {
                                     if (!c.masteredAt) return false;
                                     const d = new Date(c.masteredAt);
@@ -328,7 +330,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                         <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg border border-indigo-200">
                             <BookOpen className="w-4 h-4" />
                         </div>
-                        <h4 className="font-bold text-coffee text-sm">Words Reviewed</h4>
+                        <h4 className="font-bold text-coffee text-sm">{t('stats.words_reviewed')}</h4>
                     </div>
                     <div className="flex justify-between items-start">
                         <button
@@ -339,12 +341,12 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                                     const diffTime = Math.abs(new Date().getTime() - d.getTime());
                                     return diffTime <= (7 * 24 * 60 * 60 * 1000);
                                 });
-                                setFilteredModalAttributes({ title: 'Reviewed (Last 7 Days)', cards: list });
+                                setFilteredModalAttributes({ title: t('stats.modal_title_reviewed_week'), cards: list });
                             }}
                             className="text-left group cursor-pointer hover:bg-slate-50 p-2 -ml-2 rounded-xl transition-colors"
                         >
-                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-indigo-500 transition-colors">Last 7 Days</div>
-                            <div className="text-2xl font-black text-coffee group-hover:text-indigo-500 transition-colors">
+                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-indigo-500 transition-colors">{t('stats.period_week')}</div>
+                            <div className="text-2xl font-bold text-coffee group-hover:text-indigo-500 transition-colors">
                                 {filteredCards.filter(c => {
                                     if (!c.lastReviewedAt) return false;
                                     const d = new Date(c.lastReviewedAt);
@@ -361,12 +363,12 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                                     const today = new Date();
                                     return d.toDateString() === today.toDateString();
                                 });
-                                setFilteredModalAttributes({ title: 'Reviewed (Today)', cards: list });
+                                setFilteredModalAttributes({ title: t('stats.modal_title_reviewed_today'), cards: list });
                             }}
                             className="text-right group cursor-pointer hover:bg-slate-50 p-2 -mr-2 rounded-xl transition-colors"
                         >
-                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-indigo-500 transition-colors">Today</div>
-                            <div className="text-2xl font-black text-coffee group-hover:text-indigo-500 transition-colors">
+                            <div className="text-[10px] text-coffee/40 font-bold uppercase mb-0.5 group-hover:text-indigo-500 transition-colors">{t('stats.period_today')}</div>
+                            <div className="text-2xl font-bold text-coffee group-hover:text-indigo-500 transition-colors">
                                 {filteredCards.filter(c => {
                                     if (!c.lastReviewedAt) return false;
                                     const d = new Date(c.lastReviewedAt);
@@ -389,7 +391,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                         } `}
                 >
                     <Trophy className="w-3.5 h-3.5" />
-                    Mastered
+                    {t('stats.tab_mastered')}
                 </button>
                 <button
                     onClick={() => setActiveTab('LEARNING')}
@@ -399,7 +401,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                         } `}
                 >
                     <BookOpen className="w-3.5 h-3.5" />
-                    Learning
+                    {t('stats.tab_learning')}
                 </button>
                 <button
                     onClick={() => setActiveTab('NEW')}
@@ -409,20 +411,20 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                         } `}
                 >
                     <Sparkles className="w-3.5 h-3.5" />
-                    New
+                    {t('stats.tab_new')}
                 </button>
             </div>
 
             {/* Word List */}
-            <h3 className="text-lg font-black text-coffee mb-4 capitalize flex items-center gap-2">
-                {activeTab.toLowerCase()} Words
+            <h3 className="text-lg font-bold text-coffee mb-4 capitalize flex items-center gap-2">
+                {t('stats.word_list_title', [activeTab.toLowerCase()])}
                 <span className="text-xs font-bold text-coffee/30 bg-coffee/5 px-2 py-0.5 rounded-full">{currentList.length}</span>
             </h3>
 
             {currentList.length === 0 ? (
                 <div className="text-center py-12 text-coffee/30 bg-coffee/5 rounded-3xl border-2 border-dashed border-coffee/10">
                     <Circle className="w-10 h-10 mx-auto mb-3 opacity-30 stroke-[3]" />
-                    <p className="text-sm font-bold">No {activeTab.toLowerCase()} words found.</p>
+                    <p className="text-sm font-bold">{t('stats.no_words_found', [activeTab.toLowerCase()])}</p>
                 </div>
             ) : (
                 <div className="space-y-3 pb-24">
@@ -447,8 +449,8 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                                                 {card.character}
                                             </div>
                                             <div>
-                                                <div className="text-xs font-black text-coffee/40 uppercase tracking-wide mb-1">Editing Tags</div>
-                                                <div className="text-xs font-bold text-coffee/60">Auto-saving...</div>
+                                                <div className="text-xs font-bold text-coffee/40 uppercase tracking-wide mb-1">{t('stats.editing_tags')}</div>
+                                                <div className="text-xs font-bold text-coffee/60">{t('stats.auto_saving')}</div>
                                             </div>
                                         </div>
                                         <button
@@ -496,7 +498,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                                                         handleAddTag(newTagInput);
                                                     }
                                                 }}
-                                                placeholder={editTags.length === 0 ? "Add tags..." : ""}
+                                                placeholder={editTags.length === 0 ? t('stats.add_tags_placeholder') : ""}
                                                 className="flex-1 bg-transparent border-none focus:ring-0 text-coffee font-bold text-sm min-w-[100px] placeholder:text-coffee/30 p-0"
                                                 autoFocus
                                             />
@@ -523,10 +525,10 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                                                 {newTagInput && !availableTags.includes(newTagInput) && (
                                                     <button
                                                         onClick={() => handleAddTag(newTagInput)}
-                                                        className="w-full px-3 py-2 text-left bg-salmon/5 hover:bg-salmon/10 text-salmon font-black text-xs rounded-xl transition-colors flex items-center gap-2"
+                                                        className="w-full px-3 py-2 text-left bg-salmon/5 hover:bg-salmon/10 text-salmon font-bold text-xs rounded-xl transition-colors flex items-center gap-2"
                                                     >
                                                         <Plus className="w-3 h-3" />
-                                                        Create tag "{newTagInput}"
+                                                        {t('stats.create_tag', [newTagInput])}
                                                     </button>
                                                 )}
                                             </div>
@@ -568,7 +570,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                                             </div>
                                         ) : (
                                             <div className="text-[10px] font-bold text-coffee/20 italic group-hover:text-coffee/40 transition-colors">
-                                                No tags
+                                                {t('stats.no_tags')}
                                             </div>
                                         )}
                                     </div>
@@ -576,13 +578,13 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
 
                                 <div className="text-right shrink-0">
                                     {activeTab === 'NEW' ? (
-                                        <div className="text-[10px] font-black tracking-wider text-coffee/40 bg-coffee/5 px-2 py-1 rounded-lg uppercase">New</div>
+                                        <div className="text-[10px] font-bold tracking-wider text-coffee/40 bg-coffee/5 px-2 py-1 rounded-lg uppercase">{t('stats.tab_new')}</div>
                                     ) : (
                                         <>
-                                            <div className={`text-sm font-black ${colorClass}`}>{progressPercent}%</div>
+                                            <div className={`text-sm font-bold ${colorClass}`}>{progressPercent}%</div>
                                             <div className="text-[10px] font-bold text-coffee/30 group-hover:text-coffee/50 flex flex-col items-end">
-                                                {card.lastReviewedAt && <span>Reviewed {formatTimeAgo(card.lastReviewedAt)}</span>}
-                                                <span>{card.revisedCount} reviews</span>
+                                                {card.lastReviewedAt && <span>{t('study.reviewed_at', [formatTimeAgo(card.lastReviewedAt)])}</span>}
+                                                <span>{t('study.review_count', [card.revisedCount])}</span>
                                             </div>
                                         </>
                                     )}
@@ -597,7 +599,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-coffee/40 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-3xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 border-4 border-coffee">
                         <div className="flex items-center justify-between p-5 border-b-2 border-coffee/10">
-                            <h3 className="font-black text-coffee text-lg">{filteredModalAttributes.title}</h3>
+                            <h3 className="font-bold text-coffee text-lg">{filteredModalAttributes.title}</h3>
                             <button
                                 onClick={() => setFilteredModalAttributes(null)}
                                 className="p-2 hover:bg-salmon hover:text-white rounded-xl transition-colors text-coffee/40"
@@ -608,7 +610,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                         <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-cream/50">
                             {filteredModalAttributes.cards.length === 0 ? (
                                 <div className="text-center py-8 text-coffee/40 text-sm font-bold">
-                                    No words found for this period.
+                                    {t('stats.modal_no_words')}
                                 </div>
                             ) : (
                                 filteredModalAttributes.cards.map((card, idx) => {
@@ -617,7 +619,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                                         <div key={idx} className="flex items-center justify-between bg-white p-3 rounded-xl border border-coffee/10 shadow-sm">
                                             <div className="font-bold text-coffee font-noto-serif-hk text-lg">{card.character}</div>
                                             <div className="text-xs font-bold text-coffee/60">
-                                                {masteryPercent}% Mastery
+                                                {t('study.mastery_percent', [masteryPercent])}
                                             </div>
                                         </div>
                                     );
@@ -634,9 +636,9 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
                 isOpen={!!wordToDelete}
                 onClose={() => setWordToDelete(null)}
                 onConfirm={handleDeleteWord}
-                title="Delete Word?"
-                message="Are you sure you want to delete this word? This action cannot be undone."
-                confirmText="Delete"
+                title={t('stats.delete_word_title')}
+                message={t('stats.delete_word_message')}
+                confirmText={t('common.delete')}
                 isDestructive={true}
             />
         </div>

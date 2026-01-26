@@ -1,6 +1,7 @@
 import React from 'react';
-import { Volume2, VolumeX, Settings, Target, Layers, Minus, Plus, AlertTriangle } from 'lucide-react';
+import { Volume2, VolumeX, Settings, Target, Layers, Minus, Plus, AlertTriangle, Globe } from 'lucide-react';
 import { getEnv } from '../constants';
+import { useI18n } from '../services/i18nService';
 
 interface PreferencesScreenProps {
     autoPlaySound: boolean;
@@ -25,6 +26,7 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
     onUpdateLearningPenalty,
     onLogout
 }) => {
+    const { t, setLanguage, language } = useI18n();
 
     const handleBatchSizeChange = (newValue: number) => {
         const clamped = Math.max(5, Math.min(30, newValue));
@@ -43,9 +45,9 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
 
     return (
         <div className="w-full max-w-lg mx-auto px-4 pb-24 pt-8 font-rounded text-coffee">
-            <h1 className="text-2xl font-black text-coffee mb-6 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-coffee mb-6 flex items-center gap-2">
                 <Settings className="w-7 h-7 text-coffee stroke-[3]" />
-                <span className="tracking-tight">Settings</span>
+                <span className="tracking-tight">{t('settings.title')}</span>
             </h1>
 
             <div className="space-y-6">
@@ -58,8 +60,8 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                                 {autoPlaySound ? <Volume2 className="w-6 h-6 stroke-[3]" /> : <VolumeX className="w-6 h-6 stroke-[3]" />}
                             </div>
                             <div>
-                                <div className="font-black text-coffee text-lg">Auto-play Audio</div>
-                                <div className="text-xs font-bold text-coffee/50">Play pronunciation on flip</div>
+                                <div className="font-bold text-coffee text-lg">{t('settings.audio_play')}</div>
+                                <div className="text-xs font-bold text-coffee/50">{t('settings.audio_play_desc')}</div>
                             </div>
                         </div>
 
@@ -83,8 +85,8 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                             <Layers className="w-6 h-6 stroke-[3]" />
                         </div>
                         <div className="flex-1">
-                            <div className="font-black text-coffee text-lg">Batch Size</div>
-                            <div className="text-xs font-bold text-coffee/50">Active words per session</div>
+                            <div className="font-bold text-coffee text-lg">{t('settings.batch_size')}</div>
+                            <div className="text-xs font-bold text-coffee/50">{t('settings.batch_size_desc')}</div>
                         </div>
 
                         <div className="flex items-center gap-3 bg-coffee/5 p-1.5 rounded-2xl border border-coffee/10">
@@ -95,7 +97,7 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                             >
                                 <Minus className="w-4 h-4 stroke-[3]" />
                             </button>
-                            <div className="font-mono font-black text-coffee text-xl w-8 text-center">
+                            <div className="font-mono font-bold text-coffee text-xl w-8 text-center">
                                 {learningBatchSize}
                             </div>
                             <button
@@ -117,8 +119,8 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                         className="w-full h-4 bg-coffee/10 rounded-full appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-600"
                     />
                     <div className="flex justify-between text-[10px] font-bold text-coffee/40 mt-2 uppercase tracking-wider">
-                        <span>5 Cards</span>
-                        <span>30 Cards</span>
+                        <span>{t('home.lang_en', [5])}</span>
+                        <span>{t('home.lang_en', [30])}</span>
                     </div>
                 </div>
 
@@ -129,8 +131,8 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                             <Target className="w-6 h-6 stroke-[3]" />
                         </div>
                         <div className="flex-1">
-                            <div className="font-black text-coffee text-lg">Mastery Goal</div>
-                            <div className="text-xs font-bold text-coffee/50">Correct answers to master</div>
+                            <div className="font-bold text-coffee text-lg">{t('settings.mastery_goal')}</div>
+                            <div className="text-xs font-bold text-coffee/50">{t('settings.mastery_goal_desc')}</div>
                         </div>
 
                         <div className="flex items-center gap-3 bg-coffee/5 p-1.5 rounded-2xl border border-coffee/10">
@@ -141,7 +143,7 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                             >
                                 <Minus className="w-4 h-4 stroke-[3]" />
                             </button>
-                            <div className="font-mono font-black text-coffee text-xl w-8 text-center">
+                            <div className="font-mono font-bold text-coffee text-xl w-8 text-center">
                                 {masteryThreshold}
                             </div>
                             <button
@@ -163,8 +165,8 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                         className="w-full h-4 bg-coffee/10 rounded-full appearance-none cursor-pointer accent-matcha hover:accent-matcha/80"
                     />
                     <div className="flex justify-between text-[10px] font-bold text-coffee/40 mt-2 uppercase tracking-wider">
-                        <span>5 Correct</span>
-                        <span>10 Correct</span>
+                        <span>{t('study.correct_count', [5])}</span>
+                        <span>{t('study.correct_count', [10])}</span>
                     </div>
                 </div>
 
@@ -175,8 +177,8 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                             <AlertTriangle className="w-6 h-6 stroke-[3]" />
                         </div>
                         <div className="flex-1">
-                            <div className="font-black text-coffee text-lg">Mistake Penalty</div>
-                            <div className="text-xs font-bold text-coffee/50">Points lost on error</div>
+                            <div className="font-bold text-coffee text-lg">{t('settings.penalty')}</div>
+                            <div className="text-xs font-bold text-coffee/50">{t('settings.penalty_desc')}</div>
                         </div>
 
                         <div className="flex items-center gap-3 bg-coffee/5 p-1.5 rounded-2xl border border-coffee/10">
@@ -187,7 +189,7 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                             >
                                 <Minus className="w-4 h-4 stroke-[3]" />
                             </button>
-                            <div className="font-mono font-black text-coffee text-xl w-8 text-center">
+                            <div className="font-mono font-bold text-coffee text-xl w-8 text-center">
                                 {learningPenalty}
                             </div>
                             <button
@@ -209,8 +211,29 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                         className="w-full h-4 bg-coffee/10 rounded-full appearance-none cursor-pointer accent-yolk hover:accent-yolk/80"
                     />
                     <div className="flex justify-between text-[10px] font-bold text-coffee/40 mt-2 uppercase tracking-wider">
-                        <span>-1 Point</span>
-                        <span>-5 Points</span>
+                        <span>{t('study.penalty_points', [1])}</span>
+                        <span>{t('study.penalty_points', [5])}</span>
+                    </div>
+                </div>
+
+                {/* Language Selection */}
+                <div className="bg-white rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee overflow-hidden p-5">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-2xl bg-blue-100 text-blue-600 border-2 border-blue-200">
+                            <Globe className="w-6 h-6 stroke-[3]" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="font-bold text-coffee text-lg">{t('settings.language')}</div>
+                            <div className="text-xs font-bold text-coffee/50">{t('settings.language_desc')}</div>
+                        </div>
+                        <select
+                            value={language}
+                            onChange={(e) => setLanguage(e.target.value)}
+                            className="p-2 bg-white text-coffee rounded-xl shadow-sm border-2 border-coffee/10 focus:outline-none focus:border-blue-200 transition-colors font-bold"
+                        >
+                            <option value="en">English</option>
+                            <option value="zh_TW">繁體中文</option>
+                        </select>
                     </div>
                 </div>
 
@@ -218,9 +241,9 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                 <div className="pt-4">
                     <button
                         onClick={onLogout}
-                        className="w-full py-4 bg-coffee/10 text-coffee/60 rounded-2xl font-black text-lg hover:bg-slate-200 hover:text-coffee transition-colors border-2 border-transparent hover:border-coffee/10"
+                        className="w-full py-4 bg-coffee/10 text-coffee/60 rounded-2xl font-bold text-lg hover:bg-slate-200 hover:text-coffee transition-colors border-2 border-transparent hover:border-coffee/10"
                     >
-                        Sign Out
+                        {t('settings.logout')}
                     </button>
                 </div>
 
@@ -228,7 +251,7 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
 
             <div className="mt-8 text-center">
                 <p className="text-xs font-bold text-coffee/30">
-                    認字繽紛樂 {getEnv('VITE_APP_VERSION') || 'v1.0.0'}
+                    {t('settings.version', [getEnv('VITE_APP_VERSION') || 'v1.0.0'])}
                 </p>
             </div>
         </div>

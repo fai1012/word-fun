@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BookOpen, BarChart3, Settings, User, Users } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Profile } from '../types';
+import { useI18n } from '../services/i18nService';
 
 interface BottomNavProps {
   profileName?: string;
@@ -11,6 +12,7 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, currentProfileId, onProfileSelect }) => {
+  const { t } = useI18n();
   const location = useLocation();
   const { profileId } = useParams();
   const currentPath = location.pathname;
@@ -53,7 +55,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, cur
             }`}
         >
           <BookOpen className={`w-6 h-6 ${isStudy ? 'fill-salmon/20 stroke-[2.5]' : 'stroke-2'}`} />
-          <span className="text-[10px] tracking-wide font-rounded">Study</span>
+          <span className="text-[10px] tracking-wide font-rounded">{t('nav.study')}</span>
         </Link>
 
         <Link
@@ -62,7 +64,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, cur
             }`}
         >
           <BarChart3 className={`w-6 h-6 ${isStats ? 'fill-salmon/20 stroke-[2.5]' : 'stroke-2'}`} />
-          <span className="text-[10px] tracking-wide font-rounded">Stats</span>
+          <span className="text-[10px] tracking-wide font-rounded">{t('nav.stats')}</span>
         </Link>
 
         {/* ADD WORDS BUTTON */}
@@ -81,7 +83,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, cur
             }`}
         >
           <Settings className={`w-6 h-6 ${isSettings ? 'fill-salmon/20 stroke-[2.5]' : 'stroke-2'}`} />
-          <span className="text-[10px] tracking-wide font-rounded">Settings</span>
+          <span className="text-[10px] tracking-wide font-rounded">{t('nav.settings')}</span>
         </Link>
 
         {/* Profile Dropdown */}
@@ -89,7 +91,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, cur
           {isMenuOpen && (
             <div className="absolute bottom-full right-0 mb-4 w-64 bg-cream rounded-2xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 flex flex-col max-h-80">
               <div className="px-4 py-3 bg-coffee/5 border-b-2 border-coffee/10 shrink-0">
-                <div className="text-xs text-coffee/60 font-bold uppercase tracking-wider font-rounded">Switch Profile</div>
+                <div className="text-xs text-coffee/60 font-bold uppercase tracking-wider font-rounded">{t('nav.switch_profile')}</div>
               </div>
 
               <div className="overflow-y-auto flex-1">
@@ -118,7 +120,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, cur
                 className="w-full px-4 py-3 text-left text-xs font-bold text-coffee/60 hover:text-salmon hover:bg-white/50 transition-colors flex items-center gap-2 border-t-2 border-coffee/10 shrink-0 uppercase tracking-wide justify-center"
               >
                 <Settings className="w-3 h-3" />
-                Manage Profiles
+                {t('nav.manage_profiles')}
               </Link>
             </div>
           )}
@@ -130,7 +132,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, cur
             <div className={`w-6 h-6 rounded-full flex items-center justify-center overflow-hidden border-2 ${isMenuOpen ? 'border-salmon bg-salmon/10' : 'border-coffee/20 bg-white'}`}>
               <User className={`w-4 h-4 ${isMenuOpen ? 'text-salmon stroke-[2.5]' : 'text-coffee/40 stroke-2'}`} />
             </div>
-            <span className="text-[10px] tracking-wide font-rounded">Profile</span>
+            <span className="text-[10px] tracking-wide font-rounded">{t('nav.profile')}</span>
           </button>
         </div>
 

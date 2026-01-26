@@ -2,6 +2,7 @@ import React from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { Sparkles, Brain } from 'lucide-react';
+import { useI18n } from '../services/i18nService';
 
 interface SignInPageProps {
     onLoginSuccess: (user: any) => void;
@@ -11,6 +12,7 @@ interface SignInPageProps {
 const PANDA_LOGO_URL = 'https://gen-lang-client-0834078301.web.app/assets_panda-logo.png';
 
 export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess, onLoginError }) => {
+    const { t } = useI18n();
     return (
         <div className="min-h-screen min-h-[100dvh] bg-cream flex flex-col items-center justify-center p-4 pb-12 sm:pb-4 relative overflow-hidden font-rounded text-coffee">
 
@@ -23,13 +25,11 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess, onLoginE
                         className="w-64 object-contain"
                     />
                 </div>
-                <p className="text-coffee/60 mb-6 sm:mb-10 text-lg font-bold">
-                    Master vocabulary with <br />AI-powered personalized revisions.
-                </p>
+                <p className="text-coffee/60 mb-6 sm:mb-10 text-lg font-bold" dangerouslySetInnerHTML={{ __html: t('auth.hero_subtitle') }} />
 
                 <div className="w-full bg-white p-8 rounded-3xl shadow-[8px_8px_0px_0px_rgba(93,64,55,1)] border-4 border-coffee flex flex-col items-center gap-6">
-                    <div className="text-sm font-black text-coffee/30 uppercase tracking-widest bg-coffee/5 px-4 py-1 rounded-full">
-                        Welcome Back
+                    <div className="text-sm font-bold text-coffee/30 uppercase tracking-widest bg-coffee/5 px-4 py-1 rounded-full">
+                        {t('auth.welcome_back')}
                     </div>
 
                     <div className="relative w-full max-w-[280px] h-[60px]">
@@ -41,7 +41,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess, onLoginE
                                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                             </svg>
-                            <span className="font-black text-coffee text-lg tracking-wide">Sign in with Google</span>
+                            <span className="font-bold text-coffee text-lg tracking-wide">{t('auth.sign_in_google')}</span>
                         </div>
 
                         {/* Invisible Functional Layer */}
@@ -63,7 +63,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess, onLoginE
                     </div>
 
                     <p className="text-xs font-bold text-coffee/30 max-w-[250px] leading-relaxed">
-                        By signing in, you will be able to sync your progress across devices.
+                        {t('auth.sync_note')}
                     </p>
                 </div>
             </div>
