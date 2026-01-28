@@ -9,6 +9,7 @@ import {
 } from './services/geminiService';
 import { loginWithGoogle } from './services/authService';
 import { updateProfile, createProfile, batchAddWords, fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles } from './services/profileService';
+import { LearningPace, LEARNING_PACES, DEFAULT_LEARNING_PACE, getRandomBatchSize } from './services/learningPaceConfig';
 import { i18n } from './services/i18nService';
 import { addToQueue } from './services/queueService';
 import { HomeScreen } from './components/HomeScreen';
@@ -83,6 +84,7 @@ const App: React.FC = () => {
     const [masteryThreshold, setMasteryThreshold] = useState(DEFAULT_CONFIG.MASTERY_THRESHOLD);
     const [learningBatchSize, setLearningBatchSize] = useState(DEFAULT_CONFIG.LEARNING_BATCH_SIZE);
     const [learningPenalty, setLearningPenalty] = useState(DEFAULT_CONFIG.LEARNING_PENALTY);
+    const [learningPace, setLearningPace] = useState<LearningPace>(DEFAULT_LEARNING_PACE);
 
     // Study Session State
     const [sessionQueue, setSessionQueue] = useState<FlashcardData[]>([]);
@@ -276,6 +278,14 @@ const App: React.FC = () => {
         localStorage.setItem(STORAGE_KEYS.SETTING_PENALTY, String(val));
     };
 
+    const handleUpdateLearningPace = (pace: LearningPace) => {
+        setLearningPace(pace);
+        localStorage.setItem(STORAGE_KEYS.SETTING_LEARNING_PACE, pace);
+
+        const newBatchSize = getRandomBatchSize(pace);
+        handleUpdateLearningBatchSize(newBatchSize);
+    };
+
     useEffect(() => {
         const loadSession = async () => {
             const savedCards = localStorage.getItem(STORAGE_KEYS.CARDS_CACHE);
@@ -284,6 +294,7 @@ const App: React.FC = () => {
             const savedMastery = localStorage.getItem(STORAGE_KEYS.SETTING_MASTERY);
             const savedBatchSize = localStorage.getItem(STORAGE_KEYS.SETTING_BATCH_SIZE);
             const savedPenalty = localStorage.getItem(STORAGE_KEYS.SETTING_PENALTY);
+            const savedPace = localStorage.getItem(STORAGE_KEYS.SETTING_LEARNING_PACE) as LearningPace;
 
             // Initialize i18n
             await i18n.init();
@@ -357,6 +368,7 @@ const App: React.FC = () => {
             if (savedMastery) setMasteryThreshold(parseInt(savedMastery));
             if (savedBatchSize) setLearningBatchSize(parseInt(savedBatchSize));
             if (savedPenalty) setLearningPenalty(parseInt(savedPenalty));
+            if (savedPace && LEARNING_PACES[savedPace]) setLearningPace(savedPace);
 
             setIsInitializing(false);
         };
@@ -514,6 +526,10 @@ const App: React.FC = () => {
         }
 
         // --- STEP 1: Learning Pool (Active Words) ---
+        // Randomize batch size based on pace for this session
+        const currentBatchSize = getRandomBatchSize(learningPace);
+        setLearningBatchSize(currentBatchSize); // Update state for UI consistency if ever displayed
+
         // Use eligiblePool instead of global pool
         const activeCandidates = eligiblePool.filter(c => (c.correctCount || 0) < masteryThreshold);
 
@@ -522,7 +538,7 @@ const App: React.FC = () => {
         const oldestPool = activeCandidates.slice(0, poolSize);
 
         // Randomly pick Batch Size from this pool
-        const selectedLearning: FlashcardData[] = shuffleArray(oldestPool).slice(0, learningBatchSize);
+        const selectedLearning: FlashcardData[] = shuffleArray(oldestPool).slice(0, currentBatchSize);
 
         // --- STEP 2: Review Pool (Mastered Words) ---
         // Use eligiblePool instead of global pool
@@ -1376,6 +1392,8 @@ const App: React.FC = () => {
                                             onUpdateLearningBatchSize={handleUpdateLearningBatchSize}
                                             learningPenalty={learningPenalty}
                                             onUpdateLearningPenalty={handleUpdateLearningPenalty}
+                                            learningPace={learningPace}
+                                            onUpdateLearningPace={handleUpdateLearningPace}
                                             onLogout={handleLogout}
                                         />
                                     </div>

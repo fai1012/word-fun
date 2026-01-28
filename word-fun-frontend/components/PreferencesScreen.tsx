@@ -1,7 +1,8 @@
 import React from 'react';
-import { Volume2, VolumeX, Settings, Target, Layers, Minus, Plus, AlertTriangle, Globe } from 'lucide-react';
+import { Volume2, VolumeX, Settings, Target, Layers, Minus, Plus, AlertTriangle, Globe, Zap } from 'lucide-react';
 import { getEnv } from '../constants';
 import { useI18n } from '../services/i18nService';
+import { LearningPace } from '../services/learningPaceConfig';
 
 interface PreferencesScreenProps {
     autoPlaySound: boolean;
@@ -12,6 +13,8 @@ interface PreferencesScreenProps {
     onUpdateLearningBatchSize: (value: number) => void;
     learningPenalty: number;
     onUpdateLearningPenalty: (value: number) => void;
+    learningPace: LearningPace;
+    onUpdateLearningPace: (value: LearningPace) => void;
     onLogout: () => void;
 }
 
@@ -24,6 +27,8 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
     onUpdateLearningBatchSize,
     learningPenalty,
     onUpdateLearningPenalty,
+    learningPace,
+    onUpdateLearningPace,
     onLogout
 }) => {
     const { t, setLanguage, language } = useI18n();
@@ -78,141 +83,43 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                     </div>
                 </div>
 
-                {/* Learning Batch Size Setting */}
+                {/* Learning Pace Setting */}
                 <div className="bg-white rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee overflow-hidden p-5">
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="p-3 rounded-2xl bg-indigo-100 text-indigo-600 border-2 border-indigo-200">
-                            <Layers className="w-6 h-6 stroke-[3]" />
+                    <div className="flex items-center gap-4 mb-5">
+                        <div className="p-3 rounded-2xl bg-salmon/10 text-salmon border-2 border-salmon/20">
+                            <Zap className="w-6 h-6 stroke-[3]" />
                         </div>
                         <div className="flex-1">
-                            <div className="font-bold text-coffee text-lg">{t('settings.batch_size')}</div>
-                            <div className="text-xs font-bold text-coffee/50">{t('settings.batch_size_desc')}</div>
-                        </div>
-
-                        <div className="flex items-center gap-3 bg-coffee/5 p-1.5 rounded-2xl border border-coffee/10">
-                            <button
-                                onClick={() => handleBatchSizeChange(learningBatchSize - 1)}
-                                className="p-2 bg-white text-coffee hover:text-indigo-600 rounded-xl shadow-sm border-2 border-coffee/10 disabled:opacity-50 disabled:shadow-none hover:border-indigo-200 transition-colors"
-                                disabled={learningBatchSize <= 5}
-                            >
-                                <Minus className="w-4 h-4 stroke-[3]" />
-                            </button>
-                            <div className="font-mono font-bold text-coffee text-xl w-8 text-center">
-                                {learningBatchSize}
-                            </div>
-                            <button
-                                onClick={() => handleBatchSizeChange(learningBatchSize + 1)}
-                                className="p-2 bg-white text-coffee hover:text-indigo-600 rounded-xl shadow-sm border-2 border-coffee/10 disabled:opacity-50 disabled:shadow-none hover:border-indigo-200 transition-colors"
-                                disabled={learningBatchSize >= 30}
-                            >
-                                <Plus className="w-4 h-4 stroke-[3]" />
-                            </button>
+                            <div className="font-bold text-coffee text-lg leading-tight">{t('settings.learning_pace')}</div>
+                            <div className="text-xs font-bold text-coffee/40">{t('settings.learning_pace_desc')}</div>
                         </div>
                     </div>
-                    <input
-                        type="range"
-                        min="5"
-                        max="30"
-                        step="1"
-                        value={learningBatchSize}
-                        onChange={(e) => handleBatchSizeChange(parseInt(e.target.value))}
-                        className="w-full h-4 bg-coffee/10 rounded-full appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-600"
-                    />
-                    <div className="flex justify-between text-[10px] font-bold text-coffee/40 mt-2 uppercase tracking-wider">
-                        <span>{t('home.lang_en', [5])}</span>
-                        <span>{t('home.lang_en', [30])}</span>
-                    </div>
-                </div>
 
-                {/* Mastery Threshold Setting */}
-                <div className="bg-white rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee overflow-hidden p-5">
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="p-3 rounded-2xl bg-matcha/20 text-matcha border-2 border-matcha/30">
-                            <Target className="w-6 h-6 stroke-[3]" />
-                        </div>
-                        <div className="flex-1">
-                            <div className="font-bold text-coffee text-lg">{t('settings.mastery_goal')}</div>
-                            <div className="text-xs font-bold text-coffee/50">{t('settings.mastery_goal_desc')}</div>
-                        </div>
+                    <div className="grid grid-cols-3 gap-3">
+                        {(['gentle', 'standard', 'challenge'] as LearningPace[]).map((pace) => {
+                            const isSelected = learningPace === pace;
+                            const paceColors = {
+                                gentle: 'bg-matcha text-white border-matcha-dark',
+                                standard: 'bg-indigo-500 text-white border-indigo-600',
+                                challenge: 'bg-salmon text-white border-salmon-dark'
+                            };
 
-                        <div className="flex items-center gap-3 bg-coffee/5 p-1.5 rounded-2xl border border-coffee/10">
-                            <button
-                                onClick={() => handleMasteryThresholdChange(masteryThreshold - 1)}
-                                className="p-2 bg-white text-coffee hover:text-matcha rounded-xl shadow-sm border-2 border-coffee/10 disabled:opacity-50 disabled:shadow-none hover:border-matcha/50 transition-colors"
-                                disabled={masteryThreshold <= 5}
-                            >
-                                <Minus className="w-4 h-4 stroke-[3]" />
-                            </button>
-                            <div className="font-mono font-bold text-coffee text-xl w-8 text-center">
-                                {masteryThreshold}
-                            </div>
-                            <button
-                                onClick={() => handleMasteryThresholdChange(masteryThreshold + 1)}
-                                className="p-2 bg-white text-coffee hover:text-matcha rounded-xl shadow-sm border-2 border-coffee/10 disabled:opacity-50 disabled:shadow-none hover:border-matcha/50 transition-colors"
-                                disabled={masteryThreshold >= 10}
-                            >
-                                <Plus className="w-4 h-4 stroke-[3]" />
-                            </button>
-                        </div>
-                    </div>
-                    <input
-                        type="range"
-                        min="5"
-                        max="10"
-                        step="1"
-                        value={masteryThreshold}
-                        onChange={(e) => handleMasteryThresholdChange(parseInt(e.target.value))}
-                        className="w-full h-4 bg-coffee/10 rounded-full appearance-none cursor-pointer accent-matcha hover:accent-matcha/80"
-                    />
-                    <div className="flex justify-between text-[10px] font-bold text-coffee/40 mt-2 uppercase tracking-wider">
-                        <span>{t('study.correct_count', [5])}</span>
-                        <span>{t('study.correct_count', [10])}</span>
-                    </div>
-                </div>
-
-                {/* Learning Penalty Setting */}
-                <div className="bg-white rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee overflow-hidden p-5">
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="p-3 rounded-2xl bg-yolk/20 text-yolk border-2 border-yolk/30">
-                            <AlertTriangle className="w-6 h-6 stroke-[3]" />
-                        </div>
-                        <div className="flex-1">
-                            <div className="font-bold text-coffee text-lg">{t('settings.penalty')}</div>
-                            <div className="text-xs font-bold text-coffee/50">{t('settings.penalty_desc')}</div>
-                        </div>
-
-                        <div className="flex items-center gap-3 bg-coffee/5 p-1.5 rounded-2xl border border-coffee/10">
-                            <button
-                                onClick={() => handlePenaltyChange(learningPenalty - 1)}
-                                className="p-2 bg-white text-coffee hover:text-yolk rounded-xl shadow-sm border-2 border-coffee/10 disabled:opacity-50 disabled:shadow-none hover:border-yolk/50 transition-colors"
-                                disabled={learningPenalty <= 1}
-                            >
-                                <Minus className="w-4 h-4 stroke-[3]" />
-                            </button>
-                            <div className="font-mono font-bold text-coffee text-xl w-8 text-center">
-                                {learningPenalty}
-                            </div>
-                            <button
-                                onClick={() => handlePenaltyChange(learningPenalty + 1)}
-                                className="p-2 bg-white text-coffee hover:text-yolk rounded-xl shadow-sm border-2 border-coffee/10 disabled:opacity-50 disabled:shadow-none hover:border-yolk/50 transition-colors"
-                                disabled={learningPenalty >= 5}
-                            >
-                                <Plus className="w-4 h-4 stroke-[3]" />
-                            </button>
-                        </div>
-                    </div>
-                    <input
-                        type="range"
-                        min="1"
-                        max="5"
-                        step="1"
-                        value={learningPenalty}
-                        onChange={(e) => handlePenaltyChange(parseInt(e.target.value))}
-                        className="w-full h-4 bg-coffee/10 rounded-full appearance-none cursor-pointer accent-yolk hover:accent-yolk/80"
-                    />
-                    <div className="flex justify-between text-[10px] font-bold text-coffee/40 mt-2 uppercase tracking-wider">
-                        <span>{t('study.penalty_points', [1])}</span>
-                        <span>{t('study.penalty_points', [5])}</span>
+                            return (
+                                <button
+                                    key={pace}
+                                    onClick={() => onUpdateLearningPace(pace)}
+                                    className={`relative py-4 px-2 rounded-2xl font-bold transition-all duration-200 border-2 active:translate-y-0.5 active:shadow-none ${isSelected
+                                        ? 'bg-coffee text-white border-coffee shadow-[0px_2px_0px_0px_rgba(0,0,0,0.2)]'
+                                        : 'bg-white text-coffee border-coffee/10 hover:border-coffee/30 hover:bg-coffee/5'
+                                        }`}
+                                >
+                                    <div className="text-sm tracking-tight">{t(`settings.pace_${pace}`)}</div>
+                                    <div className={`text-[10px] font-bold mt-0.5 uppercase tracking-wider ${isSelected ? 'opacity-60' : 'opacity-30'}`}>
+                                        {t(`settings.pace_${pace}_desc`)}
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 

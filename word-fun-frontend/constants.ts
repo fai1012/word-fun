@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
     SETTING_MASTERY: 'hanzi_setting_mastery',
     SETTING_BATCH_SIZE: 'hanzi_setting_batch',
     SETTING_PENALTY: 'hanzi_setting_penalty',
+    SETTING_LEARNING_PACE: 'hanzi_setting_pace',
     AUTH_TOKEN: 'hanzi_auth_token',
     REFRESH_TOKEN: 'hanzi_refresh_token',
     USER_INFO: 'word_fun_user',
