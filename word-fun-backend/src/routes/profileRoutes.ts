@@ -42,6 +42,27 @@ router.post('/', profileController.syncUser.bind(profileController));
 
 /**
  * @swagger
+ * /api/profiles/me:
+ *   patch:
+ *     summary: Update current user account settings
+ *     tags: [Account]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               language:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User updated successfully.
+ */
+router.patch('/me', profileController.updateCurrentUser.bind(profileController));
+
+/**
+ * @swagger
  * /api/profiles/create:
  *   post:
  *     summary: Create a newly Profile

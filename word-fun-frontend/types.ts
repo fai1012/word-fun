@@ -8,6 +8,7 @@ export interface User {
   email: string;
   name: string;
   picture: string;
+  language: string;
 }
 
 export interface ProfileSettings {
@@ -15,7 +16,6 @@ export interface ProfileSettings {
   masteryThreshold: number;
   learningPenalty: number;
   learningPace: 'gentle' | 'standard' | 'challenge';
-  language: string;
 }
 
 export interface Profile {
@@ -47,6 +47,7 @@ export interface ProfileSyncResponse {
     email: string;
     name: string;
     photoURL?: string;
+    language?: string;
   };
   profiles: Profile[];
 }

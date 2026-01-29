@@ -114,7 +114,7 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                             className="p-2 bg-white text-coffee rounded-xl shadow-sm border-2 border-coffee/10 focus:outline-none focus:border-blue-200 transition-colors font-bold"
                         >
                             <option value="en">English</option>
-                            <option value="zh_TW">繁體中文</option>
+                            <option value="zh">繁體中文</option>
                         </select>
                     </div>
                 </div>

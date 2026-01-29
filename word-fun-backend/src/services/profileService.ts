@@ -5,8 +5,7 @@ const DEFAULT_SETTINGS: ProfileSettings = {
     autoPlaySound: false,
     masteryThreshold: 6,
     learningPenalty: 1,
-    learningPace: 'standard',
-    language: 'en'
+    learningPace: 'standard'
 };
 
 class ProfileService {

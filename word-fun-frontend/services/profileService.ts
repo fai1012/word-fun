@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Profile, ProfileSyncResponse, ProfileSettings } from '../types';
+import { Profile, ProfileSyncResponse, ProfileSettings, User } from '../types';
 import { STORAGE_KEYS } from '../constants';
 
 import { getEnv } from '../constants';
@@ -112,6 +112,19 @@ export const updateProfile = async (profileId: string, updates: ProfileUpdate): 
 
     if (!response.ok) {
         throw new Error('Failed to update profile');
+    }
+
+    return response.json();
+};
+
+export const updateUser = async (updates: Partial<User>): Promise<User> => {
+    const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/me`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates)
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to update user account');
     }
 
     return response.json();

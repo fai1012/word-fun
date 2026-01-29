@@ -24,6 +24,7 @@ class UserService {
                 createdAt: now,
                 lastLoginAt: now,
                 isAdmin: false,
+                language: 'zh',
             };
             await userRef.set(newUser);
             return newUser;
@@ -36,14 +37,14 @@ class UserService {
 
             await userRef.update(updates);
 
-            // Return current data (casting simply here, in prod we might validate)
-            const userData = doc.data() as User;
-            // Ensure runtime dates are Date objects if coming from timestamp
-            return {
-                ...userData,
-                lastLoginAt: now
-            };
+            // Return current data
+            const userData = (await userRef.get()).data() as User;
+            return userData;
         }
+    }
+
+    async updateUser(userId: string, updates: Partial<User>): Promise<void> {
+        await db.collection(COLLECTION_NAME).doc(userId).update(updates);
     }
 }
 

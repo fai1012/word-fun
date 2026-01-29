@@ -8,7 +8,7 @@ import {
     generateSingleExample
 } from './services/geminiService';
 import { loginWithGoogle } from './services/authService';
-import { updateProfile, createProfile, batchAddWords, fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles } from './services/profileService';
+import { updateProfile, createProfile, batchAddWords, fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles, updateUser } from './services/profileService';
 import { LearningPace, LEARNING_PACES, DEFAULT_LEARNING_PACE, getRandomBatchSize } from './services/learningPaceConfig';
 import { i18n } from './services/i18nService';
 import { addToQueue } from './services/queueService';
@@ -248,15 +248,21 @@ const App: React.FC = () => {
             const data = await syncAndGetProfiles();
             setProfiles(data.profiles);
             // Ensure global user state has the ID and latest info from backend
-            if (data.user && user?.id !== data.user.id) {
+            if (data.user && (user?.id !== data.user.id || user?.language !== data.user.language)) {
                 const updatedUser: User = {
                     id: data.user.id,
                     email: data.user.email,
                     name: data.user.name,
-                    picture: data.user.photoURL || user?.picture || ''
+                    picture: data.user.photoURL || user?.picture || '',
+                    language: data.user.language || 'zh'
                 };
                 setUser(updatedUser);
                 localStorage.setItem('word_fun_user', JSON.stringify(updatedUser));
+
+                // Keep i18n in sync with user language
+                if (updatedUser.language && updatedUser.language !== i18n.getLanguage()) {
+                    i18n.setLanguage(updatedUser.language);
+                }
             }
 
             // Sync currentProfile if it exists
@@ -395,15 +401,12 @@ const App: React.FC = () => {
 
     const handleUpdateLanguage = (lang: string) => {
         i18n.setLanguage(lang);
-        if (currentProfile?.id) {
-            const updatedProfile = {
-                ...currentProfile,
-                settings: { ...(currentProfile.settings || {}), language: lang }
-            } as Profile;
-            setCurrentProfile(updatedProfile);
-            localStorage.setItem('word_fun_profile', JSON.stringify(updatedProfile));
+        if (user?.id) {
+            const updatedUser = { ...user, language: lang };
+            setUser(updatedUser);
+            localStorage.setItem('word_fun_user', JSON.stringify(updatedUser));
 
-            updateProfile(currentProfile.id, { settings: { language: lang } })
+            updateUser({ language: lang })
                 .catch(err => console.error("Failed to sync language", err));
         }
     };
@@ -418,10 +421,6 @@ const App: React.FC = () => {
                 setLearningPace(s.learningPace);
                 // Derive batch size from pace
                 setLearningBatchSize(getRandomBatchSize(s.learningPace));
-
-                if (s.language && s.language !== i18n.getLanguage()) {
-                    i18n.setLanguage(s.language);
-                }
             } else {
                 // If no settings on profile, use defaults
                 setAutoPlaySound(false);
@@ -447,6 +446,9 @@ const App: React.FC = () => {
                 if (savedUser) {
                     const parsedUser = JSON.parse(savedUser);
                     setUser(parsedUser);
+                    if (parsedUser.language) {
+                        i18n.setLanguage(parsedUser.language);
+                    }
 
                     // Restore profiles for deep linking, but avoid duplicate on /profiles (handled by useEffect)
                     if (location.pathname !== '/profiles') {

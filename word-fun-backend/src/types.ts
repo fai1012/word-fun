@@ -37,6 +37,7 @@ export interface User {
     createdAt: Date;
     lastLoginAt: Date;
     isAdmin: boolean;
+    language: string;
 }
 
 export interface ProfileSettings {
@@ -44,7 +45,6 @@ export interface ProfileSettings {
     masteryThreshold: number;
     learningPenalty: number;
     learningPace: 'gentle' | 'standard' | 'challenge';
-    language: string;
 }
 
 /**
