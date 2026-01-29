@@ -9,13 +9,14 @@ class I18nService {
     private listeners: Array<(lang: string) => void> = [];
 
     constructor() {
-        this.currentLanguage = localStorage.getItem(STORAGE_KEYS.LANGUAGE) || 'en';
+        this.currentLanguage = localStorage.getItem(STORAGE_KEYS.LANGUAGE) || 'zh';
         this.t = this.t.bind(this);
         this.setLanguage = this.setLanguage.bind(this);
     }
 
     async init() {
         await this.loadTranslations(this.currentLanguage);
+        this.listeners.forEach(listener => listener(this.currentLanguage));
     }
 
     private async loadTranslations(lang: string) {

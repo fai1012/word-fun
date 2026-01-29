@@ -8,7 +8,7 @@ import {
     generateSingleExample
 } from './services/geminiService';
 import { loginWithGoogle } from './services/authService';
-import { updateProfile, createProfile, batchAddWords, fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles } from './services/profileService';
+import { updateProfile, createProfile, batchAddWords, fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles, updateUser } from './services/profileService';
 import { LearningPace, LEARNING_PACES, DEFAULT_LEARNING_PACE, getRandomBatchSize } from './services/learningPaceConfig';
 import { i18n } from './services/i18nService';
 import { addToQueue } from './services/queueService';
@@ -80,11 +80,57 @@ const App: React.FC = () => {
     }, [flashcards]);
 
     // Preferences State
-    const [autoPlaySound, setAutoPlaySound] = useState(false);
-    const [masteryThreshold, setMasteryThreshold] = useState(DEFAULT_CONFIG.MASTERY_THRESHOLD);
-    const [learningBatchSize, setLearningBatchSize] = useState(DEFAULT_CONFIG.LEARNING_BATCH_SIZE);
-    const [learningPenalty, setLearningPenalty] = useState(DEFAULT_CONFIG.LEARNING_PENALTY);
-    const [learningPace, setLearningPace] = useState<LearningPace>(DEFAULT_LEARNING_PACE);
+    const [autoPlaySound, setAutoPlaySound] = useState(() => {
+        const saved = localStorage.getItem('word_fun_profile');
+        if (saved) {
+            try {
+                const profile = JSON.parse(saved);
+                return profile.settings?.autoPlaySound ?? false;
+            } catch { }
+        }
+        return false;
+    });
+    const [masteryThreshold, setMasteryThreshold] = useState(() => {
+        const saved = localStorage.getItem('word_fun_profile');
+        if (saved) {
+            try {
+                const profile = JSON.parse(saved);
+                return profile.settings?.masteryThreshold ?? DEFAULT_CONFIG.MASTERY_THRESHOLD;
+            } catch { }
+        }
+        return DEFAULT_CONFIG.MASTERY_THRESHOLD;
+    });
+    const [learningBatchSize, setLearningBatchSize] = useState(() => {
+        const saved = localStorage.getItem('word_fun_profile');
+        if (saved) {
+            try {
+                const profile = JSON.parse(saved);
+                const pace = profile.settings?.learningPace ?? DEFAULT_LEARNING_PACE;
+                return getRandomBatchSize(pace);
+            } catch { }
+        }
+        return getRandomBatchSize(DEFAULT_LEARNING_PACE);
+    });
+    const [learningPenalty, setLearningPenalty] = useState(() => {
+        const saved = localStorage.getItem('word_fun_profile');
+        if (saved) {
+            try {
+                const profile = JSON.parse(saved);
+                return profile.settings?.learningPenalty ?? DEFAULT_CONFIG.LEARNING_PENALTY;
+            } catch { }
+        }
+        return DEFAULT_CONFIG.LEARNING_PENALTY;
+    });
+    const [learningPace, setLearningPace] = useState<LearningPace>(() => {
+        const saved = localStorage.getItem('word_fun_profile');
+        if (saved) {
+            try {
+                const profile = JSON.parse(saved);
+                return profile.settings?.learningPace ?? DEFAULT_LEARNING_PACE;
+            } catch { }
+        }
+        return DEFAULT_LEARNING_PACE;
+    });
 
     // Study Session State
     const [sessionQueue, setSessionQueue] = useState<FlashcardData[]>([]);
@@ -202,15 +248,30 @@ const App: React.FC = () => {
             const data = await syncAndGetProfiles();
             setProfiles(data.profiles);
             // Ensure global user state has the ID and latest info from backend
-            if (data.user && user?.id !== data.user.id) {
+            if (data.user && (user?.id !== data.user.id || user?.language !== data.user.language)) {
                 const updatedUser: User = {
                     id: data.user.id,
                     email: data.user.email,
                     name: data.user.name,
-                    picture: data.user.photoURL || user?.picture || ''
+                    picture: data.user.photoURL || user?.picture || '',
+                    language: data.user.language || 'zh'
                 };
                 setUser(updatedUser);
                 localStorage.setItem('word_fun_user', JSON.stringify(updatedUser));
+
+                // Keep i18n in sync with user language
+                if (updatedUser.language && updatedUser.language !== i18n.getLanguage()) {
+                    i18n.setLanguage(updatedUser.language);
+                }
+            }
+
+            // Sync currentProfile if it exists
+            if (currentProfile) {
+                const refreshed = data.profiles.find(p => p.id === currentProfile.id);
+                if (refreshed) {
+                    setCurrentProfile(refreshed);
+                    localStorage.setItem('word_fun_profile', JSON.stringify(refreshed));
+                }
             }
         } catch (e) {
             console.error("Failed to load profiles", e);
@@ -260,42 +321,120 @@ const App: React.FC = () => {
 
     const handleToggleAutoPlay = (enabled: boolean) => {
         setAutoPlaySound(enabled);
-        localStorage.setItem(STORAGE_KEYS.AUTO_PLAY, String(enabled));
+        if (currentProfile?.id) {
+            const updatedProfile = {
+                ...currentProfile,
+                settings: { ...(currentProfile.settings || {}), autoPlaySound: enabled }
+            } as Profile;
+            setCurrentProfile(updatedProfile);
+            localStorage.setItem('word_fun_profile', JSON.stringify(updatedProfile));
+
+            updateProfile(currentProfile.id, { settings: { autoPlaySound: enabled } })
+                .catch(err => console.error("Failed to sync autoPlaySound", err));
+        }
     };
 
     const handleUpdateMasteryThreshold = (val: number) => {
         setMasteryThreshold(val);
-        localStorage.setItem(STORAGE_KEYS.SETTING_MASTERY, String(val));
+        if (currentProfile?.id) {
+            const updatedProfile = {
+                ...currentProfile,
+                settings: { ...(currentProfile.settings || {}), masteryThreshold: val }
+            } as Profile;
+            setCurrentProfile(updatedProfile);
+            localStorage.setItem('word_fun_profile', JSON.stringify(updatedProfile));
+
+            updateProfile(currentProfile.id, { settings: { masteryThreshold: val } })
+                .catch(err => console.error("Failed to sync masteryThreshold", err));
+        }
     };
 
     const handleUpdateLearningBatchSize = (val: number) => {
         setLearningBatchSize(val);
-        localStorage.setItem(STORAGE_KEYS.SETTING_BATCH_SIZE, String(val));
+        if (currentProfile?.id) {
+            const updatedProfile = {
+                ...currentProfile,
+            } as Profile;
+            setCurrentProfile(updatedProfile);
+            localStorage.setItem('word_fun_profile', JSON.stringify(updatedProfile));
+        }
     };
 
     const handleUpdateLearningPenalty = (val: number) => {
         setLearningPenalty(val);
-        localStorage.setItem(STORAGE_KEYS.SETTING_PENALTY, String(val));
+        if (currentProfile?.id) {
+            const updatedProfile = {
+                ...currentProfile,
+                settings: { ...(currentProfile.settings || {}), learningPenalty: val }
+            } as Profile;
+            setCurrentProfile(updatedProfile);
+            localStorage.setItem('word_fun_profile', JSON.stringify(updatedProfile));
+
+            updateProfile(currentProfile.id, { settings: { learningPenalty: val } })
+                .catch(err => console.error("Failed to sync learningPenalty", err));
+        }
     };
 
     const handleUpdateLearningPace = (pace: LearningPace) => {
         setLearningPace(pace);
-        localStorage.setItem(STORAGE_KEYS.SETTING_LEARNING_PACE, pace);
-
         const newBatchSize = getRandomBatchSize(pace);
-        handleUpdateLearningBatchSize(newBatchSize);
+        setLearningBatchSize(newBatchSize);
+
+        if (currentProfile?.id) {
+            const updatedProfile = {
+                ...currentProfile,
+                settings: {
+                    ...(currentProfile.settings || {}),
+                    learningPace: pace,
+                }
+            } as Profile;
+            setCurrentProfile(updatedProfile);
+            localStorage.setItem('word_fun_profile', JSON.stringify(updatedProfile));
+
+            updateProfile(currentProfile.id, {
+                settings: {
+                    learningPace: pace,
+                }
+            }).catch(err => console.error("Failed to sync learningPace", err));
+        }
     };
+
+    const handleUpdateLanguage = (lang: string) => {
+        i18n.setLanguage(lang);
+        if (user?.id) {
+            const updatedUser = { ...user, language: lang };
+            setUser(updatedUser);
+            localStorage.setItem('word_fun_user', JSON.stringify(updatedUser));
+
+            updateUser({ language: lang })
+                .catch(err => console.error("Failed to sync language", err));
+        }
+    };
+
+    useEffect(() => {
+        if (currentProfile) {
+            if (currentProfile.settings) {
+                const s = currentProfile.settings;
+                setAutoPlaySound(s.autoPlaySound);
+                setMasteryThreshold(s.masteryThreshold);
+                setLearningPenalty(s.learningPenalty);
+                setLearningPace(s.learningPace);
+                // Derive batch size from pace
+                setLearningBatchSize(getRandomBatchSize(s.learningPace));
+            } else {
+                // If no settings on profile, use defaults
+                setAutoPlaySound(false);
+                setMasteryThreshold(DEFAULT_CONFIG.MASTERY_THRESHOLD);
+                setLearningPenalty(DEFAULT_CONFIG.LEARNING_PENALTY);
+                setLearningPace(DEFAULT_LEARNING_PACE);
+                setLearningBatchSize(getRandomBatchSize(DEFAULT_LEARNING_PACE));
+            }
+        }
+    }, [currentProfile]);
 
     useEffect(() => {
         const loadSession = async () => {
             const savedCards = localStorage.getItem(STORAGE_KEYS.CARDS_CACHE);
-            const savedAutoPlay = localStorage.getItem(STORAGE_KEYS.AUTO_PLAY);
-
-            const savedMastery = localStorage.getItem(STORAGE_KEYS.SETTING_MASTERY);
-            const savedBatchSize = localStorage.getItem(STORAGE_KEYS.SETTING_BATCH_SIZE);
-            const savedPenalty = localStorage.getItem(STORAGE_KEYS.SETTING_PENALTY);
-            const savedPace = localStorage.getItem(STORAGE_KEYS.SETTING_LEARNING_PACE) as LearningPace;
-
             // Initialize i18n
             await i18n.init();
 
@@ -307,6 +446,9 @@ const App: React.FC = () => {
                 if (savedUser) {
                     const parsedUser = JSON.parse(savedUser);
                     setUser(parsedUser);
+                    if (parsedUser.language) {
+                        i18n.setLanguage(parsedUser.language);
+                    }
 
                     // Restore profiles for deep linking, but avoid duplicate on /profiles (handled by useEffect)
                     if (location.pathname !== '/profiles') {
@@ -363,12 +505,6 @@ const App: React.FC = () => {
                     console.error("Failed to parse cached cards");
                 }
             }
-
-            if (savedAutoPlay !== null) setAutoPlaySound(savedAutoPlay === 'true');
-            if (savedMastery) setMasteryThreshold(parseInt(savedMastery));
-            if (savedBatchSize) setLearningBatchSize(parseInt(savedBatchSize));
-            if (savedPenalty) setLearningPenalty(parseInt(savedPenalty));
-            if (savedPace && LEARNING_PACES[savedPace]) setLearningPace(savedPace);
 
             setIsInitializing(false);
         };
@@ -1386,14 +1522,9 @@ const App: React.FC = () => {
                                         <PreferencesScreen
                                             autoPlaySound={autoPlaySound}
                                             onToggleAutoPlaySound={handleToggleAutoPlay}
-                                            masteryThreshold={masteryThreshold}
-                                            onUpdateMasteryThreshold={handleUpdateMasteryThreshold}
-                                            learningBatchSize={learningBatchSize}
-                                            onUpdateLearningBatchSize={handleUpdateLearningBatchSize}
-                                            learningPenalty={learningPenalty}
-                                            onUpdateLearningPenalty={handleUpdateLearningPenalty}
                                             learningPace={learningPace}
                                             onUpdateLearningPace={handleUpdateLearningPace}
+                                            onUpdateLanguage={handleUpdateLanguage}
                                             onLogout={handleLogout}
                                         />
                                     </div>

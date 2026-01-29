@@ -1,5 +1,12 @@
 import { db } from './firestoreService';
-import { Profile } from '../types';
+import { Profile, ProfileSettings } from '../types';
+
+const DEFAULT_SETTINGS: ProfileSettings = {
+    autoPlaySound: false,
+    masteryThreshold: 6,
+    learningPenalty: 1,
+    learningPace: 'standard'
+};
 
 class ProfileService {
     /**
@@ -47,6 +54,7 @@ class ProfileService {
                     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
                     exp: data.exp || 0,
                     level: data.level || 0,
+                    settings: data.settings || DEFAULT_SETTINGS,
                     stats: {
                         totalWords,
                         masteredWords,
@@ -67,6 +75,7 @@ class ProfileService {
                     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
                     exp: data.exp || 0,
                     level: data.level || 0,
+                    settings: data.settings || DEFAULT_SETTINGS,
                     stats: {
                         totalWords: 0,
                         masteredWords: 0,
@@ -98,6 +107,7 @@ class ProfileService {
             createdAt: now,
             exp: 0,
             level: 0,
+            settings: DEFAULT_SETTINGS,
             stats: {}
         };
 
@@ -109,9 +119,20 @@ class ProfileService {
      * updateProfile
      * Updates an existing profile.
      */
-    async updateProfile(userId: string, profileId: string, updates: { displayName?: string; avatarId?: string; exp?: number; level?: number }): Promise<void> {
+    async updateProfile(userId: string, profileId: string, updates: { displayName?: string; avatarId?: string; exp?: number; level?: number; settings?: Partial<ProfileSettings> }): Promise<void> {
         const profileRef = db.collection('users').doc(userId).collection('profiles').doc(profileId);
-        await profileRef.update(updates);
+
+        const firestoreUpdates: any = { ...updates };
+
+        // Handle settings merging using dot notation for Firestore
+        if (updates.settings) {
+            delete firestoreUpdates.settings;
+            Object.entries(updates.settings).forEach(([key, value]) => {
+                firestoreUpdates[`settings.${key}`] = value;
+            });
+        }
+
+        await profileRef.update(firestoreUpdates);
     }
 
     /**

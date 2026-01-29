@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { AuthenticatedRequest } from '../types';
+import { AuthenticatedRequest, User } from '../types';
 import { userService } from '../services/userService';
 import { JwtPayload } from 'jsonwebtoken';
 import { profileService } from '../services/profileService';
@@ -10,7 +10,6 @@ class ProfileController {
             const user = req.user as JwtPayload; // Authenticated middleware ensures this exists
 
             // Assuming the JWT structure has 'sub' as userId and optionally 'email'/'name'
-            // Adjust based on your actual auth-service JWT payload
             const userId = user.id || user.sub;
 
             if (!userId) {
@@ -65,13 +64,14 @@ class ProfileController {
             const user = req.user as JwtPayload;
             const userId = user.id || user.sub;
             const { profileId } = req.params;
-            const { displayName, avatarId, exp, level } = req.body;
+            const { displayName, avatarId, exp, level, settings } = req.body;
 
-            const updates: { displayName?: string; avatarId?: string; exp?: number; level?: number } = {};
+            const updates: { displayName?: string; avatarId?: string; exp?: number; level?: number; settings?: any } = {};
             if (displayName) updates.displayName = displayName;
             if (avatarId) updates.avatarId = avatarId;
             if (typeof exp === 'number') updates.exp = exp;
             if (typeof level === 'number') updates.level = level;
+            if (settings) updates.settings = settings;
 
             if (Object.keys(updates).length > 0) {
                 await profileService.updateProfile(userId, profileId, updates);
@@ -80,6 +80,28 @@ class ProfileController {
             res.status(200).json({ id: profileId, ...updates });
         } catch (error) {
             console.error('Error updating profile:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
+    async updateCurrentUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+        try {
+            const user = req.user as JwtPayload;
+            const userId = user.id || user.sub;
+            const { language, name, picture } = req.body;
+
+            const updates: Partial<User> = {};
+            if (language) updates.language = language;
+            if (name) updates.name = name;
+            if (picture) updates.photoURL = picture;
+
+            if (Object.keys(updates).length > 0) {
+                await userService.updateUser(userId, updates);
+            }
+
+            res.status(200).json({ id: userId, ...updates });
+        } catch (error) {
+            console.error('Error updating user:', error);
             res.status(500).json({ error: 'Internal server error' });
         }
     }

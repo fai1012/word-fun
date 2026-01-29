@@ -8,6 +8,14 @@ export interface User {
   email: string;
   name: string;
   picture: string;
+  language: string;
+}
+
+export interface ProfileSettings {
+  autoPlaySound: boolean;
+  masteryThreshold: number;
+  learningPenalty: number;
+  learningPace: 'gentle' | 'standard' | 'challenge';
 }
 
 export interface Profile {
@@ -30,6 +38,7 @@ export interface Profile {
   };
   exp: number;
   level: number;
+  settings?: ProfileSettings;
 }
 
 export interface ProfileSyncResponse {
@@ -38,6 +47,7 @@ export interface ProfileSyncResponse {
     email: string;
     name: string;
     photoURL?: string;
+    language?: string;
   };
   profiles: Profile[];
 }

@@ -37,6 +37,14 @@ export interface User {
     createdAt: Date;
     lastLoginAt: Date;
     isAdmin: boolean;
+    language: string;
+}
+
+export interface ProfileSettings {
+    autoPlaySound: boolean;
+    masteryThreshold: number;
+    learningPenalty: number;
+    learningPace: 'gentle' | 'standard' | 'challenge';
 }
 
 /**
@@ -67,6 +75,7 @@ export interface Profile {
     stats?: Record<string, any>;
     exp: number;
     level: number;
+    settings: ProfileSettings;
 }
 
 /**
