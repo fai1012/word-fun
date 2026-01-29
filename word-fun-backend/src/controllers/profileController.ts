@@ -65,13 +65,14 @@ class ProfileController {
             const user = req.user as JwtPayload;
             const userId = user.id || user.sub;
             const { profileId } = req.params;
-            const { displayName, avatarId, exp, level } = req.body;
+            const { displayName, avatarId, exp, level, settings } = req.body;
 
-            const updates: { displayName?: string; avatarId?: string; exp?: number; level?: number } = {};
+            const updates: { displayName?: string; avatarId?: string; exp?: number; level?: number; settings?: any } = {};
             if (displayName) updates.displayName = displayName;
             if (avatarId) updates.avatarId = avatarId;
             if (typeof exp === 'number') updates.exp = exp;
             if (typeof level === 'number') updates.level = level;
+            if (settings) updates.settings = settings;
 
             if (Object.keys(updates).length > 0) {
                 await profileService.updateProfile(userId, profileId, updates);

@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Profile, ProfileSyncResponse } from '../types';
+import { Profile, ProfileSyncResponse, ProfileSettings } from '../types';
 import { STORAGE_KEYS } from '../constants';
 
 import { getEnv } from '../constants';
@@ -96,7 +96,15 @@ export const deleteProfile = async (profileId: string): Promise<void> => {
     }
 };
 
-export const updateProfile = async (profileId: string, updates: { displayName?: string; avatarId?: string; exp?: number; level?: number }): Promise<Profile> => {
+export interface ProfileUpdate {
+    displayName?: string;
+    avatarId?: string;
+    exp?: number;
+    level?: number;
+    settings?: Partial<ProfileSettings>;
+}
+
+export const updateProfile = async (profileId: string, updates: ProfileUpdate): Promise<Profile> => {
     const response = await fetchWithAuth(`${BACKEND_SERVICE_URL}/api/profiles/${profileId}`, {
         method: 'PATCH',
         body: JSON.stringify(updates)

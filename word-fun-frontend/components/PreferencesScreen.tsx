@@ -7,46 +7,21 @@ import { LearningPace } from '../services/learningPaceConfig';
 interface PreferencesScreenProps {
     autoPlaySound: boolean;
     onToggleAutoPlaySound: (value: boolean) => void;
-    masteryThreshold: number;
-    onUpdateMasteryThreshold: (value: number) => void;
-    learningBatchSize: number;
-    onUpdateLearningBatchSize: (value: number) => void;
-    learningPenalty: number;
-    onUpdateLearningPenalty: (value: number) => void;
     learningPace: LearningPace;
     onUpdateLearningPace: (value: LearningPace) => void;
+    onUpdateLanguage: (value: string) => void;
     onLogout: () => void;
 }
 
 export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
     autoPlaySound,
     onToggleAutoPlaySound,
-    masteryThreshold,
-    onUpdateMasteryThreshold,
-    learningBatchSize,
-    onUpdateLearningBatchSize,
-    learningPenalty,
-    onUpdateLearningPenalty,
     learningPace,
     onUpdateLearningPace,
+    onUpdateLanguage,
     onLogout
 }) => {
-    const { t, setLanguage, language } = useI18n();
-
-    const handleBatchSizeChange = (newValue: number) => {
-        const clamped = Math.max(5, Math.min(30, newValue));
-        onUpdateLearningBatchSize(clamped);
-    };
-
-    const handleMasteryThresholdChange = (newValue: number) => {
-        const clamped = Math.max(5, Math.min(10, newValue));
-        onUpdateMasteryThreshold(clamped);
-    };
-
-    const handlePenaltyChange = (newValue: number) => {
-        const clamped = Math.max(1, Math.min(5, newValue));
-        onUpdateLearningPenalty(clamped);
-    };
+    const { t, language } = useI18n();
 
     return (
         <div className="w-full max-w-lg mx-auto px-4 pb-24 pt-8 font-rounded text-coffee">
@@ -135,7 +110,7 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                         </div>
                         <select
                             value={language}
-                            onChange={(e) => setLanguage(e.target.value)}
+                            onChange={(e) => onUpdateLanguage(e.target.value)}
                             className="p-2 bg-white text-coffee rounded-xl shadow-sm border-2 border-coffee/10 focus:outline-none focus:border-blue-200 transition-colors font-bold"
                         >
                             <option value="en">English</option>

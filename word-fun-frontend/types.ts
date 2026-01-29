@@ -10,6 +10,14 @@ export interface User {
   picture: string;
 }
 
+export interface ProfileSettings {
+  autoPlaySound: boolean;
+  masteryThreshold: number;
+  learningPenalty: number;
+  learningPace: 'gentle' | 'standard' | 'challenge';
+  language: string;
+}
+
 export interface Profile {
   id: string;
   userId: string;
@@ -30,6 +38,7 @@ export interface Profile {
   };
   exp: number;
   level: number;
+  settings?: ProfileSettings;
 }
 
 export interface ProfileSyncResponse {

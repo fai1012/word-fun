@@ -39,6 +39,14 @@ export interface User {
     isAdmin: boolean;
 }
 
+export interface ProfileSettings {
+    autoPlaySound: boolean;
+    masteryThreshold: number;
+    learningPenalty: number;
+    learningPace: 'gentle' | 'standard' | 'challenge';
+    language: string;
+}
+
 /**
  * @swagger
  * components:
@@ -67,6 +75,7 @@ export interface Profile {
     stats?: Record<string, any>;
     exp: number;
     level: number;
+    settings: ProfileSettings;
 }
 
 /**
