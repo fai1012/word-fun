@@ -1,0 +1,16 @@
+{
+    "short_name": "Word Fun",
+    "name": "認字繽紛樂 (Word Fun)",
+    "icons": [
+        {
+            "src": "https://gen-lang-client-0834078301.web.app/assets_panda-fav_favicon-200x200.png",
+            "sizes": "200x200",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#FFF9F0",
+    "background_color": "#FFF9F0"
+}
