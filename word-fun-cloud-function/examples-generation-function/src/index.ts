@@ -9,12 +9,18 @@ const db = new Firestore({
     ignoreUndefinedProperties: true,
 });
 
-// Initialize Gemini AI
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-    console.error("GEMINI_API_KEY not found in environment variables. Function will fail.");
+// Lazy initialization for GenAI
+let genAI: GoogleGenAI | null = null;
+function getGenAI() {
+    if (!genAI) {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            throw new Error("GEMINI_API_KEY not found in environment variables.");
+        }
+        genAI = new GoogleGenAI({ apiKey });
+    }
+    return genAI;
 }
-const genAI = new GoogleGenAI({ apiKey: apiKey || '' });
 
 const DAILY_EXAMPLE_LIMIT = 50;
 
@@ -82,7 +88,6 @@ ff.cloudEvent('onQueueItemCreated', async (cloudEvent: any) => {
 
         console.log(`[CloudFunc] Calling Generator: ${generatorUrl}`);
         // Call the generator function (non-blocking)
-        // We use OIDC auth if needed, but for simplicity here we assume internal access or handled by gcloud flags
         await axios.get(generatorUrl);
         console.log(`[CloudFunc] Generator called successfully.`);
     } catch (error: any) {
@@ -98,22 +103,26 @@ ff.http('processQueueBatch', async (req: ff.Request, res: ff.Response) => {
     try {
         console.log(`[CloudFunc] Starting batch processing...`);
 
-        // 1. Fetch pending items
+        // 1. Fetch pending and failed items
         const snapshot = await db.collection('example_generation_queue')
-            .where('status', '==', 'pending')
-            .limit(20)
+            .where('status', 'in', ['pending', 'failed'])
+            .limit(40) // Fetch more to allow filtering attempts
             .get();
 
-        if (snapshot.empty) {
-            console.log('[CloudFunc] No pending items in queue.');
+        const allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+        const items = allItems
+            .filter(item => item.status === 'pending' || (item.status === 'failed' && (item.attempts || 0) < 5))
+            .slice(0, 20);
+
+        if (items.length === 0) {
+            console.log('[CloudFunc] No items to process.');
             res.status(200).send('No items to process');
             return;
         }
 
-        console.log(`[CloudFunc] Processing ${snapshot.size} items...`);
+        console.log(`[CloudFunc] Processing ${items.length} items (after filtering attempts)...`);
 
         // Group by language to optimize AI calls
-        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
         const zhItems = items.filter(item => /[\u4e00-\u9fa5]/.test(item.wordText));
         const enItems = items.filter(item => !/[\u4e00-\u9fa5]/.test(item.wordText));
 
@@ -122,7 +131,7 @@ ff.http('processQueueBatch', async (req: ff.Request, res: ff.Response) => {
             processLangBatch('en', enItems)
         ]);
 
-        res.status(200).send(`Processed ${snapshot.size} items`);
+        res.status(200).send(`Processed ${items.length} items`);
 
     } catch (error: any) {
         console.error(`[CloudFunc] Batch processing failed:`, error);
@@ -168,7 +177,7 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
         }
 
         const prompt = getPromptForLanguage(language, allowedWordTexts, contextWords);
-        const result = await genAI.models.generateContent({
+        const result = await getGenAI().models.generateContent({
             model: 'gemini-2.0-flash',
             contents: prompt,
             config: {
@@ -219,9 +228,11 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
                 console.log(`[CloudFunc] Prepared update and usage increment for ${item.wordText}`);
             } else {
                 console.warn(`[CloudFunc] No examples found for ${item.wordText}`);
+                const currentAttempts = (item.attempts || 0) + 1;
                 batch.update(db.collection('example_generation_queue').doc(item.id), {
                     status: 'failed',
                     error: 'No examples generated',
+                    attempts: currentAttempts,
                     updatedAt: new Date()
                 });
             }
@@ -235,9 +246,11 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
         // Mark all as failed in this batch
         const failBatch = db.batch();
         for (const item of items) {
+            const currentAttempts = (item.attempts || 0) + 1;
             failBatch.update(db.collection('example_generation_queue').doc(item.id), {
                 status: 'failed',
                 error: error.message,
+                attempts: currentAttempts,
                 updatedAt: new Date()
             });
         }
