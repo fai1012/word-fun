@@ -1,8 +1,6 @@
 import * as ff from '@google-cloud/functions-framework';
 import { Firestore } from '@google-cloud/firestore';
 import { GoogleGenAI, Type } from "@google/genai";
-import { GoogleAuth } from 'google-auth-library';
-import axios from 'axios';
 
 // Initialize Firestore
 const db = new Firestore({
@@ -70,34 +68,9 @@ async function incrementUserUsage(userId: string) {
     });
 }
 
-/**
- * 1. TRIGGER FUNCTION: Listen to Firestore onCreate.
- * Degounces the trigger by waiting 10 seconds before calling the Generator.
- */
-ff.cloudEvent('onQueueItemCreated', async (cloudEvent: any) => {
-    console.log(`[CloudFunc] onQueueItemCreated triggered. Waiting 10s to debounce...`);
-
-    // Wait for 10 seconds to allow more words in the same batch
-    await new Promise(resolve => setTimeout(resolve, 10000));
-
-    try {
-        const generatorUrl = process.env.GENERATOR_URL;
-        if (!generatorUrl) {
-            console.error('GENERATOR_URL not set in environment variables');
-            return;
-        }
-
-        console.log(`[CloudFunc] Calling Generator: ${generatorUrl}`);
-        // Call the generator function (non-blocking)
-        await axios.get(generatorUrl);
-        console.log(`[CloudFunc] Generator called successfully.`);
-    } catch (error: any) {
-        console.error(`[CloudFunc] Error calling Generator:`, error.message);
-    }
-});
 
 /**
- * 2. GENERATOR FUNCTION: Processes all pending items in 'example_generation_queue'.
+ * GENERATOR FUNCTION: Processes all pending items in 'example_generation_queue'.
  * HTTP Triggered.
  */
 ff.http('processQueueBatch', async (req: ff.Request, res: ff.Response) => {
