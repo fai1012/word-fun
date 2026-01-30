@@ -1,7 +1,7 @@
 import * as ff from '@google-cloud/functions-framework';
 import { Firestore } from '@google-cloud/firestore';
 import { GoogleGenAI, Type } from "@google/genai";
-import axios from 'axios';
+import { GoogleAuth } from 'google-auth-library';
 
 // Initialize Firestore
 const db = new Firestore({
@@ -9,39 +9,18 @@ const db = new Firestore({
     ignoreUndefinedProperties: true,
 });
 
-// Initialize Gemini AI
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-    console.error("GEMINI_API_KEY not found in environment variables. Function will fail.");
-}
-const genAI = new GoogleGenAI({ apiKey: apiKey || '' });
-
-/**
- * 1. TRIGGER FUNCTION: Listen to Firestore onCreate.
- * Degounces the trigger by waiting 10 seconds before calling the Generator.
- */
-ff.cloudEvent('onQueueItemCreated', async (cloudEvent: any) => {
-    console.log(`[CloudFunc] onQueueItemCreated triggered. Waiting 10s to debounce...`);
-
-    // Wait for 10 seconds to allow more words in the same batch
-    await new Promise(resolve => setTimeout(resolve, 10000));
-
-    try {
-        const generatorUrl = process.env.GENERATOR_URL;
-        if (!generatorUrl) {
-            console.error('GENERATOR_URL not set in environment variables');
-            return;
+// Lazy initialization for GenAI
+let genAI: GoogleGenAI | null = null;
+function getGenAI() {
+    if (!genAI) {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            throw new Error("GEMINI_API_KEY not found in environment variables.");
         }
-
-        console.log(`[CloudFunc] Calling Generator: ${generatorUrl}`);
-        // Call the generator function (non-blocking)
-        // We use OIDC auth if needed, but for simplicity here we assume internal access or handled by gcloud flags
-        await axios.get(generatorUrl);
-        console.log(`[CloudFunc] Generator called successfully.`);
-    } catch (error: any) {
-        console.error(`[CloudFunc] Error calling Generator:`, error.message);
+        genAI = new GoogleGenAI({ apiKey });
     }
-});
+    return genAI;
+}
 
 /**
  * 2. GENERATOR FUNCTION: Processes all pending items in 'example_generation_queue'.
@@ -51,22 +30,26 @@ ff.http('processQueueBatch', async (req: ff.Request, res: ff.Response) => {
     try {
         console.log(`[CloudFunc] Starting batch processing...`);
 
-        // 1. Fetch pending items
+        // 1. Fetch pending and failed items
         const snapshot = await db.collection('example_generation_queue')
-            .where('status', '==', 'pending')
-            .limit(20)
+            .where('status', 'in', ['pending', 'failed'])
+            .limit(40) // Fetch more to allow filtering attempts
             .get();
 
-        if (snapshot.empty) {
-            console.log('[CloudFunc] No pending items in queue.');
+        const allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+        const items = allItems
+            .filter(item => item.status === 'pending' || (item.status === 'failed' && (item.attempts || 0) < 5))
+            .slice(0, 20);
+
+        if (items.length === 0) {
+            console.log('[CloudFunc] No items to process.');
             res.status(200).send('No items to process');
             return;
         }
 
-        console.log(`[CloudFunc] Processing ${snapshot.size} items...`);
+        console.log(`[CloudFunc] Processing ${items.length} items (after filtering attempts)...`);
 
         // Group by language to optimize AI calls
-        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
         const zhItems = items.filter(item => /[\u4e00-\u9fa5]/.test(item.wordText));
         const enItems = items.filter(item => !/[\u4e00-\u9fa5]/.test(item.wordText));
 
@@ -102,7 +85,7 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
         }
 
         const prompt = getPromptForLanguage(language, wordTexts, contextWords);
-        const result = await genAI.models.generateContent({
+        const result = await getGenAI().models.generateContent({
             model: 'gemini-2.0-flash',
             contents: prompt,
             config: {
@@ -149,9 +132,11 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
                 console.log(`[CloudFunc] Prepared update for ${item.wordText}`);
             } else {
                 console.warn(`[CloudFunc] No examples found for ${item.wordText}`);
+                const currentAttempts = (item.attempts || 0) + 1;
                 batch.update(db.collection('example_generation_queue').doc(item.id), {
                     status: 'failed',
                     error: 'No examples generated',
+                    attempts: currentAttempts,
                     updatedAt: new Date()
                 });
             }
@@ -165,9 +150,11 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
         // Mark all as failed in this batch
         const failBatch = db.batch();
         for (const item of items) {
+            const currentAttempts = (item.attempts || 0) + 1;
             failBatch.update(db.collection('example_generation_queue').doc(item.id), {
                 status: 'failed',
                 error: error.message,
+                attempts: currentAttempts,
                 updatedAt: new Date()
             });
         }

@@ -1,26 +1,25 @@
 #!/bin/bash
+set -e
 
 # Configuration
-SERVICE_NAME="examples-gen-batch" # Slightly shorter name
 REGION="asia-east1" 
-ENTRY_POINT="processQueueBatch"
 PROJECT_ID=$(gcloud config get-value project)
-# SERVICE_ACCOUNT="your-sa-name@$PROJECT_ID.iam.gserviceaccount.com"
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
 
-echo "Deploying $SERVICE_NAME to project $PROJECT_ID in region $REGION..."
+# 1. Check for Gemini API Key
+if [ -z "$GEMINI_API_KEY" ]; then
+  echo "WARNING: GEMINI_API_KEY is not set in your shell."
+  echo "The Generator function will be deployed but will fail at runtime until the key is set."
+fi
 
-cd "$(dirname "$0")"
+# Enable necessary APIs
+echo "Enabling APIs..."
+gcloud services enable cloudscheduler.googleapis.com cloudfunctions.googleapis.com
 
 echo "Building..."
 npm run build
 
-if [ -z "$GEMINI_API_KEY" ]; then
-  echo "ERROR: GEMINI_API_KEY environment variable is not set."
-  echo "Please set it before running this script: export GEMINI_API_KEY=your_actual_key"
-  exit 1
-fi
-
-# 1. Deploy Generator Function (HTTP)
+# 2. Deploy Generator Function (HTTP)
 SERVICE_GEN="examples-gen-batch"
 ENTRY_GEN="processQueueBatch"
 
@@ -37,29 +36,40 @@ gcloud functions deploy $SERVICE_GEN \
   ${SERVICE_ACCOUNT:+--service-account=$SERVICE_ACCOUNT} \
   --no-allow-unauthenticated
 
-# Get the URL of the deployed generator
-GENERATOR_URL=$(gcloud functions describe $SERVICE_GEN --region=$REGION --format='value(url)' --gen2)
+# Get Generator URL
+GENERATOR_URL=$(gcloud functions describe $SERVICE_GEN --region=$REGION --format='value(serviceConfig.uri)' --gen2)
 
-# 2. Deploy Trigger Function (Firestore onCreate)
-SERVICE_TRIGGER="examples-gen-trigger"
-ENTRY_TRIGGER="onQueueItemCreated"
-DB_ID="word-fun"
-DB_REGION="asia-east2"
+# 3. Setup Scheduler
+echo "Setting up Cloud Scheduler..."
 
-echo "Deploying Trigger $SERVICE_TRIGGER..."
-gcloud functions deploy $SERVICE_TRIGGER \
-  --gen2 \
-  --runtime=nodejs20 \
+# Grant Invoker permission to the default App Engine service account (used by Scheduler by default if none specified)
+# Or better, use specific service account if provided
+SCHEDULER_SA="${SERVICE_ACCOUNT:-$PROJECT_ID@appspot.gserviceaccount.com}"
+
+echo "Granting invoker permission to $SCHEDULER_SA for $SERVICE_GEN..."
+gcloud functions add-invoker-policy-binding $SERVICE_GEN \
   --region=$REGION \
-  --source=. \
-  --entry-point=$ENTRY_TRIGGER \
-  --trigger-event-filters="type=google.cloud.firestore.document.v1.created" \
-  --trigger-event-filters="database=$DB_ID" \
-  --trigger-event-filters="document=example_generation_queue/{docId}" \
-  --trigger-location=$DB_REGION \
-  --set-env-vars GENERATOR_URL=$GENERATOR_URL,FIRESTORE_DB_NAME=$DB_ID \
-  ${SERVICE_ACCOUNT:+--service-account=$SERVICE_ACCOUNT} \
-  --no-allow-unauthenticated
+  --member="serviceAccount:$SCHEDULER_SA" \
+  --quiet > /dev/null
 
+JOB_NAME="examples-gen-cron"
+SCHEDULE="* * * * *" # Every minute (Scheduler minimum)
+
+# Delete existing job if any to ensure clean update
+gcloud scheduler jobs delete $JOB_NAME --location=$REGION --quiet || true
+
+echo "Creating Scheduler Job: $JOB_NAME ($SCHEDULE)..."
+gcloud scheduler jobs create http $JOB_NAME \
+  --location=$REGION \
+  --schedule="$SCHEDULE" \
+  --uri="$GENERATOR_URL" \
+  --oidc-service-account-email="$SCHEDULER_SA" \
+  --http-method=GET
+
+echo "------------------------------------------------"
 echo "Deployment complete!"
 echo "Generator URL: $GENERATOR_URL"
+echo "Scheduler Job: $JOB_NAME"
+echo "------------------------------------------------"
+echo "To trigger manually now:"
+echo "gcloud scheduler jobs execute $JOB_NAME --location=$REGION"
