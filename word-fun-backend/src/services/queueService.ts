@@ -6,6 +6,13 @@ import { userService } from './userService';
 
 const COLLECTION_NAME = 'example_generation_queue';
 
+const getRetryDelayMinutes = (attempts: number): number => {
+    if (attempts <= 1) return 1;
+    if (attempts <= 5) return Math.round(1 + (attempts - 1) * (14 / 4)); // 1, 5, 8, 12, 15
+    if (attempts <= 10) return Math.round(15 + (attempts - 5) * (45 / 5)); // 15, 24, 33, 42, 51, 60
+    return 60;
+};
+
 export const queueService = {
     /**
      * Adds a word to the generation queue if it's not already there.
@@ -36,6 +43,7 @@ export const queueService = {
             profileId,
             status: 'pending',
             createdAt: new Date(),
+            updatedAt: new Date(),
             attempts: 0
         };
 
@@ -84,14 +92,11 @@ export const queueService = {
                 await recoverBatch.commit();
             }
 
-            // 2. Fetch pending items
-            // NOTE: orderBy('createdAt') requires a composite index: status ASC, createdAt ASC
-            // If the index is missing, this query will fail. 
-            // We wrap it in a try-catch to allow the system to function even if index is missing (falling back to unordered or just failing gracefully).
+            // 2. Fetch pending and failed items
             const snapshot = await db.collection(COLLECTION_NAME)
-                .where('status', '==', 'pending')
-                .orderBy('createdAt', 'asc')
-                .limit(5)
+                .where('status', 'in', ['pending', 'failed'])
+                .orderBy('createdAt', 'asc') // This might still require index for 'in' + 'orderBy'
+                .limit(50)
                 .get();
 
             if (snapshot.empty) return;
@@ -101,10 +106,28 @@ export const queueService = {
             const batch = db.batch();
             const itemsToProcess: { docId: string; data: QueueItem }[] = [];
 
+            const now = Date.now();
             for (const doc of snapshot.docs) {
                 const data = doc.data() as QueueItem;
-                batch.update(doc.ref, { status: 'processing', startedAt: new Date() });
-                itemsToProcess.push({ docId: doc.id, data });
+
+                // Filtering logic same as cloud function
+                let shouldProcess = false;
+                if (data.status === 'pending') {
+                    shouldProcess = true;
+                } else if (data.status === 'failed') {
+                    const attempts = data.attempts || 0;
+                    const updatedAt = (data.updatedAt as any)?.toDate ? (data.updatedAt as any).toDate() : (data.updatedAt ? new Date(data.updatedAt) : new Date(0));
+                    const waitMillis = getRetryDelayMinutes(attempts) * 60 * 1000;
+                    if (now - updatedAt.getTime() >= waitMillis) {
+                        shouldProcess = true;
+                    }
+                }
+
+                if (shouldProcess) {
+                    batch.update(doc.ref, { status: 'processing', startedAt: new Date() });
+                    itemsToProcess.push({ docId: doc.id, data });
+                    if (itemsToProcess.length >= 5) break;
+                }
             }
             await batch.commit();
 
@@ -222,23 +245,14 @@ export const queueService = {
             console.error(`[Queue] Failed to process ${item.wordText}`, error);
 
             const attempts = (item.attempts || 0) + 1;
-            if (attempts >= 3) {
-                await db.collection(COLLECTION_NAME).doc(docId).update({
-                    status: 'failed',
-                    error: error.message,
-                    attempts,
-                    startedAt: null
-                });
-            } else {
-                console.log(`[Queue] Retrying ${item.wordText} later (Attempt ${attempts})`);
-                await db.collection(COLLECTION_NAME).doc(docId).update({
-                    status: 'pending',
-                    attempts,
-                    error: error.message,
-                    createdAt: new Date(),
-                    startedAt: null
-                });
-            }
+            console.log(`[Queue] Marking ${item.wordText} as failed (Attempt ${attempts})`);
+            await db.collection(COLLECTION_NAME).doc(docId).update({
+                status: 'failed',
+                error: error.message,
+                attempts,
+                updatedAt: new Date(),
+                startedAt: null
+            });
         }
     }
 };

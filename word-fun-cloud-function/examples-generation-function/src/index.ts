@@ -68,6 +68,13 @@ async function incrementUserUsage(userId: string) {
     });
 }
 
+function getRetryDelayMinutes(attempts: number): number {
+    if (attempts <= 1) return 1;
+    if (attempts <= 5) return Math.round(1 + (attempts - 1) * (14 / 4)); // 1, 5, 8, 12, 15
+    if (attempts <= 10) return Math.round(15 + (attempts - 5) * (45 / 5)); // 15, 24, 33, 42, 51, 60
+    return 60;
+}
+
 
 /**
  * GENERATOR FUNCTION: Processes all pending items in 'example_generation_queue'.
@@ -85,7 +92,16 @@ ff.http('processQueueBatch', async (req: ff.Request, res: ff.Response) => {
 
         const allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
         const items = allItems
-            .filter(item => item.status === 'pending' || (item.status === 'failed' && (item.attempts || 0) < 5))
+            .filter(item => {
+                if (item.status === 'pending') return true;
+                if (item.status === 'failed') {
+                    const attempts = item.attempts || 0;
+                    const updatedAt = item.updatedAt?.toDate() || new Date(0);
+                    const waitMillis = getRetryDelayMinutes(attempts) * 60 * 1000;
+                    return (Date.now() - updatedAt.getTime()) >= waitMillis;
+                }
+                return false;
+            })
             .slice(0, 20);
 
         if (items.length === 0) {
