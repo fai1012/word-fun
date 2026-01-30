@@ -1,6 +1,7 @@
 import * as ff from '@google-cloud/functions-framework';
 import { Firestore } from '@google-cloud/firestore';
 import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleAuth } from 'google-auth-library';
 import axios from 'axios';
 
 // Initialize Firestore
