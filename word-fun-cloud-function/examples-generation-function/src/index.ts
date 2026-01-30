@@ -1,0 +1,227 @@
+import * as ff from '@google-cloud/functions-framework';
+import { Firestore } from '@google-cloud/firestore';
+import { GoogleGenAI, Type } from "@google/genai";
+import axios from 'axios';
+
+// Initialize Firestore
+const db = new Firestore({
+    databaseId: process.env.FIRESTORE_DB_NAME || 'word-fun',
+    ignoreUndefinedProperties: true,
+});
+
+// Initialize Gemini AI
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+    console.error("GEMINI_API_KEY not found in environment variables. Function will fail.");
+}
+const genAI = new GoogleGenAI({ apiKey: apiKey || '' });
+
+/**
+ * 1. TRIGGER FUNCTION: Listen to Firestore onCreate.
+ * Degounces the trigger by waiting 10 seconds before calling the Generator.
+ */
+ff.cloudEvent('onQueueItemCreated', async (cloudEvent: any) => {
+    console.log(`[CloudFunc] onQueueItemCreated triggered. Waiting 10s to debounce...`);
+
+    // Wait for 10 seconds to allow more words in the same batch
+    await new Promise(resolve => setTimeout(resolve, 10000));
+
+    try {
+        const generatorUrl = process.env.GENERATOR_URL;
+        if (!generatorUrl) {
+            console.error('GENERATOR_URL not set in environment variables');
+            return;
+        }
+
+        console.log(`[CloudFunc] Calling Generator: ${generatorUrl}`);
+        // Call the generator function (non-blocking)
+        // We use OIDC auth if needed, but for simplicity here we assume internal access or handled by gcloud flags
+        await axios.get(generatorUrl);
+        console.log(`[CloudFunc] Generator called successfully.`);
+    } catch (error: any) {
+        console.error(`[CloudFunc] Error calling Generator:`, error.message);
+    }
+});
+
+/**
+ * 2. GENERATOR FUNCTION: Processes all pending items in 'example_generation_queue'.
+ * HTTP Triggered.
+ */
+ff.http('processQueueBatch', async (req: ff.Request, res: ff.Response) => {
+    try {
+        console.log(`[CloudFunc] Starting batch processing...`);
+
+        // 1. Fetch pending items
+        const snapshot = await db.collection('example_generation_queue')
+            .where('status', '==', 'pending')
+            .limit(20)
+            .get();
+
+        if (snapshot.empty) {
+            console.log('[CloudFunc] No pending items in queue.');
+            res.status(200).send('No items to process');
+            return;
+        }
+
+        console.log(`[CloudFunc] Processing ${snapshot.size} items...`);
+
+        // Group by language to optimize AI calls
+        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+        const zhItems = items.filter(item => /[\u4e00-\u9fa5]/.test(item.wordText));
+        const enItems = items.filter(item => !/[\u4e00-\u9fa5]/.test(item.wordText));
+
+        await Promise.all([
+            processLangBatch('zh', zhItems),
+            processLangBatch('en', enItems)
+        ]);
+
+        res.status(200).send(`Processed ${snapshot.size} items`);
+
+    } catch (error: any) {
+        console.error(`[CloudFunc] Batch processing failed:`, error);
+        res.status(500).send(error.message);
+    }
+});
+
+async function processLangBatch(language: 'zh' | 'en', items: any[]) {
+    if (items.length === 0) return;
+
+    const wordTexts = items.map(i => i.wordText);
+    console.log(`[CloudFunc] Generating examples for ${language} batch: ${wordTexts.join(', ')}`);
+
+    try {
+        // Fetch context words from first user's profile
+        const firstItem = items[0];
+        let contextWords: string[] = [];
+        try {
+            const wordsColl = db.collection('users').doc(firstItem.userId).collection('profiles').doc(firstItem.profileId).collection('words');
+            const contextSnap = await wordsColl.limit(50).get();
+            contextWords = contextSnap.docs.map(doc => doc.data().text as string).filter(Boolean);
+        } catch (e) {
+            console.warn("[CloudFunc] Context fetch failed, skipping context.");
+        }
+
+        const prompt = getPromptForLanguage(language, wordTexts, contextWords);
+        const result = await genAI.models.generateContent({
+            model: 'gemini-2.0-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            character: { type: Type.STRING },
+                            examples: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        chinese: { type: Type.STRING }
+                                    },
+                                    required: ["chinese"]
+                                }
+                            }
+                        },
+                        required: ["character", "examples"],
+                    },
+                },
+            },
+        });
+
+        const generatedData = JSON.parse(result.text || '[]') as any[];
+        const generatedMap = new Map(generatedData.map(d => [d.character, d]));
+
+        const batch = db.batch();
+
+        for (const item of items) {
+            const gen = generatedMap.get(item.wordText);
+            if (gen && gen.examples) {
+                const examples = gen.examples.map((ex: any) => ({
+                    chinese: ex.chinese,
+                    english: ''
+                }));
+
+                const wordRef = db.collection('users').doc(item.userId).collection('profiles').doc(item.profileId).collection('words').doc(item.wordId);
+                batch.update(wordRef, { examples });
+                batch.delete(db.collection('example_generation_queue').doc(item.id));
+                console.log(`[CloudFunc] Prepared update for ${item.wordText}`);
+            } else {
+                console.warn(`[CloudFunc] No examples found for ${item.wordText}`);
+                batch.update(db.collection('example_generation_queue').doc(item.id), {
+                    status: 'failed',
+                    error: 'No examples generated',
+                    updatedAt: new Date()
+                });
+            }
+        }
+
+        await batch.commit();
+        console.log(`[CloudFunc] Committed updates for ${language} batch.`);
+
+    } catch (error: any) {
+        console.error(`[CloudFunc] Failed to process ${language} batch:`, error);
+        // Mark all as failed in this batch
+        const failBatch = db.batch();
+        for (const item of items) {
+            failBatch.update(db.collection('example_generation_queue').doc(item.id), {
+                status: 'failed',
+                error: error.message,
+                updatedAt: new Date()
+            });
+        }
+        await failBatch.commit();
+    }
+}
+
+function getPromptForLanguage(language: 'zh' | 'en', words: string[], contextWords: string[] = []): string {
+    const filteredContext = contextWords.filter(w => {
+        if (language === 'zh') return /[\u4e00-\u9fa5]/.test(w);
+        if (language === 'en') return /[a-zA-Z]/.test(w) && !/[\u4e00-\u9fa5]/.test(w);
+        return false;
+    });
+
+    const contextSection = filteredContext.length > 0 ? `
+            EXISTING VOCABULARY CONTEXT (Try to use these words in examples):
+            ${filteredContext.join(", ")}` : '';
+
+    if (language === 'zh') {
+        return `Generate flashcard content for the following Chinese words.
+            
+            TARGET WORDS:
+            ${JSON.stringify(words)}
+            ${contextSection}
+            
+            REQUIREMENTS:
+            1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
+            2. Examples:
+               - Create 3 distinct sentences for each word.
+               - Sentences must be simple, relatable to a 6-7 year old living in HK.
+               - LANGUAGE: STRICTLY Traditional Chinese (Standard Written Chinese / 書面語). 
+               - FORBIDDEN: 
+                 - NO colloquial Cantonese (口語).
+                 - NO English translations inside the content.
+                 - NO Pinyin or Jyutping.
+                 - NO auxiliary notes or explanations in parentheses.
+            3. Return JSON Array.`;
+    } else {
+        return `Generate flashcard content for the following English words.
+            
+            TARGET WORDS:
+            ${JSON.stringify(words)}
+            ${contextSection}
+            
+            REQUIREMENTS:
+            1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
+            2. Examples:
+               - Create 3 distinct sentences for each word.
+               - Sentences must be simple, relatable to a 6-7 year old living in HK.
+               - LANGUAGE: STRICTLY British English.
+               - FORBIDDEN: 
+                 - NO Chinese translations inside the content.
+                 - NO Pinyin or Jyutping romanization.
+                 - NO auxiliary notes or explanations in parentheses.
+            3. Return JSON Array.`;
+    }
+}
