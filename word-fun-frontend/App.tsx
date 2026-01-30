@@ -10,7 +10,7 @@ import {
 import { loginWithGoogle } from './services/authService';
 import { updateProfile, createProfile, batchAddWords, fetchProfileWords, updateWord, deleteWord, syncAndGetProfiles, updateUser } from './services/profileService';
 import { LearningPace, LEARNING_PACES, DEFAULT_LEARNING_PACE, getRandomBatchSize } from './services/learningPaceConfig';
-import { i18n } from './services/i18nService';
+import { i18n, useI18n } from './services/i18nService';
 import { addToQueue } from './services/queueService';
 import { HomeScreen } from './components/HomeScreen';
 import { Flashcard } from './components/Flashcard';
@@ -39,7 +39,7 @@ const App: React.FC = () => {
     const location = useLocation();
 
     // Global App State
-    const { t } = i18n; // Use direct i18n.t here because it's the root component and many hooks are below it
+    const { t, isI18nInitialized } = useI18n();
     const [user, setUser] = useState<User | null>(null);
     const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
     const [profiles, setProfiles] = useState<Profile[]>([]); // Hoisted profiles state
@@ -1334,7 +1334,7 @@ const App: React.FC = () => {
                     <div className="relative w-16 h-16 border-4 border-coffee border-t-salmon rounded-full animate-spin"></div>
                 </div>
                 <div className="text-coffee font-bold text-xl animate-pulse">
-                    {t('common.loading_fun')}
+                    {isI18nInitialized ? t('common.loading_fun') : ''}
                 </div>
             </div>
         );
