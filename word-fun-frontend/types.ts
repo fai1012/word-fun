@@ -9,6 +9,12 @@ export interface User {
   name: string;
   picture: string;
   language: string;
+  rateUsage?: {
+    exampleGeneration: {
+      lastResetDate: string; // YYYY-MM-DD
+      count: number;
+    };
+  };
 }
 
 export interface ProfileSettings {
@@ -48,6 +54,12 @@ export interface ProfileSyncResponse {
     name: string;
     photoURL?: string;
     language?: string;
+    rateUsage?: {
+      exampleGeneration: {
+        lastResetDate: string;
+        count: number;
+      };
+    };
   };
   profiles: Profile[];
 }

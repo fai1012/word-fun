@@ -16,6 +16,53 @@ if (!apiKey) {
 }
 const genAI = new GoogleGenAI({ apiKey: apiKey || '' });
 
+const DAILY_EXAMPLE_LIMIT = 50;
+
+async function getUserUsage(userId: string): Promise<{ count: number, allowed: boolean }> {
+    const userRef = db.collection('users').doc(userId);
+    const doc = await userRef.get();
+    if (!doc.exists) return { count: 0, allowed: true };
+
+    const userData = doc.data() as any;
+    const today = new Date().toISOString().split('T')[0];
+    const usage = userData.rateUsage?.exampleGeneration;
+
+    if (!usage || usage.lastResetDate !== today) {
+        return { count: 0, allowed: true };
+    }
+
+    return {
+        count: usage.count,
+        allowed: usage.count < DAILY_EXAMPLE_LIMIT
+    };
+}
+
+async function incrementUserUsage(userId: string) {
+    const userRef = db.collection('users').doc(userId);
+    const today = new Date().toISOString().split('T')[0];
+
+    await db.runTransaction(async (transaction) => {
+        const doc = await transaction.get(userRef);
+        if (!doc.exists) return;
+
+        const userData = doc.data() as any;
+        const usage = userData.rateUsage?.exampleGeneration;
+
+        if (!usage || usage.lastResetDate !== today) {
+            transaction.update(userRef, {
+                'rateUsage.exampleGeneration': {
+                    lastResetDate: today,
+                    count: 1
+                }
+            });
+        } else {
+            transaction.update(userRef, {
+                'rateUsage.exampleGeneration.count': usage.count + 1
+            });
+        }
+    });
+}
+
 /**
  * 1. TRIGGER FUNCTION: Listen to Firestore onCreate.
  * Degounces the trigger by waiting 10 seconds before calling the Generator.
@@ -90,8 +137,27 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
     console.log(`[CloudFunc] Generating examples for ${language} batch: ${wordTexts.join(', ')}`);
 
     try {
+        // Filter items based on usage limit
+        const allowedItems = [];
+        for (const item of items) {
+            const { count, allowed } = await getUserUsage(item.userId);
+            if (allowed) {
+                allowedItems.push(item);
+            } else {
+                console.log(`[CloudFunc] Skipping ${item.wordText} for user ${item.userId} - Daily limit reached (${count})`);
+                // Leave as pending in queue
+            }
+        }
+
+        if (allowedItems.length === 0) {
+            console.log(`[CloudFunc] No items allowed for ${language} batch processing after usage check.`);
+            return;
+        }
+
+        const allowedWordTexts = allowedItems.map(i => i.wordText);
+
         // Fetch context words from first user's profile
-        const firstItem = items[0];
+        const firstItem = allowedItems[0];
         let contextWords: string[] = [];
         try {
             const wordsColl = db.collection('users').doc(firstItem.userId).collection('profiles').doc(firstItem.profileId).collection('words');
@@ -101,7 +167,7 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
             console.warn("[CloudFunc] Context fetch failed, skipping context.");
         }
 
-        const prompt = getPromptForLanguage(language, wordTexts, contextWords);
+        const prompt = getPromptForLanguage(language, allowedWordTexts, contextWords);
         const result = await genAI.models.generateContent({
             model: 'gemini-2.0-flash',
             contents: prompt,
@@ -135,7 +201,7 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
 
         const batch = db.batch();
 
-        for (const item of items) {
+        for (const item of allowedItems) {
             const gen = generatedMap.get(item.wordText);
             if (gen && gen.examples) {
                 const examples = gen.examples.map((ex: any) => ({
@@ -146,7 +212,11 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
                 const wordRef = db.collection('users').doc(item.userId).collection('profiles').doc(item.profileId).collection('words').doc(item.wordId);
                 batch.update(wordRef, { examples });
                 batch.delete(db.collection('example_generation_queue').doc(item.id));
-                console.log(`[CloudFunc] Prepared update for ${item.wordText}`);
+
+                // Increment usage
+                await incrementUserUsage(item.userId);
+
+                console.log(`[CloudFunc] Prepared update and usage increment for ${item.wordText}`);
             } else {
                 console.warn(`[CloudFunc] No examples found for ${item.wordText}`);
                 batch.update(db.collection('example_generation_queue').doc(item.id), {

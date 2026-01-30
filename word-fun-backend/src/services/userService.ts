@@ -46,6 +46,52 @@ class UserService {
     async updateUser(userId: string, updates: Partial<User>): Promise<void> {
         await db.collection(COLLECTION_NAME).doc(userId).update(updates);
     }
+
+    async getUsage(userId: string): Promise<{ count: number, allowed: boolean }> {
+        const userRef = db.collection(COLLECTION_NAME).doc(userId);
+        const doc = await userRef.get();
+        if (!doc.exists) return { count: 0, allowed: true };
+
+        const userData = doc.data() as User;
+        const today = new Date().toISOString().split('T')[0];
+        const usage = userData.rateUsage?.exampleGeneration;
+
+        if (!usage || usage.lastResetDate !== today) {
+            return { count: 0, allowed: true };
+        }
+
+        const { DAILY_EXAMPLE_LIMIT } = require('../config');
+        return {
+            count: usage.count,
+            allowed: usage.count < DAILY_EXAMPLE_LIMIT
+        };
+    }
+
+    async incrementUsage(userId: string): Promise<void> {
+        const userRef = db.collection(COLLECTION_NAME).doc(userId);
+        const today = new Date().toISOString().split('T')[0];
+
+        await db.runTransaction(async (transaction) => {
+            const doc = await transaction.get(userRef);
+            if (!doc.exists) return;
+
+            const userData = doc.data() as User;
+            const usage = userData.rateUsage?.exampleGeneration;
+
+            if (!usage || usage.lastResetDate !== today) {
+                transaction.update(userRef, {
+                    'rateUsage.exampleGeneration': {
+                        lastResetDate: today,
+                        count: 1
+                    }
+                });
+            } else {
+                transaction.update(userRef, {
+                    'rateUsage.exampleGeneration.count': usage.count + 1
+                });
+            }
+        });
+    }
 }
 
 export const userService = new UserService();

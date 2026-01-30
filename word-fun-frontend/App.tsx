@@ -248,20 +248,30 @@ const App: React.FC = () => {
             const data = await syncAndGetProfiles();
             setProfiles(data.profiles);
             // Ensure global user state has the ID and latest info from backend
-            if (data.user && (user?.id !== data.user.id || user?.language !== data.user.language)) {
+            if (data.user) {
                 const updatedUser: User = {
                     id: data.user.id,
                     email: data.user.email,
                     name: data.user.name,
                     picture: data.user.photoURL || user?.picture || '',
-                    language: data.user.language || 'zh'
+                    language: data.user.language || 'zh',
+                    rateUsage: data.user.rateUsage
                 };
-                setUser(updatedUser);
-                localStorage.setItem('word_fun_user', JSON.stringify(updatedUser));
 
-                // Keep i18n in sync with user language
-                if (updatedUser.language && updatedUser.language !== i18n.getLanguage()) {
-                    i18n.setLanguage(updatedUser.language);
+                // Compare with current user to avoid unnecessary state updates if nothing changed
+                const hasChanged = !user ||
+                    user.id !== updatedUser.id ||
+                    user.language !== updatedUser.language ||
+                    JSON.stringify(user.rateUsage) !== JSON.stringify(updatedUser.rateUsage);
+
+                if (hasChanged) {
+                    setUser(updatedUser);
+                    localStorage.setItem('word_fun_user', JSON.stringify(updatedUser));
+
+                    // Keep i18n in sync with user language
+                    if (updatedUser.language && updatedUser.language !== i18n.getLanguage()) {
+                        i18n.setLanguage(updatedUser.language);
+                    }
                 }
             }
 
@@ -514,7 +524,7 @@ const App: React.FC = () => {
 
     // Refresh profiles when visiting the selection screen to update stats
     useEffect(() => {
-        if (user && location.pathname === '/profiles') {
+        if (user && (location.pathname === '/profiles' || location.pathname.includes('/settings'))) {
             loadAllProfiles();
         }
     }, [location.pathname, user?.id]);
@@ -1520,6 +1530,7 @@ const App: React.FC = () => {
                                 >
                                     <div className="flex-1 overflow-y-auto">
                                         <PreferencesScreen
+                                            user={user}
                                             autoPlaySound={autoPlaySound}
                                             onToggleAutoPlaySound={handleToggleAutoPlay}
                                             learningPace={learningPace}
