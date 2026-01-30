@@ -38,11 +38,12 @@ export const queueService = {
             attempts: 0
         };
 
-        await db.collection(COLLECTION_NAME).add(newItem);
-        console.log(`[Queue] Added ${wordText} (${wordId}) to queue.`);
+        await db.collection(COLLECTION_NAME).doc(wordId).set(newItem);
+        console.log(`[Queue] Set ${wordText} (${wordId}) in queue. (Cloud Function will process)`);
 
         // 3. Trigger processing (non-blocking)
-        this.processQueue().catch(err => console.error("Queue processing error", err));
+        // Local processing removed in favor of Cloud Function
+        // this.processQueue().catch(err => console.error("Queue processing error", err));
     },
 
     /**
