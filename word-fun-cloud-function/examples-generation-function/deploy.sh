@@ -35,7 +35,7 @@ gcloud functions deploy $SERVICE_GEN \
   --max-instances=1 \
   --set-env-vars GEMINI_API_KEY=$GEMINI_API_KEY,FIRESTORE_DB_NAME=word-fun \
   ${SERVICE_ACCOUNT:+--service-account=$SERVICE_ACCOUNT} \
-  --allow-unauthenticated=false
+  --no-allow-unauthenticated
 
 # Get the URL of the deployed generator
 GENERATOR_URL=$(gcloud functions describe $SERVICE_GEN --region=$REGION --format='value(url)' --gen2)
@@ -43,6 +43,8 @@ GENERATOR_URL=$(gcloud functions describe $SERVICE_GEN --region=$REGION --format
 # 2. Deploy Trigger Function (Firestore onCreate)
 SERVICE_TRIGGER="examples-gen-trigger"
 ENTRY_TRIGGER="onQueueItemCreated"
+DB_ID="word-fun"
+DB_REGION="asia-east2"
 
 echo "Deploying Trigger $SERVICE_TRIGGER..."
 gcloud functions deploy $SERVICE_TRIGGER \
@@ -52,12 +54,12 @@ gcloud functions deploy $SERVICE_TRIGGER \
   --source=. \
   --entry-point=$ENTRY_TRIGGER \
   --trigger-event-filters="type=google.cloud.firestore.document.v1.created" \
-  --trigger-event-filters="database=(default)" \
+  --trigger-event-filters="database=$DB_ID" \
   --trigger-event-filters="document=example_generation_queue/{docId}" \
-  --trigger-location=$REGION \
-  --set-env-vars GENERATOR_URL=$GENERATOR_URL \
+  --trigger-location=$DB_REGION \
+  --set-env-vars GENERATOR_URL=$GENERATOR_URL,FIRESTORE_DB_NAME=$DB_ID \
   ${SERVICE_ACCOUNT:+--service-account=$SERVICE_ACCOUNT} \
-  --allow-unauthenticated=false
+  --no-allow-unauthenticated
 
 echo "Deployment complete!"
 echo "Generator URL: $GENERATOR_URL"
