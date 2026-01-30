@@ -38,6 +38,12 @@ export interface User {
     lastLoginAt: Date;
     isAdmin: boolean;
     language: string;
+    rateUsage?: {
+        exampleGeneration: {
+            lastResetDate: string; // YYYY-MM-DD
+            count: number;
+        };
+    };
 }
 
 export interface ProfileSettings {

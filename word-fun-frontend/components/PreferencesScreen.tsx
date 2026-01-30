@@ -3,8 +3,10 @@ import { Volume2, VolumeX, Settings, Target, Layers, Minus, Plus, AlertTriangle,
 import { getEnv } from '../constants';
 import { useI18n } from '../services/i18nService';
 import { LearningPace } from '../services/learningPaceConfig';
+import { User } from '../types';
 
 interface PreferencesScreenProps {
+    user: User | null;
     autoPlaySound: boolean;
     onToggleAutoPlaySound: (value: boolean) => void;
     learningPace: LearningPace;
@@ -14,6 +16,7 @@ interface PreferencesScreenProps {
 }
 
 export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
+    user,
     autoPlaySound,
     onToggleAutoPlaySound,
     learningPace,
@@ -22,6 +25,10 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
     onLogout
 }) => {
     const { t, language } = useI18n();
+    const usage = user?.rateUsage?.exampleGeneration;
+    const count = usage?.count || 0;
+    const limit = 50;
+    const usagePercentage = Math.min((count / limit) * 100, 100);
 
     return (
         <div className="w-full max-w-lg mx-auto px-4 pb-24 pt-8 font-rounded text-coffee">
@@ -31,7 +38,6 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
             </h1>
 
             <div className="space-y-6">
-
                 {/* Audio Setting */}
                 <div className="bg-white rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee overflow-hidden">
                     <div className="p-5 flex items-center justify-between">
@@ -117,6 +123,35 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                             <option value="zh">繁體中文</option>
                         </select>
                     </div>
+                </div>
+
+                {/* Usage Stats Section */}
+                <div className="bg-white rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee overflow-hidden p-5">
+                    <div className="flex items-center gap-4 mb-3">
+                        <div className="p-3 rounded-2xl bg-indigo-100 text-indigo-600 border-2 border-indigo-200">
+                            <Zap className="w-6 h-6 stroke-[3]" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="font-bold text-coffee text-lg leading-tight">{t('settings.daily_limit')}</div>
+                            <div className="text-xs font-bold text-coffee/40">{t('settings.daily_limit_desc')}</div>
+                        </div>
+                        <div className="text-right">
+                            <div className="font-bold text-coffee text-lg">{count} / {limit}</div>
+                        </div>
+                    </div>
+
+                    <div className="relative h-4 bg-coffee/5 rounded-full border-2 border-coffee overflow-hidden">
+                        <div
+                            className="absolute top-0 left-0 h-full bg-salmon transition-all duration-500 ease-out"
+                            style={{ width: `${usagePercentage}%` }}
+                        />
+                    </div>
+                    {count >= limit && (
+                        <div className="mt-2 flex items-center gap-2 text-salmon text-[10px] font-bold uppercase tracking-wider">
+                            <AlertTriangle className="w-3 h-3" />
+                            {t('settings.daily_limit_reached')}
+                        </div>
+                    )}
                 </div>
 
                 {/* Logout Button */}

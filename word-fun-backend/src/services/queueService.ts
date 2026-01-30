@@ -2,6 +2,7 @@ import { db } from './firestoreService';
 import { QueueItem, Word } from '../types';
 import { aiService } from './aiService';
 import { wordService } from './wordService';
+import { userService } from './userService';
 
 const COLLECTION_NAME = 'example_generation_queue';
 
@@ -39,6 +40,12 @@ export const queueService = {
         };
 
         await db.collection(COLLECTION_NAME).doc(wordId).set(newItem);
+
+        // Log user usage for info
+        userService.getUsage(userId).then((usage: { count: number, allowed: boolean }) => {
+            console.log(`[Queue] Added ${wordText} for user ${userId}. Daily usage: ${usage.count}`);
+        }).catch((err: any) => console.error("[Queue] Error fetching usage for logging:", err));
+
         console.log(`[Queue] Set ${wordText} (${wordId}) in queue. (Cloud Function will process)`);
 
         // 3. Trigger processing (non-blocking)
@@ -185,6 +192,14 @@ export const queueService = {
 
     async processItem(docId: string, item: QueueItem) {
         try {
+            // Check usage limit
+            const { count, allowed } = await userService.getUsage(item.userId);
+            if (!allowed) {
+                console.log(`[Queue] Skipping ${item.wordText} for user ${item.userId} - Daily limit reached (${count})`);
+                // We leave it as 'pending' to retry later (next day) as requested in plan (filtering logic)
+                return;
+            }
+
             const dummyWord: Word = {
                 id: item.wordId,
                 text: item.wordText,
@@ -196,6 +211,9 @@ export const queueService = {
             };
 
             await aiService.generateExamplesForWords(item.userId, item.profileId, [dummyWord]);
+
+            // Increment usage
+            await userService.incrementUsage(item.userId);
 
             await db.collection(COLLECTION_NAME).doc(docId).delete();
             console.log(`[Queue] Completed & Removed ${item.wordText}`);
