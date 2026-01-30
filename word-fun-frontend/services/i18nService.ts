@@ -6,6 +6,7 @@ type Translations = Record<string, string>;
 class I18nService {
     private currentLanguage: string = 'en';
     private translations: Translations = {};
+    private isInitialized: boolean = false;
     private listeners: Array<(lang: string) => void> = [];
 
     constructor() {
@@ -16,6 +17,7 @@ class I18nService {
 
     async init() {
         await this.loadTranslations(this.currentLanguage);
+        this.isInitialized = true;
         this.listeners.forEach(listener => listener(this.currentLanguage));
     }
 
@@ -64,6 +66,10 @@ class I18nService {
         return this.currentLanguage;
     }
 
+    getIsInitialized() {
+        return this.isInitialized;
+    }
+
     subscribe(listener: (lang: string) => void) {
         this.listeners.push(listener);
         return () => {
@@ -86,6 +92,7 @@ export const useI18n = () => {
     return {
         t: (key: string, params: any[] = []) => i18n.t(key, params),
         setLanguage: (newLang: string) => i18n.setLanguage(newLang),
-        language: lang
+        language: lang,
+        isI18nInitialized: i18n.getIsInitialized()
     };
 };
