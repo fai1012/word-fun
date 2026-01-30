@@ -158,6 +158,7 @@ export interface QueueItem {
     profileId: string;
     status: 'pending' | 'processing' | 'failed' | 'completed';
     createdAt: Date;
+    updatedAt?: Date;
     startedAt?: Date;
     error?: string;
     attempts?: number;
