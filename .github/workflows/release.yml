@@ -147,3 +147,44 @@ jobs:
             --allow-unauthenticated \
             --env-vars-file env.yaml \
             --labels version=${{ needs.release.outputs.sanitized_version }}
+
+  deploy-cloudfunction:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Fetch env.yaml from Secret Manager
+        run: |
+          # Fetching secret "word-fun-env" into backend directory
+          gcloud secrets versions access latest --secret="word-fun-backend-env" --project="${{ secrets.GCP_PROJECT_ID }}" > word-fun-cloudfunction/examples-generation-function/env.yaml          
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy examples-generation-function
+        run: |
+          cd word-fun-cloudfunction/examples-generation-function
+          
+          # Extract GEMINI_API_KEY from env.yaml
+          # Assuming format: GEMINI_API_KEY: "value" or GEMINI_API_KEY: value
+          GEMINI_API_KEY=$(grep "GEMINI_API_KEY" env.yaml | cut -d ':' -f2 | tr -d ' "')
+          
+          ENTRY_GEN="processQueueBatch"
+          gcloud functions deploy examples-gen-batch \
+            --gen2 \
+            --runtime=nodejs20 \
+            --region=asia-southeast1 \
+            --source=. \
+            --entry-point=$ENTRY_GEN \
+            --trigger-http \
+            --max-instances=1 \
+            --set-env-vars GEMINI_API_KEY=$GEMINI_API_KEY,FIRESTORE_DB_NAME=word-fun \
+            --no-allow-unauthenticated
