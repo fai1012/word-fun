@@ -533,8 +533,16 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
           {/* Mastery Indicator Crown */}
           {isMastered && (
-            <div className="absolute top-4 right-4 z-20 animate-in zoom-in duration-300" title="Mastered">
-              <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-yolk fill-yolk drop-shadow-md stroke-coffee stroke-2" />
+            <div className="absolute top-4 right-4 z-20 flex" title="Mastered">
+              {Array.from({ length: Math.min(3, Math.floor((data.correctCount || 0) / masteryThreshold)) }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`animate-in zoom-in duration-300 ${i > 0 ? '-ml-3 sm:-ml-4' : ''}`}
+                  style={{ animationDelay: `${i * 100}ms` }}
+                >
+                  <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-yolk fill-yolk drop-shadow-md stroke-coffee stroke-2" />
+                </div>
+              ))}
             </div>
           )}
 
@@ -623,7 +631,13 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
               </h3>
               {isMastered && (
                 <div className="mt-2 flex items-center gap-1 text-yolk text-xs font-bold uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-full border border-yolk/30">
-                  <Crown className="w-3 h-3 fill-yolk" /> {t('study.mastered_tag')}
+                  <Crown className="w-3 h-3 fill-yolk" />
+                  {t('study.mastered_tag')}
+                  {Math.floor((data.correctCount || 0) / masteryThreshold) > 1 && (
+                    <span className="ml-1 text-[10px] bg-yolk text-coffee px-1 rounded-sm">
+                      x{Math.min(3, Math.floor((data.correctCount || 0) / masteryThreshold))}
+                    </span>
+                  )}
                 </div>
               )}
             </div>

@@ -53,8 +53,8 @@ export const CooldownDialog: React.FC<CooldownDialogProps> = ({
                     </h3>
 
                     {/* Message */}
-                    <p className="text-lg text-coffee/80 font-normal leading-relaxed mb-8 px-4">
-                        {message}
+                    <p className="text-lg text-coffee/80 font-normal leading-relaxed mb-8 px-4 whitespace-pre-line">
+                        {message.replace(/\\n/g, '\n')}
                     </p>
 
                     {/* Action Button */}
