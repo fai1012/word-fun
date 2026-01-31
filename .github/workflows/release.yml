@@ -164,7 +164,7 @@ jobs:
       - name: Fetch env.yaml from Secret Manager
         run: |
           # Fetching secret "word-fun-env" into backend directory
-          gcloud secrets versions access latest --secret="word-fun-backend-env" --project="${{ secrets.GCP_PROJECT_ID }}" > word-fun-cloudfunction/examples-generation-function/env.yaml          
+          gcloud secrets versions access latest --secret="word-fun-backend-env" --project="${{ secrets.GCP_PROJECT_ID }}" > word-fun-cloud-function/examples-generation-function/env.yaml          
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
