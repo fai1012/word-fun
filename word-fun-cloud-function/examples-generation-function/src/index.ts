@@ -29,7 +29,8 @@ async function getUserUsage(userId: string): Promise<{ count: number, allowed: b
     if (!doc.exists) return { count: 0, allowed: true };
 
     const userData = doc.data() as any;
-    const today = new Date().toISOString().split('T')[0];
+    // UTC+8
+    const today = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().split('T')[0];
     const usage = userData.rateUsage?.exampleGeneration;
 
     if (!usage || usage.lastResetDate !== today) {
@@ -44,7 +45,8 @@ async function getUserUsage(userId: string): Promise<{ count: number, allowed: b
 
 async function incrementUserUsage(userId: string) {
     const userRef = db.collection('users').doc(userId);
-    const today = new Date().toISOString().split('T')[0];
+    // UTC+8
+    const today = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     await db.runTransaction(async (transaction) => {
         const doc = await transaction.get(userRef);

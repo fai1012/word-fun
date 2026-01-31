@@ -672,49 +672,84 @@ const App: React.FC = () => {
             return;
         }
 
-        // --- STEP 1: Learning Pool (Active Words) ---
+        // --- STEP 1: Calculate Targets ---
         // Randomize batch size based on pace for this session
         const currentBatchSize = getRandomBatchSize(learningPace);
-        setLearningBatchSize(currentBatchSize); // Update state for UI consistency if ever displayed
+        setLearningBatchSize(currentBatchSize);
 
-        // Use eligiblePool instead of global pool
-        const activeCandidates = eligiblePool.filter(c => (c.correctCount || 0) < masteryThreshold);
-
-        // Pick from fixed pool size of 30 oldest words
-        const poolSize = DEFAULT_CONFIG.LEARNING_POOL_SIZE;
-        const oldestPool = activeCandidates.slice(0, poolSize);
-
-        // Randomly pick Batch Size from this pool
-        const selectedLearning: FlashcardData[] = shuffleArray(oldestPool).slice(0, currentBatchSize);
-
-        // --- STEP 2: Review Pool (Mastered Words) ---
-        // Use eligiblePool instead of global pool
+        // Defined Candidates
+        const learningCandidates = eligiblePool.filter(c => (c.correctCount || 0) < masteryThreshold);
         const masteredCandidates = eligiblePool.filter(c => (c.correctCount || 0) >= masteryThreshold);
-        const selectedReview: FlashcardData[] = [];
 
-        if (masteredCandidates.length > 0) {
+        // Calculate Allocation
+        // Target 10% mastered minimum
+        const minMastered = Math.ceil(currentBatchSize * 0.1);
+
+        let targetMastered = minMastered;
+        let targetLearning = currentBatchSize - targetMastered;
+
+        // Adjust if we don't have enough mastered (New User Scenario)
+        if (masteredCandidates.length < targetMastered) {
+            const shortage = targetMastered - masteredCandidates.length;
+            targetMastered = masteredCandidates.length;
+            targetLearning += shortage;
+        }
+
+        // Adjust if we don't have enough learning (Advanced User Scenario)
+        if (learningCandidates.length < targetLearning) {
+            const shortage = targetLearning - learningCandidates.length;
+            targetLearning = learningCandidates.length;
+            // Backfill with mastered if available
+            if (masteredCandidates.length > targetMastered) {
+                const availableBackfill = masteredCandidates.length - targetMastered;
+                targetMastered += Math.min(shortage, availableBackfill);
+            }
+        }
+
+        console.log(`[SESSION PLAN] Batch: ${currentBatchSize}, Target Learning: ${targetLearning}, Target Mastered: ${targetMastered}`);
+
+        // --- STEP 2: Select Learning Cards ---
+        // Pick from fixed pool size of 30 oldest words to ensure rotation/focus
+        // But if we need more than 30 (e.g. huge batch), we should consider that.
+        // Assuming batch size max is ~30, pool of 30-50 is fine.
+        const learningPoolSize = Math.max(DEFAULT_CONFIG.LEARNING_POOL_SIZE, targetLearning + 10);
+        const oldestLearning = learningCandidates.slice(0, learningPoolSize);
+        const selectedLearning: FlashcardData[] = shuffleArray(oldestLearning).slice(0, targetLearning);
+
+        // --- STEP 3: Select Mastered Cards ---
+        const selectedReview: FlashcardData[] = [];
+        if (targetMastered > 0 && masteredCandidates.length > 0) {
             const getWeight = (correctCount: number) => {
                 const diff = correctCount - masteryThreshold;
                 const weight = 0.5 - (diff * 0.1);
                 return Math.max(0.1, weight);
             };
 
-            const numToPick = Math.min(DEFAULT_CONFIG.REVIEW_BATCH_SIZE, masteredCandidates.length);
             const pool = [...masteredCandidates];
 
-            for (let i = 0; i < numToPick; i++) {
+            // Standard weighted pick
+            for (let i = 0; i < targetMastered; i++) {
+                if (pool.length === 0) break;
+
                 const weights = pool.map(c => getWeight(c.correctCount || masteryThreshold));
                 const totalWeight = weights.reduce((sum, w) => sum + w, 0);
 
                 let random = Math.random() * totalWeight;
+                let picked = false;
 
                 for (let j = 0; j < pool.length; j++) {
                     random -= weights[j];
                     if (random <= 0) {
                         selectedReview.push(pool[j]);
                         pool.splice(j, 1);
+                        picked = true;
                         break;
                     }
+                }
+                // Fallback (rounding errors)
+                if (!picked && pool.length > 0) {
+                    selectedReview.push(pool[0]);
+                    pool.shift();
                 }
             }
         }
