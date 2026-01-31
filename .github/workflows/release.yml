@@ -161,6 +161,9 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
+      - name: Verify Service Account
+        run: gcloud config get-value account
+
       - name: Fetch env.yaml from Secret Manager
         run: |
           # Fetching secret "word-fun-env" into backend directory
