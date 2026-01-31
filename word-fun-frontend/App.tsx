@@ -423,14 +423,15 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (currentProfile) {
+
             if (currentProfile.settings) {
                 const s = currentProfile.settings;
-                setAutoPlaySound(s.autoPlaySound);
-                setMasteryThreshold(s.masteryThreshold);
-                setLearningPenalty(s.learningPenalty);
-                setLearningPace(s.learningPace);
+                setAutoPlaySound(s.autoPlaySound ?? false);
+                setMasteryThreshold(s.masteryThreshold ?? DEFAULT_CONFIG.MASTERY_THRESHOLD);
+                setLearningPenalty(s.learningPenalty ?? DEFAULT_CONFIG.LEARNING_PENALTY);
+                setLearningPace(s.learningPace ?? DEFAULT_LEARNING_PACE);
                 // Derive batch size from pace
-                setLearningBatchSize(getRandomBatchSize(s.learningPace));
+                setLearningBatchSize(getRandomBatchSize(s.learningPace ?? DEFAULT_LEARNING_PACE));
             } else {
                 // If no settings on profile, use defaults
                 setAutoPlaySound(false);
