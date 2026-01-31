@@ -171,7 +171,7 @@ jobs:
 
       - name: Deploy examples-generation-function
         run: |
-          cd word-fun-cloudfunction/examples-generation-function
+          cd word-fun-cloud-function/examples-generation-function
           
           # Extract GEMINI_API_KEY from env.yaml
           # Assuming format: GEMINI_API_KEY: "value" or GEMINI_API_KEY: value
