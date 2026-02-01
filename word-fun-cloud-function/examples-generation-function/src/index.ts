@@ -131,6 +131,27 @@ ff.http('processQueueBatch', async (req: ff.Request, res: ff.Response) => {
     }
 });
 
+const fs = require('fs');
+const path = require('path');
+
+let globalVocabulary: string[] = [];
+try {
+    const vocabPath = path.join(__dirname, 'vocabulary.json');
+    if (fs.existsSync(vocabPath)) {
+        const data = JSON.parse(fs.readFileSync(vocabPath, 'utf8'));
+        if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+            globalVocabulary = data.map((item: any) => item.char).filter(Boolean);
+        } else if (Array.isArray(data)) {
+            globalVocabulary = data as string[];
+        }
+        console.log(`[CloudFunc] Loaded ${globalVocabulary.length} words from vocabulary.json`);
+    } else {
+        console.warn("[CloudFunc] vocabulary.json not found.");
+    }
+} catch (e) {
+    console.error("[CloudFunc] Failed to load vocabulary.json:", e);
+}
+
 async function processLangBatch(language: 'zh' | 'en', items: any[]) {
     if (items.length === 0) return;
 
@@ -159,14 +180,20 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
 
         // Fetch context words from first user's profile
         const firstItem = allowedItems[0];
-        let contextWords: string[] = [];
+        // Start with global vocabulary ONLY for Chinese
+        let contextWords: string[] = language === 'zh' ? [...globalVocabulary] : [];
+
         try {
             const wordsColl = db.collection('users').doc(firstItem.userId).collection('profiles').doc(firstItem.profileId).collection('words');
             const contextSnap = await wordsColl.limit(50).get();
-            contextWords = contextSnap.docs.map(doc => doc.data().text as string).filter(Boolean);
+            const userContext = contextSnap.docs.map(doc => doc.data().text as string).filter(Boolean);
+            contextWords = [...contextWords, ...userContext];
         } catch (e) {
-            console.warn("[CloudFunc] Context fetch failed, skipping context.");
+            console.warn("[CloudFunc] Context fetch failed, skipping user context.");
         }
+
+        // Remove duplicates
+        contextWords = [...new Set(contextWords)];
 
         const prompt = getPromptForLanguage(language, allowedWordTexts, contextWords);
         const result = await getGenAI().models.generateContent({
@@ -257,23 +284,25 @@ function getPromptForLanguage(language: 'zh' | 'en', words: string[], contextWor
         return false;
     });
 
-    const contextSection = filteredContext.length > 0 ? `
-            EXISTING VOCABULARY CONTEXT (Try to use these words in examples):
-            ${filteredContext.join(", ")}` : '';
-
     if (language === 'zh') {
+        // For Chinese, we put the full allowed character list
+        const allowedChars = filteredContext.join("");
+
         return `Generate flashcard content for the following Chinese words.
             
             TARGET WORDS:
             ${JSON.stringify(words)}
-            ${contextSection}
+            
+            ALLOWED CHARACTERS LIST:
+            ${allowedChars}
             
             REQUIREMENTS:
             1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
             2. Examples:
                - Create 3 distinct sentences for each word.
                - Sentences must be simple, relatable to a 6-7 year old living in HK.
-               - LANGUAGE: STRICTLY Traditional Chinese (Standard Written Chinese / 書面語). 
+               - LANGUAGE: STRICTLY Traditional Chinese (Standard Written Chinese / 書面語).
+               - STRICT CONSTRAINT: You MUST construct sentences using ONLY the characters from the "ALLOWED CHARACTERS LIST" above. Do not use any character that is not in the list.
                - FORBIDDEN: 
                  - NO colloquial Cantonese (口語).
                  - NO English translations inside the content.
@@ -281,6 +310,10 @@ function getPromptForLanguage(language: 'zh' | 'en', words: string[], contextWor
                  - NO auxiliary notes or explanations in parentheses.
             3. Return JSON Array.`;
     } else {
+        const contextSection = filteredContext.length > 0 ? `
+            EXISTING VOCABULARY CONTEXT (Try to use these words in examples):
+            ${filteredContext.join(", ")}` : '';
+
         return `Generate flashcard content for the following English words.
             
             TARGET WORDS:

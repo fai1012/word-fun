@@ -4,7 +4,7 @@
     "description": "Cloud Function to generate example sentences using Gemini AI",
     "main": "dist/index.js",
     "scripts": {
-        "build": "tsc",
+        "build": "tsc && cp src/vocabulary.json dist/",
         "start": "functions-framework --target=processQueueBatch",
         "watch": "tsc -w",
         "deploy": "./deploy.sh"
