@@ -353,7 +353,7 @@ function getPromptForLanguage(language: 'zh' | 'en', words: string[], preferredW
     });
 
     const preferredSection = filteredPreferred.length > 0 ? `
-            PREFERRED VOCABULARY (Try to use these words in examples if natural):
+            OPTIONAL CONTEXT VOCABULARY (Use these ONLY if they fit naturally and help the sentence flow. DO NOT force them in):
             ${filteredPreferred.join(", ")}` : '';
 
     if (language === 'zh') {
@@ -370,14 +370,15 @@ function getPromptForLanguage(language: 'zh' | 'en', words: string[], preferredW
             
             REQUIREMENTS:
             1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
-            2. Examples:
+            3. Examples:
                - Create 3 distinct sentences for each word.
-               - Sentences must be simple, relatable to a 6-7 year old living in HK.
-               - LANGUAGE: STRICTLY Traditional Chinese (Standard Written Chinese / 書面語).
+               - Sentences must be COMPLETE and DESCRIPTIVE (Subject + Verb + Object). Avoid simple fragments like "我快活".
+               - Minimum length: 6 characters per sentence.
+               - LANGUAGE: STRICTLY Traditional Chinese (Standard Written Chinese / 書面語). 
+                 - DO NOT use Cantonese colloquialisms (like 佢, 哋, 嘅, 咗, 係, 咁) even if the context is HK. Use standard equivalents (他, 他們, 的, 了, 是, 這麼) ONLY if they are in the allowed list.
                - STRICT CONSTRAINT: You MUST construct sentences using ONLY the characters from the "ALLOWED CHARACTERS LIST" above. 
                - EXCEPTION: You may use standard punctuation (，。？！) and numbers (1, 2, 3...) which are not in the list.
                - FORBIDDEN: 
-                 - NO colloquial Cantonese (口語).
                  - NO characters outside the allowed list (except punctuation/numbers).
                  - NO English translations inside the content.
                  - NO Pinyin or Jyutping.
