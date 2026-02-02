@@ -131,6 +131,27 @@ ff.http('processQueueBatch', async (req: ff.Request, res: ff.Response) => {
     }
 });
 
+const fs = require('fs');
+const path = require('path');
+
+let globalVocabulary: string[] = [];
+try {
+    const vocabPath = path.join(__dirname, 'vocabulary.json');
+    if (fs.existsSync(vocabPath)) {
+        const data = JSON.parse(fs.readFileSync(vocabPath, 'utf8'));
+        if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+            globalVocabulary = data.map((item: any) => item.char).filter(Boolean);
+        } else if (Array.isArray(data)) {
+            globalVocabulary = data as string[];
+        }
+        console.log(`[CloudFunc] Loaded ${globalVocabulary.length} words from vocabulary.json`);
+    } else {
+        console.warn("[CloudFunc] vocabulary.json not found.");
+    }
+} catch (e) {
+    console.error("[CloudFunc] Failed to load vocabulary.json:", e);
+}
+
 async function processLangBatch(language: 'zh' | 'en', items: any[]) {
     if (items.length === 0) return;
 
@@ -157,18 +178,35 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
 
         const allowedWordTexts = allowedItems.map(i => i.wordText);
 
-        // Fetch context words from first user's profile
+        // Fetch context words from first user's profile (Preferred Vocabulary)
         const firstItem = allowedItems[0];
-        let contextWords: string[] = [];
+        let preferredWords: string[] = [];
         try {
             const wordsColl = db.collection('users').doc(firstItem.userId).collection('profiles').doc(firstItem.profileId).collection('words');
-            const contextSnap = await wordsColl.limit(50).get();
-            contextWords = contextSnap.docs.map(doc => doc.data().text as string).filter(Boolean);
+            const contextSnap = await wordsColl.select('text').get();
+            preferredWords = contextSnap.docs.map(doc => doc.data().text as string).filter(Boolean);
+            // Remove duplicates
+            preferredWords = [...new Set(preferredWords)];
         } catch (e) {
-            console.warn("[CloudFunc] Context fetch failed, skipping context.");
+            console.warn("[CloudFunc] Context fetch failed, skipping user context.");
         }
 
-        const prompt = getPromptForLanguage(language, allowedWordTexts, contextWords);
+        // Prepare Allowed Characters List (Global + Preferred Chars) for Chinese
+        let allowedCharSet = new Set<string>();
+        if (language === 'zh') {
+            // Add Global Vocabulary (Chars)
+            globalVocabulary.forEach(c => allowedCharSet.add(c));
+            // Add characters from Preferred Words
+            preferredWords.forEach(word => {
+                for (const char of word) {
+                    if (/[\u4e00-\u9fa5]/.test(char)) {
+                        allowedCharSet.add(char);
+                    }
+                }
+            });
+        }
+
+        const prompt = getPromptForLanguage(language, allowedWordTexts, preferredWords, Array.from(allowedCharSet));
         const result = await getGenAI().models.generateContent({
             model: 'gemini-2.0-flash',
             contents: prompt,
@@ -205,6 +243,24 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
         for (const item of allowedItems) {
             const gen = generatedMap.get(item.wordText);
             if (gen && gen.examples) {
+                // VALIDATION START
+                if (language === 'zh') {
+                    for (const ex of gen.examples) {
+                        const sentence = ex.chinese || '';
+                        const invalidChars: string[] = [];
+                        for (const char of sentence) {
+                            // Check if char is Chinese and NOT in allowed list
+                            if (/[\u4e00-\u9fa5]/.test(char) && !allowedCharSet.has(char)) {
+                                invalidChars.push(char);
+                            }
+                        }
+                        if (invalidChars.length > 0) {
+                            console.warn(`[CloudFunc] Strictness Violation for word '${item.wordText}': Sentence "${sentence}" contains forbidden chars: [${invalidChars.join(', ')}]`);
+                        }
+                    }
+                }
+                // VALIDATION END
+
                 const examples = gen.examples.map((ex: any) => ({
                     chinese: ex.chinese,
                     english: ''
@@ -250,32 +306,41 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
     }
 }
 
-function getPromptForLanguage(language: 'zh' | 'en', words: string[], contextWords: string[] = []): string {
-    const filteredContext = contextWords.filter(w => {
+function getPromptForLanguage(language: 'zh' | 'en', words: string[], preferredWords: string[] = [], allowedChars: string[] = []): string {
+    // Filter preferred words by language for better context
+    const filteredPreferred = preferredWords.filter(w => {
         if (language === 'zh') return /[\u4e00-\u9fa5]/.test(w);
         if (language === 'en') return /[a-zA-Z]/.test(w) && !/[\u4e00-\u9fa5]/.test(w);
         return false;
     });
 
-    const contextSection = filteredContext.length > 0 ? `
-            EXISTING VOCABULARY CONTEXT (Try to use these words in examples):
-            ${filteredContext.join(", ")}` : '';
+    const preferredSection = filteredPreferred.length > 0 ? `
+            PREFERRED VOCABULARY (Try to use these words in examples if natural):
+            ${filteredPreferred.join(", ")}` : '';
 
     if (language === 'zh') {
+        const allowedCharsString = allowedChars.join("");
+
         return `Generate flashcard content for the following Chinese words.
             
             TARGET WORDS:
             ${JSON.stringify(words)}
-            ${contextSection}
+            ${preferredSection}
+            
+            ALLOWED CHARACTERS LIST:
+            ${allowedCharsString}
             
             REQUIREMENTS:
             1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
             2. Examples:
                - Create 3 distinct sentences for each word.
                - Sentences must be simple, relatable to a 6-7 year old living in HK.
-               - LANGUAGE: STRICTLY Traditional Chinese (Standard Written Chinese / 書面語). 
+               - LANGUAGE: STRICTLY Traditional Chinese (Standard Written Chinese / 書面語).
+               - STRICT CONSTRAINT: You MUST construct sentences using ONLY the characters from the "ALLOWED CHARACTERS LIST" above. 
+               - EXCEPTION: You may use standard punctuation (，。？！) and numbers (1, 2, 3...) which are not in the list.
                - FORBIDDEN: 
                  - NO colloquial Cantonese (口語).
+                 - NO characters outside the allowed list (except punctuation/numbers).
                  - NO English translations inside the content.
                  - NO Pinyin or Jyutping.
                  - NO auxiliary notes or explanations in parentheses.
@@ -285,7 +350,7 @@ function getPromptForLanguage(language: 'zh' | 'en', words: string[], contextWor
             
             TARGET WORDS:
             ${JSON.stringify(words)}
-            ${contextSection}
+            ${preferredSection}
             
             REQUIREMENTS:
             1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
