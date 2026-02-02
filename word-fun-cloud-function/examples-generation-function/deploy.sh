@@ -46,10 +46,19 @@ echo "Setting up Cloud Scheduler..."
 # Or better, use specific service account if provided
 SCHEDULER_SA="${SERVICE_ACCOUNT:-$PROJECT_ID@appspot.gserviceaccount.com}"
 
+# Grant Invoker permission to Scheduler SA
 echo "Granting invoker permission to $SCHEDULER_SA for $SERVICE_GEN..."
 gcloud functions add-invoker-policy-binding $SERVICE_GEN \
   --region=$REGION \
   --member="serviceAccount:$SCHEDULER_SA" \
+  --quiet > /dev/null
+
+# Grant Invoker permission to Backend SA
+BACKEND_SA="system-word-fun-service@gen-lang-client-0834078301.iam.gserviceaccount.com"
+echo "Granting invoker permission to $BACKEND_SA for $SERVICE_GEN..."
+gcloud functions add-invoker-policy-binding $SERVICE_GEN \
+  --region=$REGION \
+  --member="serviceAccount:$BACKEND_SA" \
   --quiet > /dev/null
 
 JOB_NAME="examples-gen-cron"

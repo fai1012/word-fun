@@ -5,6 +5,7 @@ import { pronunciationService } from './pronunciationService';
 import { storageService } from './storageService';
 import { queueService } from './queueService';
 import { wordValidationService } from './wordValidationService';
+import { GoogleAuth } from 'google-auth-library';
 
 class WordService {
     private getCollection(userId: string, profileId: string) {
@@ -284,7 +285,7 @@ class WordService {
         return wordValidationService.validateWord(text);
     }
 
-    private triggerExampleGeneration() {
+    private async triggerExampleGeneration() {
         const url = process.env.EXAMPLE_GENERATION_FUNCTION_URL;
         if (!url || url.includes('placeholder')) {
             console.log('[WordService] Skipping trigger: No valid EXAMPLE_GENERATION_FUNCTION_URL configured');
@@ -292,14 +293,37 @@ class WordService {
         }
 
         console.log(`[WordService] Triggering example generation at ${url}`);
-        // Fire and forget
-        fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}) // Empty body usually fine for trigger, or send context if needed
-        }).catch(err => {
+
+        try {
+            // Parse credentials from env
+            const keyFileContent = process.env.GCP_SERVICE_ACCOUNT_KEY;
+            let credentials;
+            if (keyFileContent) {
+                try {
+                    credentials = JSON.parse(keyFileContent);
+                } catch (e) {
+                    console.error('[WordService] Failed to parse GCP_SERVICE_ACCOUNT_KEY', e);
+                }
+            }
+
+            // Use GoogleAuth with explicit credentials if available
+            const auth = new GoogleAuth({
+                credentials,
+                projectId: process.env.GCP_PROJECT_ID
+            });
+            const client = await auth.getIdTokenClient(url);
+
+            // The client automatically adds the Authorization header with the ID token
+            await client.request({
+                url,
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                data: {}
+            });
+            console.log(`[WordService] Successfully triggered example generation.`);
+        } catch (err) {
             console.error('[WordService] Failed to trigger example generation:', err);
-        });
+        }
     }
 }
 
