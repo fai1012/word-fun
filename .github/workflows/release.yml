@@ -191,6 +191,9 @@ jobs:
             --max-instances=1 \
             --set-env-vars GEMINI_API_KEY=$GEMINI_API_KEY,FIRESTORE_DB_NAME=word-fun \
             --no-allow-unauthenticated
+          
+          # Get Generator URL
+          GENERATOR_URL=$(gcloud functions describe examples-gen-batch --region=$REGION --format='value(serviceConfig.uri)' --gen2)
 
           JOB_NAME="examples-gen-cron"
           SCHEDULE="*/3 * * * *" # Every 3 minutes
