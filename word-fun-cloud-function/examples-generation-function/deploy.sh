@@ -62,7 +62,7 @@ gcloud functions add-invoker-policy-binding $SERVICE_GEN \
   --quiet > /dev/null
 
 JOB_NAME="examples-gen-cron"
-SCHEDULE="* * * * *" # Every minute (Scheduler minimum)
+SCHEDULE="*/3 * * * *" # Every 3 minutes
 
 # Delete existing job if any to ensure clean update
 gcloud scheduler jobs delete $JOB_NAME --location=$REGION --quiet || true
