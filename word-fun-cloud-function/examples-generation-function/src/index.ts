@@ -114,9 +114,37 @@ ff.http('processQueueBatch', async (req: ff.Request, res: ff.Response) => {
 
         console.log(`[CloudFunc] Processing ${items.length} items (after filtering attempts)...`);
 
+        // LOCKING: Claim items to avoid race conditions (e.g. manual trigger vs schedule vs duplicate triggers)
+        const lockResults = await Promise.all(items.map(async (item) => {
+            try {
+                return await db.runTransaction(async (t) => {
+                    const ref = db.collection('example_generation_queue').doc(item.id);
+                    const doc = await t.get(ref);
+                    if (!doc.exists) return null;
+                    const data = doc.data();
+                    // Ensure status hasn't changed (e.g. already picked up)
+                    if (data?.status !== item.status) return null;
+
+                    t.update(ref, { status: 'processing', processingStartedAt: new Date() });
+                    return { ...item, status: 'processing' };
+                });
+            } catch (e) {
+                console.warn(`[CloudFunc] Failed to lock item ${item.id}:`, e);
+                return null;
+            }
+        }));
+
+        const lockedItems = lockResults.filter((i): i is any => i !== null);
+
+        if (lockedItems.length === 0) {
+            console.log('[CloudFunc] No items successfully locked (race condition prevented).');
+            res.status(200).send('No items locked');
+            return;
+        }
+
         // Group by language to optimize AI calls
-        const zhItems = items.filter(item => /[\u4e00-\u9fa5]/.test(item.wordText));
-        const enItems = items.filter(item => !/[\u4e00-\u9fa5]/.test(item.wordText));
+        const zhItems = lockedItems.filter(item => /[\u4e00-\u9fa5]/.test(item.wordText));
+        const enItems = lockedItems.filter(item => !/[\u4e00-\u9fa5]/.test(item.wordText));
 
         await Promise.all([
             processLangBatch('zh', zhItems),
@@ -161,14 +189,24 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
     try {
         // Filter items based on usage limit
         const allowedItems = [];
+        const skippedItems = [];
         for (const item of items) {
             const { count, allowed } = await getUserUsage(item.userId);
             if (allowed) {
                 allowedItems.push(item);
             } else {
                 console.log(`[CloudFunc] Skipping ${item.wordText} for user ${item.userId} - Daily limit reached (${count})`);
-                // Leave as pending in queue
+                skippedItems.push(item);
             }
+        }
+
+        if (skippedItems.length > 0) {
+            const skipBatch = db.batch();
+            skippedItems.forEach(item => {
+                // Revert to pending so it can be retried later (next day)
+                skipBatch.update(db.collection('example_generation_queue').doc(item.id), { status: 'pending' });
+            });
+            await skipBatch.commit();
         }
 
         if (allowedItems.length === 0) {

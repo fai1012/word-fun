@@ -71,6 +71,7 @@ class WordService {
         // 4. Trigger AI Generation if no examples provided
         if (!examples || examples.length === 0) {
             queueService.addToQueue(newWord.id, newWord.text, userId, profileId)
+                .then(() => this.triggerExampleGeneration())
                 .catch(err => console.error(`[WordService] Failed to add ${text} to queue`, err));
         }
 
@@ -254,9 +255,16 @@ class WordService {
 
         if (addedCount > 0) {
             // Trigger Background AI Generation via Queue ONLY for words without examples
-            wordsNeedingExamples.forEach(w => {
+            const queuePromises = wordsNeedingExamples.map(w =>
                 queueService.addToQueue(w.id, w.text, userId, profileId)
-                    .catch(err => console.error(`[WordService] Failed to add ${w.text} to queue`, err));
+                    .catch(err => console.error(`[WordService] Failed to add ${w.text} to queue`, err))
+            );
+
+            // Wait for queue additions then trigger (fire and forget the trigger)
+            Promise.all(queuePromises).then(() => {
+                if (wordsNeedingExamples.length > 0) {
+                    this.triggerExampleGeneration();
+                }
             });
 
             // Trigger Pronunciation Generation for all new words (Fire and Forget)
@@ -274,6 +282,24 @@ class WordService {
 
     async validateWord(text: string): Promise<{ isValid: boolean; rootForm?: string; language: 'en' | 'zh' }> {
         return wordValidationService.validateWord(text);
+    }
+
+    private triggerExampleGeneration() {
+        const url = process.env.EXAMPLE_GENERATION_FUNCTION_URL;
+        if (!url || url.includes('placeholder')) {
+            console.log('[WordService] Skipping trigger: No valid EXAMPLE_GENERATION_FUNCTION_URL configured');
+            return;
+        }
+
+        console.log(`[WordService] Triggering example generation at ${url}`);
+        // Fire and forget
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}) // Empty body usually fine for trigger, or send context if needed
+        }).catch(err => {
+            console.error('[WordService] Failed to trigger example generation:', err);
+        });
     }
 }
 
