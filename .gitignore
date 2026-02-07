@@ -9,8 +9,10 @@ coverage/
 # Environment variables
 .env
 .env.local
+.env.ngrok
 *.local
 env.yaml
+ngrok.yml
 
 
 # OS generated files
