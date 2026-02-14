@@ -47,7 +47,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, cur
 
   return (
     <div className="fixed bottom-0 left-0 w-full bg-cream border-t-2 border-coffee/10 pb-safe pt-1 px-2 shadow-[0_-4px_6px_-1px_rgba(93,64,55,0.05)] z-40">
-      <div className="flex justify-between items-center max-w-md mx-auto h-16 px-2 relative">
+      <div className="flex justify-between items-center max-w-lg mx-auto h-16 px-2 relative">
 
         <Link
           to={getPath('/study')}

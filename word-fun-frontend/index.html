@@ -87,7 +87,7 @@
       position: fixed;
       inset: 0;
       z-index: 99999;
-      background: linear-gradient(135deg, #FFF9F0 0%, #FFE4C4 100%);
+      background: #FFF9F0;
       flex-direction: column;
       align-items: center;
       justify-content: center;
@@ -97,8 +97,10 @@
     }
 
     #landscape-blocker .rotate-icon {
-      font-size: 4rem;
-      animation: wiggle 1.5s ease-in-out infinite;
+      width: 320px;
+      height: 180px;
+      object-fit: cover;
+      object-position: center;
     }
 
     #landscape-blocker h2 {
@@ -128,7 +130,7 @@
     }
 
     /* Show blocker in landscape mode on small mobile devices only */
-    @media screen and (orientation: landscape) and (max-height: 500px) and (hover: none) and (pointer: coarse) {
+    @media screen and (orientation: landscape) and (hover: none) and (pointer: coarse) {
       #landscape-blocker {
         display: flex;
       }
@@ -156,10 +158,33 @@
 <body class="bg-cream text-coffee font-rounded antialiased overscroll-none selection:bg-salmon selection:text-white">
   <!-- Landscape Mode Blocker -->
   <div id="landscape-blocker">
-    <div class="rotate-icon">📱</div>
-    <h2>Please Rotate Your Device</h2>
-    <p>This app works best in portrait mode</p>
+    <img src="https://gen-lang-client-0834078301.web.app/Gemini_Generated_Image_lhh6rulhh6rulhh6-removebg-preview.png"
+      alt="Rotate Device" class="rotate-icon" />
+    <h2 id="blocker-title">Please Rotate Your Device</h2>
+    <p id="blocker-subtitle">This app works best in portrait mode</p>
   </div>
+
+  <script>
+      (function () {
+        const translations = {
+          en: {
+            title: 'Please Rotate Your Device',
+            subtitle: 'This app works best in portrait mode'
+          },
+          zh: {
+            title: '請旋轉您的裝置',
+            subtitle: '本應用程式在直向模式下效果最佳'
+          }
+        };
+
+        const lang = localStorage.getItem('word_fun_language') ||
+          (navigator.language.startsWith('zh') ? 'zh' : 'en');
+        const t = translations[lang] || translations.en;
+
+        document.getElementById('blocker-title').textContent = t.title;
+        document.getElementById('blocker-subtitle').textContent = t.subtitle;
+      })();
+  </script>
 
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
