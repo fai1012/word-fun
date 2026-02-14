@@ -15,9 +15,9 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}=== Firebase Asset Deployment Script ===${NC}"
 
 # Check arguments
-if [ -z "$IMAGE1" ] || [ -z "$IMAGE2" ]; then
-    echo -e "${RED}Error: Please provide two image paths.${NC}"
-    echo "Usage: ./deploy_images_to_cdn.sh path/to/image1.png path/to/image2.jpg"
+if [ $# -eq 0 ]; then
+    echo -e "${RED}Error: Please provide at least one image path.${NC}"
+    echo "Usage: ./deploy_images_to_cdn.sh path/to/image1.png [path/to/image2.jpg ...]"
     exit 1
 fi
 
@@ -58,12 +58,24 @@ DEPLOY_DIR="deploy_cdn_temp"
 echo -e "${BLUE}1. Preparing static directory...${NC}"
 mkdir -p "$DEPLOY_DIR/public"
 
-# Copy images (Preserving original names)
-NAME1=$(basename -- "$IMAGE1")
-NAME2=$(basename -- "$IMAGE2")
+# Copy images and store names
+IMAGE_NAMES=()
+for IMG in "$@"; do
+    if [ -f "$IMG" ]; then
+        NAME=$(basename -- "$IMG")
+        cp "$IMG" "$DEPLOY_DIR/public/$NAME"
+        IMAGE_NAMES+=("$NAME")
+        echo -e "${GREEN}Added:${NC} $NAME"
+    else
+        echo -e "${YELLOW}Warning: File not found, skipping:${NC} $IMG"
+    fi
+done
 
-cp "$IMAGE1" "$DEPLOY_DIR/public/$NAME1"
-cp "$IMAGE2" "$DEPLOY_DIR/public/$NAME2"
+if [ ${#IMAGE_NAMES[@]} -eq 0 ]; then
+    echo -e "${RED}Error: No valid images to deploy.${NC}"
+    rm -rf "$DEPLOY_DIR"
+    exit 1
+fi
 
 # 2. Create Firebase Config
 echo -e "${BLUE}2. Creating Firebase configuration...${NC}"
@@ -100,13 +112,21 @@ cat <<EOF > "$DEPLOY_DIR/.firebaserc"
 }
 EOF
 
-# 2.5 Verify Firebase Project
-echo -e "${BLUE}Verifying Firebase project access...${NC}"
-if ! npx firebase-tools projects:list --non-interactive | grep -q "$PROJECT_ID"; then
-    echo -e "${RED}Error: Project '$PROJECT_ID' is not a Firebase project or you don't have access.${NC}"
-    echo -e "${YELLOW}Please ensure you have \"Added Firebase\" to this GCP project at:${NC}"
-    echo -e "https://console.firebase.google.com/"
-    exit 1
+# 2.5 Detection and Auth Check
+echo -e "${BLUE}Detecting Firebase environment...${NC}"
+FB_CMD="npx firebase-tools"
+if command -v firebase &> /dev/null; then
+    FB_CMD="firebase"
+    echo -e "${GREEN}Using global firebase command: $(firebase --version)${NC}"
+else
+    echo -e "${YELLOW}Global 'firebase' command not found. Falling back to npx...${NC}"
+    echo -e "${YELLOW}Note: This may hang if you have network issues or haven't installed firebase-tools globally.${NC}"
+fi
+
+echo -e "${BLUE}Checking authentication...${NC}"
+if ! $FB_CMD login:list --non-interactive > /dev/null 2>&1; then
+    echo -e "${YELLOW}Warning: You might not be logged in to Firebase.${NC}"
+    echo -e "If deployment hangs or fails, try: ${GREEN}npx firebase-tools login${NC} or ${GREEN}firebase login${NC}"
 fi
 
 # 3. Deploy
@@ -115,18 +135,20 @@ cd "$DEPLOY_DIR" || exit
 
 # Ensure the hosting site exists (ignoring error if it already exists)
 echo -e "${BLUE}Ensuring Hosting site exists...${NC}"
-npx firebase-tools hosting:sites:create "$PROJECT_ID" --project "$PROJECT_ID" --non-interactive 2>/dev/null
+$FB_CMD hosting:sites:create "$PROJECT_ID" --project "$PROJECT_ID" --non-interactive 2>/dev/null
 
 # Try to deploy with explicit project flag
-npx firebase-tools deploy --only hosting --project "$PROJECT_ID" --non-interactive
+$FB_CMD deploy --only hosting --project "$PROJECT_ID" --non-interactive
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}=== Deployment Successful! ===${NC}"
     echo -e "Your images are now available via CDN at:"
-    echo -e "https://$PROJECT_ID.web.app/$(urlencode "$NAME1")"
-    echo -e "https://$PROJECT_ID.web.app/$(urlencode "$NAME2")"
-    echo -e "https://$PROJECT_ID.firebaseapp.com/$(urlencode "$NAME1")"
-    echo -e "https://$PROJECT_ID.firebaseapp.com/$(urlencode "$NAME2")"
+    for NAME in "${IMAGE_NAMES[@]}"; do
+        ENCODED_NAME=$(urlencode "$NAME")
+        echo -e "${BLUE}--- $NAME ---${NC}"
+        echo -e "https://$PROJECT_ID.web.app/$ENCODED_NAME"
+        echo -e "https://$PROJECT_ID.firebaseapp.com/$ENCODED_NAME"
+    done
 else
     echo -e "${RED}Deployment failed.${NC}"
     exit 1
