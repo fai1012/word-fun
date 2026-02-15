@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Configuration
-IMAGE1=$1
-IMAGE2=$2
-PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+# Usage: ./deploy.sh [prefix] [image_paths...]
+# If prefix is not provided, it defaults to 'v1'
+# If image_paths are not provided, it defaults to all images in images/
 
 # UI Colors
 GREEN='\033[0;32m'
@@ -14,34 +14,56 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}=== Firebase Asset Deployment Script ===${NC}"
 
-# Check arguments
+# 0. Parse Arguments
+PREFIX="v1"
+IMAGES=()
+
+if [ $# -gt 0 ]; then
+    # Check if first arg is likely a prefix (not a file path with extension)
+    if [[ ! "$1" =~ \..*$ ]]; then
+        PREFIX=$1
+        shift
+    fi
+fi
+
 if [ $# -eq 0 ]; then
-    echo -e "${RED}Error: Please provide at least one image path.${NC}"
-    echo "Usage: ./deploy_images_to_cdn.sh path/to/image1.png [path/to/image2.jpg ...]"
+    echo -e "${BLUE}No images specified. Checking images/ directory...${NC}"
+    # Use images from cdn/images/ (relative to script)
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # Fallback to current directory if SCRIPT_DIR is empty
+    IMG_DIR="${SCRIPT_DIR}/images"
+    
+    if [ -d "$IMG_DIR" ]; then
+        for img in "$IMG_DIR"/*; do
+            if [ -f "$img" ]; then
+                IMAGES+=("$img")
+            fi
+        done
+    fi
+else
+    IMAGES=("$@")
+fi
+
+if [ ${#IMAGES[@]} -eq 0 ]; then
+    echo -e "${RED}Error: No images found to deploy.${NC}"
+    echo "Usage: ./deploy.sh [version_prefix] [path/to/image1.png ...]"
+    echo "Or place images in the 'images/' directory within the cdn folder."
     exit 1
 fi
 
+echo -e "${BLUE}Deployment Prefix:${NC} ${YELLOW}$PREFIX${NC}"
+
 # Check Project ID
+PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 if [ -z "$PROJECT_ID" ]; then
     echo -e "${YELLOW}No GCP Project ID detected from gcloud.${NC}"
     read -p "Please enter your GCP Project ID: " INPUT_PROJECT_ID
     PROJECT_ID=$INPUT_PROJECT_ID
 else
     echo -e "${BLUE}Detected Project ID:${NC} $PROJECT_ID"
-    read -p "Use this project? [Y/n] (or enter new ID): " CONFIRM
-    
-    if [[ -z "$CONFIRM" || "$CONFIRM" =~ ^[Yy]$ ]]; then
-        # Keep detected ID
-        :
-    else
-        # If it doesn't look like a simple 'n', assume it might be a new ID
-        if [[ "$CONFIRM" =~ ^[Nn]$ ]]; then
-            read -p "Enter new Project ID: " NEW_ID
-            PROJECT_ID=$NEW_ID
-        else
-            PROJECT_ID=$CONFIRM
-        fi
-    fi
+    # Skip confirmation if in non-interactive environment (like CI) but here we can keep it
+    # Or just use it if PROJECT_ID is already set correctly
+    echo -e "${BLUE}Using project:${NC} $PROJECT_ID"
 fi
 
 if [ -z "$PROJECT_ID" ]; then
@@ -56,14 +78,15 @@ function urlencode() {
 # 1. Prepare Deployment Directory
 DEPLOY_DIR="deploy_cdn_temp"
 echo -e "${BLUE}1. Preparing static directory...${NC}"
-mkdir -p "$DEPLOY_DIR/public"
+rm -rf "$DEPLOY_DIR"
+mkdir -p "$DEPLOY_DIR/public/$PREFIX"
 
 # Copy images and store names
 IMAGE_NAMES=()
-for IMG in "$@"; do
+for IMG in "${IMAGES[@]}"; do
     if [ -f "$IMG" ]; then
         NAME=$(basename -- "$IMG")
-        cp "$IMG" "$DEPLOY_DIR/public/$NAME"
+        cp "$IMG" "$DEPLOY_DIR/public/$PREFIX/$NAME"
         IMAGE_NAMES+=("$NAME")
         echo -e "${GREEN}Added:${NC} $NAME"
     else
@@ -120,24 +143,16 @@ if command -v firebase &> /dev/null; then
     echo -e "${GREEN}Using global firebase command: $(firebase --version)${NC}"
 else
     echo -e "${YELLOW}Global 'firebase' command not found. Falling back to npx...${NC}"
-    echo -e "${YELLOW}Note: This may hang if you have network issues or haven't installed firebase-tools globally.${NC}"
-fi
-
-echo -e "${BLUE}Checking authentication...${NC}"
-if ! $FB_CMD login:list --non-interactive > /dev/null 2>&1; then
-    echo -e "${YELLOW}Warning: You might not be logged in to Firebase.${NC}"
-    echo -e "If deployment hangs or fails, try: ${GREEN}npx firebase-tools login${NC} or ${GREEN}firebase login${NC}"
 fi
 
 # 3. Deploy
 echo -e "${BLUE}3. Deploying to Firebase Hosting...${NC}"
 cd "$DEPLOY_DIR" || exit
 
-# Ensure the hosting site exists (ignoring error if it already exists)
-echo -e "${BLUE}Ensuring Hosting site exists...${NC}"
+# Ensure the hosting site exists
 $FB_CMD hosting:sites:create "$PROJECT_ID" --project "$PROJECT_ID" --non-interactive 2>/dev/null
 
-# Try to deploy with explicit project flag
+# Try to deploy
 $FB_CMD deploy --only hosting --project "$PROJECT_ID" --non-interactive
 
 if [ $? -eq 0 ]; then
@@ -146,8 +161,8 @@ if [ $? -eq 0 ]; then
     for NAME in "${IMAGE_NAMES[@]}"; do
         ENCODED_NAME=$(urlencode "$NAME")
         echo -e "${BLUE}--- $NAME ---${NC}"
-        echo -e "https://$PROJECT_ID.web.app/$ENCODED_NAME"
-        echo -e "https://$PROJECT_ID.firebaseapp.com/$ENCODED_NAME"
+        echo -e "https://$PROJECT_ID.web.app/$PREFIX/$ENCODED_NAME"
+        echo -e "https://$PROJECT_ID.firebaseapp.com/$PREFIX/$ENCODED_NAME"
     done
 else
     echo -e "${RED}Deployment failed.${NC}"
