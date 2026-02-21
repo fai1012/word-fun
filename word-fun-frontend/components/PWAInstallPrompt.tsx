@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Share, X, Download } from 'lucide-react';
+import { Share, X, PlusSquare } from 'lucide-react';
 import { useI18n } from '../services/i18nService';
 
 export const PWAInstallPrompt: React.FC = () => {
@@ -8,6 +8,7 @@ export const PWAInstallPrompt: React.FC = () => {
     const [isIOS, setIsIOS] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [isStandalone, setIsStandalone] = useState(false);
+    const [showIOSModal, setShowIOSModal] = useState(false);
 
     useEffect(() => {
         // Check if already in standalone mode
@@ -64,55 +65,106 @@ export const PWAInstallPrompt: React.FC = () => {
     if (!isVisible || isStandalone) return null;
 
     return (
-        <div className="bg-white/90 backdrop-blur-sm border-b-4 border-coffee/20 p-4 sticky top-0 z-50 animate-in fade-in slide-in-from-top-2 duration-500 shadow-lg">
-            <div className="max-w-md mx-auto flex items-start gap-4">
-                <div className="bg-cream border-2 border-coffee rounded-xl p-2 shrink-0">
-                    <img
-                        src="https://gen-lang-client-0834078301.web.app/assets_panda-fav_favicon-200x200.png"
-                        alt="Icon"
-                        className="w-10 h-10 object-contain"
-                    />
-                </div>
-
-                <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                        <h3 className="text-coffee font-bold text-lg leading-tight mb-1">
-                            {t('pwa.install_title')}
-                        </h3>
-                        <button
-                            onClick={handleDismiss}
-                            className="text-mocha hover:text-coffee transition-colors -mt-1 -mr-2 p-2"
-                        >
-                            <X size={20} />
-                        </button>
+        <>
+            <div className="bg-[#f8f9fa] border-t border-gray-200 p-4 fixed bottom-0 left-0 right-0 z-50 animate-in fade-in slide-in-from-bottom-2 duration-500 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                <div className="max-w-md mx-auto flex items-center gap-3">
+                    <div className="shrink-0 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+                        <img
+                            src="https://gen-lang-client-0834078301.web.app/v1/assets_panda-fav_favicon-200x200.png"
+                            alt="Icon"
+                            className="w-10 h-10 object-contain rounded-lg"
+                        />
                     </div>
 
-                    <p className="text-coffee/80 text-sm mb-3 font-medium">
-                        {t('pwa.install_desc')}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-gray-900 font-bold text-[15px] leading-tight mb-0.5 truncate">
+                            {t('pwa.install_title')}
+                        </h3>
+                        <p className="text-gray-500 text-[13px] leading-snug">
+                            {t('pwa.install_desc')}
+                        </p>
+                    </div>
 
-                    {isIOS ? (
-                        <div className="bg-cream/50 rounded-lg p-3 text-sm border-2 border-dashed border-coffee/10">
-                            <p className="flex items-center gap-2 text-coffee font-bold mb-1">
-                                <Share size={16} className="text-salmon" />
-                                1. {t('pwa.tap_share')}
-                            </p>
-                            <p className="flex items-center gap-2 text-coffee font-bold">
-                                <span className="w-4 h-4 rounded bg-coffee/10 flex items-center justify-center text-[10px] border border-coffee/20">+</span>
-                                2. {t('pwa.add_to_home')}
-                            </p>
-                        </div>
-                    ) : (
+                    <div className="shrink-0 flex items-center gap-3">
+                        {isIOS ? (
+                            <button
+                                onClick={() => setShowIOSModal(true)}
+                                className="bg-[#1f1f1f] text-white font-semibold py-2 px-4 rounded-full text-sm active:scale-95 transition-transform shrink-0"
+                            >
+                                {t('pwa.how_to_button')}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleInstallClick}
+                                className="bg-[#1f1f1f] text-white font-semibold py-2 px-4 rounded-full text-sm active:scale-95 transition-transform shrink-0"
+                            >
+                                {t('pwa.install_button')}
+                            </button>
+                        )}
+
                         <button
-                            onClick={handleInstallClick}
-                            className="bg-salmon text-white font-bold py-2 px-6 rounded-full shadow-[0_2px_0_0_#D84315] active:shadow-none active:translate-y-[2px] w-full flex items-center justify-center gap-2 transition-all"
+                            onClick={handleDismiss}
+                            className="text-gray-400 hover:text-gray-600 transition-colors p-1"
                         >
-                            <Download size={18} />
-                            {t('pwa.install_app')}
+                            <X size={18} />
                         </button>
-                    )}
+                    </div>
                 </div>
             </div>
-        </div>
+
+            {/* iOS Instructions Modal */}
+            {isIOS && showIOSModal && (
+                <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowIOSModal(false)}>
+                    <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-xl" onClick={e => e.stopPropagation()}>
+                        <div className="p-4 flex justify-between items-center bg-white relative">
+                            <h3 className="text-gray-900 font-bold text-lg text-center w-full">{t('pwa.modal_title')}</h3>
+                            <button onClick={() => setShowIOSModal(false)} className="text-gray-400 hover:text-gray-600 absolute right-4">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6 pt-2">
+                            <div className="flex gap-4">
+                                <div className="w-8 h-8 rounded-full bg-gray-100 shrink-0 flex items-center justify-center font-bold text-gray-700">1</div>
+                                <div>
+                                    <h4 className="font-bold text-gray-900 mb-1">{t('pwa.step1_title')}</h4>
+                                    <p className="text-[13px] text-gray-500 flex items-center gap-1 flex-wrap">
+                                        {t('pwa.step1_desc')}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <div className="w-8 h-8 rounded-full bg-gray-100 shrink-0 flex items-center justify-center font-bold text-gray-700">2</div>
+                                <div>
+                                    <h4 className="font-bold text-gray-900 mb-1">{t('pwa.step2_title')}</h4>
+                                    <p className="text-[13px] text-gray-500 flex items-center gap-1 flex-wrap">
+                                        {t('pwa.step2_desc')} <PlusSquare size={14} className="text-gray-500 inline-block align-middle" />
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <div className="w-8 h-8 rounded-full bg-gray-100 shrink-0 flex items-center justify-center font-bold text-gray-700">3</div>
+                                <div>
+                                    <h4 className="font-bold text-gray-900 mb-1">{t('pwa.step3_title')}</h4>
+                                    <p className="text-[13px] text-gray-500">{t('pwa.step3_desc')}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 pt-2">
+                            <button
+                                onClick={() => setShowIOSModal(false)}
+                                className="w-full bg-[#1f1f1f] text-white font-bold py-3.5 px-6 rounded-[20px] active:scale-95 transition-transform"
+                            >
+                                {t('pwa.got_it')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
+

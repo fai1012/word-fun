@@ -178,11 +178,11 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
 
                                 <div className="flex-1 min-w-0">
                                     <h3 className="font-bold text-coffee text-xl truncate">{profile.displayName}</h3>
-                                    <div className="flex items-center text-xs text-coffee/60 mt-1 gap-2 font-bold">
-                                        <span className="bg-coffee/5 px-2 py-0.5 rounded-lg border border-coffee/10">Lv {getLevelInfo(profile.exp || 0).level}</span>
+                                    <div className="flex flex-wrap items-center text-[10px] sm:text-xs text-coffee/60 mt-1 gap-1.5 sm:gap-2 font-bold">
+                                        <span className="bg-coffee/5 px-2 py-0.5 rounded-lg border border-coffee/10 whitespace-nowrap">Lv {getLevelInfo(profile.exp || 0).level}</span>
 
                                         {(profile.stats?.totalZh || 0) > 0 && (
-                                            <span className="flex items-baseline gap-0.5">
+                                            <span className="flex items-baseline gap-0.5 whitespace-nowrap">
                                                 <span className="text-salmon">{profile.stats?.learningZh ?? 0}</span>
                                                 <span className="text-coffee/30">/</span>
                                                 <span>{profile.stats?.totalZh}</span>
@@ -193,7 +193,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                         {(profile.stats?.totalEn || 0) > 0 && (
                                             <>
                                                 {(profile.stats?.totalZh || 0) > 0 && <span className="text-coffee/20">|</span>}
-                                                <span className="flex items-baseline gap-0.5">
+                                                <span className="flex items-baseline gap-0.5 whitespace-nowrap">
                                                     <span className="text-indigo-500">{profile.stats?.learningEn ?? 0}</span>
                                                     <span className="text-coffee/30">/</span>
                                                     <span>{profile.stats?.totalEn}</span>
@@ -204,7 +204,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
 
                                         {/* Fallback for legacy (if new stats missing) */}
                                         {(!profile.stats?.totalZh && !profile.stats?.totalEn && (profile.stats?.totalWords || 0) > 0) && (
-                                            <span>{profile.stats?.learningWords || 0} / {profile.stats?.totalWords || 0} {t('stats.total_words_label')}</span>
+                                            <span className="whitespace-nowrap">{profile.stats?.learningWords || 0} / {profile.stats?.totalWords || 0} {t('stats.total_words_label')}</span>
                                         )}
                                     </div>
                                 </div>
