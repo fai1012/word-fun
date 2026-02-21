@@ -89,13 +89,13 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                                 <button
                                     key={pace}
                                     onClick={() => onUpdateLearningPace(pace)}
-                                    className={`relative py-4 px-2 rounded-2xl font-bold transition-all duration-200 border-2 active:translate-y-0.5 active:shadow-none ${isSelected
+                                    className={`relative py-4 px-1 sm:px-2 rounded-2xl font-bold transition-all duration-200 border-2 active:translate-y-0.5 active:shadow-none ${isSelected
                                         ? 'bg-coffee text-white border-coffee shadow-[0px_2px_0px_0px_rgba(0,0,0,0.2)]'
                                         : 'bg-white text-coffee border-coffee/10 hover:border-coffee/30 hover:bg-coffee/5'
                                         }`}
                                 >
-                                    <div className="text-sm tracking-tight">{t(`settings.pace_${pace}`)}</div>
-                                    <div className={`text-[10px] font-bold mt-0.5 uppercase tracking-wider ${isSelected ? 'opacity-60' : 'opacity-30'}`}>
+                                    <div className="text-[13px] sm:text-sm tracking-tight">{t(`settings.pace_${pace}`)}</div>
+                                    <div className={`text-[10px] font-bold mt-0.5 uppercase tracking-wider whitespace-nowrap ${isSelected ? 'opacity-60' : 'opacity-30'}`}>
                                         {t(`settings.pace_${pace}_desc`)}
                                     </div>
                                 </button>

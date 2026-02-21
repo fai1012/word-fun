@@ -14,7 +14,7 @@ const PANDA_LOGO_URL = 'https://gen-lang-client-0834078301.firebaseapp.com/v1/as
 export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess, onLoginError }) => {
     const { t } = useI18n();
     return (
-        <div className="min-h-screen min-h-[100dvh] bg-cream flex flex-col items-center justify-center p-4 pb-12 sm:pb-4 relative overflow-hidden font-rounded text-coffee">
+        <div className="flex-1 w-full bg-cream flex flex-col items-center justify-center p-4 pb-12 sm:pb-4 relative overflow-hidden font-rounded text-coffee">
 
 
             <div className="z-10 flex flex-col items-center max-w-md w-full text-center">

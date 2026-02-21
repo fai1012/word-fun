@@ -24,6 +24,7 @@ import { SummaryScreen } from './components/SummaryScreen';
 import { PreferencesScreen } from './components/PreferencesScreen';
 import { getLevelInfo, EXP_SOURCES } from './services/levelService';
 import { ArrowLeft, Check, X, Repeat, Trophy, Home, RotateCcw, Star, Zap, AlertTriangle } from 'lucide-react';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 // Helper function for unbiased Fisher-Yates shuffle
 function shuffleArray<T>(array: T[]): T[] {
     const newArray = [...array];
@@ -1342,6 +1343,7 @@ const App: React.FC = () => {
                 title={cooldownTitle}
                 buttonText={cooldownButtonText}
             />
+            <PWAInstallPrompt />
             {/* ... Global States ... */}
 
             <main className="flex-1 flex flex-col w-full max-w-lg mx-auto relative min-h-0 overflow-y-auto overflow-x-hidden">
