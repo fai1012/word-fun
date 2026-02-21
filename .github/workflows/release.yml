@@ -177,14 +177,34 @@ jobs:
           # Assuming format: GEMINI_API_KEY: "value" or GEMINI_API_KEY: value
           GEMINI_API_KEY=$(grep "GEMINI_API_KEY" env.yaml | cut -d ':' -f2 | tr -d ' "')
           
+          REGION="asia-east1"
+          SCHEDULER_SA=system-word-fun-service@gen-lang-client-0834078301.iam.gserviceaccount.com
+          
           ENTRY_GEN="processQueueBatch"
           gcloud functions deploy examples-gen-batch \
             --gen2 \
             --runtime=nodejs20 \
-            --region=asia-east1 \
+            --region=$REGION \
             --source=. \
             --entry-point=$ENTRY_GEN \
             --trigger-http \
             --max-instances=1 \
             --set-env-vars GEMINI_API_KEY=$GEMINI_API_KEY,FIRESTORE_DB_NAME=word-fun \
             --no-allow-unauthenticated
+          
+          # Get Generator URL
+          GENERATOR_URL=$(gcloud functions describe examples-gen-batch --region=$REGION --format='value(serviceConfig.uri)' --gen2)
+
+          JOB_NAME="examples-gen-cron"
+          SCHEDULE="*/3 * * * *" # Every 3 minutes
+
+          # Delete existing job if any to ensure clean update
+          gcloud scheduler jobs delete $JOB_NAME --location=$REGION --quiet || true
+
+          echo "Creating Scheduler Job: $JOB_NAME ($SCHEDULE)..."
+          gcloud scheduler jobs create http $JOB_NAME \
+            --location=$REGION \
+            --schedule="$SCHEDULE" \
+            --uri="$GENERATOR_URL" \
+            --oidc-service-account-email="$SCHEDULER_SA" \
+            --http-method=GET

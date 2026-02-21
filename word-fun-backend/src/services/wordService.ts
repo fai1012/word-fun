@@ -5,6 +5,7 @@ import { pronunciationService } from './pronunciationService';
 import { storageService } from './storageService';
 import { queueService } from './queueService';
 import { wordValidationService } from './wordValidationService';
+import { GoogleAuth } from 'google-auth-library';
 
 class WordService {
     private getCollection(userId: string, profileId: string) {
@@ -71,6 +72,7 @@ class WordService {
         // 4. Trigger AI Generation if no examples provided
         if (!examples || examples.length === 0) {
             queueService.addToQueue(newWord.id, newWord.text, userId, profileId)
+                .then(() => this.triggerExampleGeneration())
                 .catch(err => console.error(`[WordService] Failed to add ${text} to queue`, err));
         }
 
@@ -254,9 +256,16 @@ class WordService {
 
         if (addedCount > 0) {
             // Trigger Background AI Generation via Queue ONLY for words without examples
-            wordsNeedingExamples.forEach(w => {
+            const queuePromises = wordsNeedingExamples.map(w =>
                 queueService.addToQueue(w.id, w.text, userId, profileId)
-                    .catch(err => console.error(`[WordService] Failed to add ${w.text} to queue`, err));
+                    .catch(err => console.error(`[WordService] Failed to add ${w.text} to queue`, err))
+            );
+
+            // Wait for queue additions then trigger (fire and forget the trigger)
+            Promise.all(queuePromises).then(() => {
+                if (wordsNeedingExamples.length > 0) {
+                    this.triggerExampleGeneration();
+                }
             });
 
             // Trigger Pronunciation Generation for all new words (Fire and Forget)
@@ -274,6 +283,47 @@ class WordService {
 
     async validateWord(text: string): Promise<{ isValid: boolean; rootForm?: string; language: 'en' | 'zh' }> {
         return wordValidationService.validateWord(text);
+    }
+
+    private async triggerExampleGeneration() {
+        const url = process.env.EXAMPLE_GENERATION_FUNCTION_URL;
+        if (!url || url.includes('placeholder')) {
+            console.log('[WordService] Skipping trigger: No valid EXAMPLE_GENERATION_FUNCTION_URL configured');
+            return;
+        }
+
+        console.log(`[WordService] Triggering example generation at ${url}`);
+
+        try {
+            // Parse credentials from env
+            const keyFileContent = process.env.GCP_SERVICE_ACCOUNT_KEY;
+            let credentials;
+            if (keyFileContent) {
+                try {
+                    credentials = JSON.parse(keyFileContent);
+                } catch (e) {
+                    console.error('[WordService] Failed to parse GCP_SERVICE_ACCOUNT_KEY', e);
+                }
+            }
+
+            // Use GoogleAuth with explicit credentials if available
+            const auth = new GoogleAuth({
+                credentials,
+                projectId: process.env.GCP_PROJECT_ID
+            });
+            const client = await auth.getIdTokenClient(url);
+
+            // The client automatically adds the Authorization header with the ID token
+            await client.request({
+                url,
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                data: {}
+            });
+            console.log(`[WordService] Successfully triggered example generation.`);
+        } catch (err) {
+            console.error('[WordService] Failed to trigger example generation:', err);
+        }
     }
 }
 

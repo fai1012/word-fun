@@ -114,9 +114,37 @@ ff.http('processQueueBatch', async (req: ff.Request, res: ff.Response) => {
 
         console.log(`[CloudFunc] Processing ${items.length} items (after filtering attempts)...`);
 
+        // LOCKING: Claim items to avoid race conditions (e.g. manual trigger vs schedule vs duplicate triggers)
+        const lockResults = await Promise.all(items.map(async (item) => {
+            try {
+                return await db.runTransaction(async (t) => {
+                    const ref = db.collection('example_generation_queue').doc(item.id);
+                    const doc = await t.get(ref);
+                    if (!doc.exists) return null;
+                    const data = doc.data();
+                    // Ensure status hasn't changed (e.g. already picked up)
+                    if (data?.status !== item.status) return null;
+
+                    t.update(ref, { status: 'processing', processingStartedAt: new Date() });
+                    return { ...item, status: 'processing' };
+                });
+            } catch (e) {
+                console.warn(`[CloudFunc] Failed to lock item ${item.id}:`, e);
+                return null;
+            }
+        }));
+
+        const lockedItems = lockResults.filter((i): i is any => i !== null);
+
+        if (lockedItems.length === 0) {
+            console.log('[CloudFunc] No items successfully locked (race condition prevented).');
+            res.status(200).send('No items locked');
+            return;
+        }
+
         // Group by language to optimize AI calls
-        const zhItems = items.filter(item => /[\u4e00-\u9fa5]/.test(item.wordText));
-        const enItems = items.filter(item => !/[\u4e00-\u9fa5]/.test(item.wordText));
+        const zhItems = lockedItems.filter(item => /[\u4e00-\u9fa5]/.test(item.wordText));
+        const enItems = lockedItems.filter(item => !/[\u4e00-\u9fa5]/.test(item.wordText));
 
         await Promise.all([
             processLangBatch('zh', zhItems),
@@ -131,6 +159,27 @@ ff.http('processQueueBatch', async (req: ff.Request, res: ff.Response) => {
     }
 });
 
+const fs = require('fs');
+const path = require('path');
+
+let globalVocabulary: string[] = [];
+try {
+    const vocabPath = path.join(__dirname, 'vocabulary.json');
+    if (fs.existsSync(vocabPath)) {
+        const data = JSON.parse(fs.readFileSync(vocabPath, 'utf8'));
+        if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+            globalVocabulary = data.map((item: any) => item.char).filter(Boolean);
+        } else if (Array.isArray(data)) {
+            globalVocabulary = data as string[];
+        }
+        console.log(`[CloudFunc] Loaded ${globalVocabulary.length} words from vocabulary.json`);
+    } else {
+        console.warn("[CloudFunc] vocabulary.json not found.");
+    }
+} catch (e) {
+    console.error("[CloudFunc] Failed to load vocabulary.json:", e);
+}
+
 async function processLangBatch(language: 'zh' | 'en', items: any[]) {
     if (items.length === 0) return;
 
@@ -140,14 +189,24 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
     try {
         // Filter items based on usage limit
         const allowedItems = [];
+        const skippedItems = [];
         for (const item of items) {
             const { count, allowed } = await getUserUsage(item.userId);
             if (allowed) {
                 allowedItems.push(item);
             } else {
                 console.log(`[CloudFunc] Skipping ${item.wordText} for user ${item.userId} - Daily limit reached (${count})`);
-                // Leave as pending in queue
+                skippedItems.push(item);
             }
+        }
+
+        if (skippedItems.length > 0) {
+            const skipBatch = db.batch();
+            skippedItems.forEach(item => {
+                // Revert to pending so it can be retried later (next day)
+                skipBatch.update(db.collection('example_generation_queue').doc(item.id), { status: 'pending' });
+            });
+            await skipBatch.commit();
         }
 
         if (allowedItems.length === 0) {
@@ -157,18 +216,35 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
 
         const allowedWordTexts = allowedItems.map(i => i.wordText);
 
-        // Fetch context words from first user's profile
+        // Fetch context words from first user's profile (Preferred Vocabulary)
         const firstItem = allowedItems[0];
-        let contextWords: string[] = [];
+        let preferredWords: string[] = [];
         try {
             const wordsColl = db.collection('users').doc(firstItem.userId).collection('profiles').doc(firstItem.profileId).collection('words');
-            const contextSnap = await wordsColl.limit(50).get();
-            contextWords = contextSnap.docs.map(doc => doc.data().text as string).filter(Boolean);
+            const contextSnap = await wordsColl.select('text').get();
+            preferredWords = contextSnap.docs.map(doc => doc.data().text as string).filter(Boolean);
+            // Remove duplicates
+            preferredWords = [...new Set(preferredWords)];
         } catch (e) {
-            console.warn("[CloudFunc] Context fetch failed, skipping context.");
+            console.warn("[CloudFunc] Context fetch failed, skipping user context.");
         }
 
-        const prompt = getPromptForLanguage(language, allowedWordTexts, contextWords);
+        // Prepare Allowed Characters List (Global + Preferred Chars) for Chinese
+        let allowedCharSet = new Set<string>();
+        if (language === 'zh') {
+            // Add Global Vocabulary (Chars)
+            globalVocabulary.forEach(c => allowedCharSet.add(c));
+            // Add characters from Preferred Words
+            preferredWords.forEach(word => {
+                for (const char of word) {
+                    if (/[\u4e00-\u9fa5]/.test(char)) {
+                        allowedCharSet.add(char);
+                    }
+                }
+            });
+        }
+
+        const prompt = getPromptForLanguage(language, allowedWordTexts, preferredWords, Array.from(allowedCharSet));
         const result = await getGenAI().models.generateContent({
             model: 'gemini-2.0-flash',
             contents: prompt,
@@ -205,6 +281,24 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
         for (const item of allowedItems) {
             const gen = generatedMap.get(item.wordText);
             if (gen && gen.examples) {
+                // VALIDATION START
+                if (language === 'zh') {
+                    for (const ex of gen.examples) {
+                        const sentence = ex.chinese || '';
+                        const invalidChars: string[] = [];
+                        for (const char of sentence) {
+                            // Check if char is Chinese and NOT in allowed list
+                            if (/[\u4e00-\u9fa5]/.test(char) && !allowedCharSet.has(char)) {
+                                invalidChars.push(char);
+                            }
+                        }
+                        if (invalidChars.length > 0) {
+                            console.warn(`[CloudFunc] Strictness Violation for word '${item.wordText}': Sentence "${sentence}" contains forbidden chars: [${invalidChars.join(', ')}]`);
+                        }
+                    }
+                }
+                // VALIDATION END
+
                 const examples = gen.examples.map((ex: any) => ({
                     chinese: ex.chinese,
                     english: ''
@@ -250,32 +344,42 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
     }
 }
 
-function getPromptForLanguage(language: 'zh' | 'en', words: string[], contextWords: string[] = []): string {
-    const filteredContext = contextWords.filter(w => {
+function getPromptForLanguage(language: 'zh' | 'en', words: string[], preferredWords: string[] = [], allowedChars: string[] = []): string {
+    // Filter preferred words by language for better context
+    const filteredPreferred = preferredWords.filter(w => {
         if (language === 'zh') return /[\u4e00-\u9fa5]/.test(w);
         if (language === 'en') return /[a-zA-Z]/.test(w) && !/[\u4e00-\u9fa5]/.test(w);
         return false;
     });
 
-    const contextSection = filteredContext.length > 0 ? `
-            EXISTING VOCABULARY CONTEXT (Try to use these words in examples):
-            ${filteredContext.join(", ")}` : '';
+    const preferredSection = filteredPreferred.length > 0 ? `
+            OPTIONAL CONTEXT VOCABULARY (Use these ONLY if they fit naturally and help the sentence flow. DO NOT force them in):
+            ${filteredPreferred.join(", ")}` : '';
 
     if (language === 'zh') {
+        const allowedCharsString = allowedChars.join("");
+
         return `Generate flashcard content for the following Chinese words.
             
             TARGET WORDS:
             ${JSON.stringify(words)}
-            ${contextSection}
+            ${preferredSection}
+            
+            ALLOWED CHARACTERS LIST:
+            ${allowedCharsString}
             
             REQUIREMENTS:
             1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).
-            2. Examples:
+            3. Examples:
                - Create 3 distinct sentences for each word.
-               - Sentences must be simple, relatable to a 6-7 year old living in HK.
+               - Sentences must be COMPLETE and DESCRIPTIVE (Subject + Verb + Object). Avoid simple fragments like "我快活".
+               - Minimum length: 6 characters per sentence.
                - LANGUAGE: STRICTLY Traditional Chinese (Standard Written Chinese / 書面語). 
+                 - DO NOT use Cantonese colloquialisms (like 佢, 哋, 嘅, 咗, 係, 咁) even if the context is HK. Use standard equivalents (他, 他們, 的, 了, 是, 這麼) ONLY if they are in the allowed list.
+               - STRICT CONSTRAINT: You MUST construct sentences using ONLY the characters from the "ALLOWED CHARACTERS LIST" above. 
+               - EXCEPTION: You may use standard punctuation (，。？！) and numbers (1, 2, 3...) which are not in the list.
                - FORBIDDEN: 
-                 - NO colloquial Cantonese (口語).
+                 - NO characters outside the allowed list (except punctuation/numbers).
                  - NO English translations inside the content.
                  - NO Pinyin or Jyutping.
                  - NO auxiliary notes or explanations in parentheses.
@@ -285,7 +389,7 @@ function getPromptForLanguage(language: 'zh' | 'en', words: string[], contextWor
             
             TARGET WORDS:
             ${JSON.stringify(words)}
-            ${contextSection}
+            ${preferredSection}
             
             REQUIREMENTS:
             1. Target Audience: Hong Kong Primary 1 or Primary 2 students (Age 6-7).

@@ -1258,30 +1258,8 @@ const App: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Middle Row: Left | Card | Right */}
-                        <div className="flex-1 w-full flex flex-col md:grid md:grid-cols-[140px_minmax(0,1fr)_140px] items-center justify-center py-2 md:py-4 gap-4 min-h-0 overflow-visible">
-
-                            {/* LEFT SIDE ACTION */}
-                            <div className="hidden md:flex flex-col items-end justify-center h-full shrink-0">
-                                {!isCardFlipped ? (
-                                    <button
-                                        onClick={() => handleRate(false)}
-                                        className={`p-4 rounded-3xl border-2 font-bold text-sm shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.2)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === false ? 'bg-salmon text-white border-coffee ring-2 ring-salmon ring-offset-2' : 'bg-white border-coffee/20 text-coffee/60 hover:bg-salmon/10 hover:text-salmon'}`}
-                                    >
-                                        <X className="w-6 h-6 stroke-[3]" />
-                                        {t('study.forgot')}
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleFlip}
-                                        className="p-4 rounded-3xl bg-white text-coffee font-bold text-sm border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
-                                    >
-                                        <RotateCcw className="w-5 h-5 stroke-[3]" />
-                                        {t('study.flip_back')}
-                                    </button>
-                                )}
-                            </div>
-
+                        {/* Card Row */}
+                        <div className="flex-1 w-full flex flex-col items-center justify-center py-2 md:py-4 gap-4 min-h-0 overflow-visible relative">
                             {/* THE CARD CONTAINER */}
                             <div className="flex items-center justify-center w-full h-full relative min-h-0 overflow-visible">
                                 <Flashcard
@@ -1296,31 +1274,10 @@ const App: React.FC = () => {
                                     onAddWords={handleBatchAddWords}
                                 />
                             </div>
-
-                            {/* RIGHT SIDE ACTION */}
-                            <div className="hidden md:flex flex-col items-start justify-center h-full shrink-0">
-                                {!isCardFlipped ? (
-                                    <button
-                                        onClick={() => handleRate(true)}
-                                        className={`p-4 rounded-3xl font-bold text-sm border-2 shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,1)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1 ${pendingScore === true ? 'bg-matcha text-coffee border-coffee ring-2 ring-matcha ring-offset-2' : 'bg-matcha border-coffee text-coffee'}`}
-                                    >
-                                        <Check className="w-6 h-6 stroke-[3]" />
-                                        {t('study.got_it')}
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleNextCard}
-                                        className="p-4 rounded-3xl bg-coffee text-cream font-bold text-sm border-2 border-coffee shadow-[0.25rem_0.25rem_0px_0px_rgba(93,64,55,0.4)] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex flex-col items-center gap-1"
-                                    >
-                                        {t('common.next')}
-                                        <ArrowLeft className="w-5 h-5 rotate-180 stroke-[3]" />
-                                    </button>
-                                )}
-                            </div>
                         </div>
 
-                        {/* BOTTOM ACTIONS (MOBILE ONLY) */}
-                        <div className="w-full max-w-md shrink-0 py-4 flex md:hidden items-center justify-center gap-3 h-24">
+                        {/* ACTIONS (BOTTOM FOR ALL TO LOOK LIKE MOBILE BUT LARGER) */}
+                        <div className="w-full max-w-lg shrink-0 py-4 px-4 flex items-center justify-center gap-3 h-24 mb-2">
                             {!isCardFlipped ? (
                                 <>
                                     <button
@@ -1389,7 +1346,7 @@ const App: React.FC = () => {
             <PWAInstallPrompt />
             {/* ... Global States ... */}
 
-            <main className="flex-1 flex flex-col w-full max-w-screen-xl mx-auto relative min-h-0 overflow-y-auto overflow-x-hidden">
+            <main className="flex-1 flex flex-col w-full max-w-lg mx-auto relative min-h-0 overflow-y-auto overflow-x-hidden">
                 {errorMsg && (
                     <div className="mx-4 mt-4 bg-salmon/10 text-salmon border-2 border-salmon p-3 rounded-2xl flex items-center justify-between font-bold shadow-sm animate-in slide-in-from-top-4 duration-300">
                         <div className="flex items-center gap-2">

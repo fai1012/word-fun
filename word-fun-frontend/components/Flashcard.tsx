@@ -127,29 +127,31 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
   // Mastery percentage for display
   const masteryPercentage = Math.min(100, Math.round(((data.correctCount || 0) / masteryThreshold) * 100));
 
-  // Orientation & Dimension Detection
-  // We track dimensions to determine if we are "Width Limited" (e.g. iPad Landscape) or "Height Limited" (e.g. Phone Landscape)
-  const [windowDims, setWindowDims] = React.useState({ w: window.innerWidth, h: window.innerHeight });
+  // Orientation & Dimension Detection (Based on the PARENT container to avoid feedback loops)
+  const cardRef = React.useRef<HTMLDivElement>(null);
+  const [containerDims, setContainerDims] = React.useState({ w: 0, h: 0 });
 
   useEffect(() => {
-    const handleResize = () => {
-      setWindowDims({ w: window.innerWidth, h: window.innerHeight });
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    if (!cardRef.current?.parentElement) return;
+    const parent = cardRef.current.parentElement;
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setContainerDims({ w: entry.contentRect.width, h: entry.contentRect.height });
+      }
+    });
+    observer.observe(parent);
+    return () => observer.disconnect();
   }, []);
 
-  const isLandscape = windowDims.w > windowDims.h;
+  // Force portrait mode only as requested (Exactly like on mobile, no landscape support)
+  const isLandscape = false;
 
-  // Calculate if the container/window is "squarer" than the card
-  // Card Ratios: Landscape 3/2 (1.5), Portrait 3/4 (0.75)
-  const cardRatio = isLandscape ? 1.5 : 0.75;
-  const screenRatio = windowDims.w / windowDims.h;
+  // Card Ratio: Portrait 3/4 (0.75)
+  const cardRatio = 0.75;
+  const containerRatio = containerDims.h > 0 ? containerDims.w / containerDims.h : 0.75;
 
-  // If Screen Ratio < Card Ratio, we are strictly width-limited (the card is too wide for the screen height-match)
-  // We must use w-full h-auto.
-  // Otherwise, we are height-limited, using h-full w-auto.
-  const isWidthLimited = screenRatio < cardRatio;
+  // If Container Ratio < Card Ratio, we are strictly width-limited (the container is too narrow for height-match)
+  const isWidthLimited = containerRatio < cardRatio;
 
   // Language Detection Helper
   const isChinese = (text: string) => /[\u4e00-\u9fa5]/.test(text) || data.language === 'zh';
@@ -180,15 +182,22 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
     }
 
     // Portrait Mode (Mobile & Tablet)
-    // Optimized for width but bumped up for impact
-    if (len <= 1) return "text-[12rem] sm:text-[16rem] md:text-[20rem]";
-    if (len === 2) return "text-[10rem] sm:text-[12rem] md:text-[16rem]";
-    if (len === 3) return "text-[7.5rem] sm:text-[9rem] md:text-[12rem]";
-    if (len === 4) return "text-[5.5rem] sm:text-[7rem] md:text-[9rem]";
-    if (len === 5) return "text-[4.5rem] sm:text-[6rem] md:text-[8rem]";
-
-    // For 6+ characters
-    return "text-[3.8rem] sm:text-[5rem] md:text-[6.5rem]";
+    if (isChinese(text)) {
+      if (len <= 1) return "text-[10rem] sm:text-[13rem] md:text-[16rem]";
+      if (len === 2) return "text-[8rem] sm:text-[10rem] md:text-[12rem]";
+      if (len === 3) return "text-[6rem] sm:text-[7.5rem] md:text-[9rem]";
+      if (len === 4) return "text-[4.5rem] sm:text-[5.5rem] md:text-[7rem]";
+      if (len === 5) return "text-[3.5rem] sm:text-[4.5rem] md:text-[6rem]";
+      return "text-[3rem] sm:text-[4rem] md:text-[5.5rem]";
+    } else {
+      // English / Non-Chinese logic (Horizontal words)
+      // Scaled down to fit within the max-w-lg width limit on desktop
+      if (len <= 4) return "text-[4.5rem] sm:text-[6.5rem] md:text-[8rem]";
+      if (len <= 7) return "text-[3rem] sm:text-[4.5rem] md:text-[5.5rem]";
+      if (len <= 10) return "text-[2.2rem] sm:text-[3.2rem] md:text-[4rem]";
+      if (len <= 13) return "text-[1.8rem] sm:text-[2.5rem] md:text-[3.2rem]";
+      return "text-[1.5rem] sm:text-[2rem] md:text-[2.5rem]";
+    }
   };
 
   const [expandedExample, setExpandedExample] = React.useState<string | null>(null);
@@ -513,7 +522,8 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
 
   return (
     <div
-      className={`relative ${isWidthLimited ? 'w-full h-auto' : 'h-full w-auto'} aspect-[3/4] landscape:aspect-[3/2] max-w-full max-h-full perspective-1000 group mx-auto cursor-default transition-all duration-300`}
+      ref={cardRef}
+      className={`relative ${isWidthLimited ? 'w-full h-auto' : 'h-full w-auto'} aspect-[3/4] max-w-full max-h-full perspective-1000 group mx-auto cursor-default transition-all duration-300`}
       onClick={() => {
         if (swipedIndex !== null) setSwipedIndex(null);
       }}
@@ -553,7 +563,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({ data, allWords = [], isFli
               <h2 className={`
                 ${getDynamicFontSize(data.character)} 
                 font-noto-serif-hk font-bold text-coffee leading-[1.1] text-center drop-shadow-sm
-                ${isChinese(data.character) ? (isLandscape ? 'tracking-[0.15em] flex gap-x-8 sm:gap-x-12' : 'flex flex-col gap-6 sm:gap-10') : (data.character.trim().includes(' ') ? 'break-words max-w-[90%] tracking-normal' : 'whitespace-nowrap max-w-full tracking-normal')}
+                ${isChinese(data.character) ? (isLandscape ? 'tracking-[0.15em] flex gap-x-8 sm:gap-x-12' : 'flex flex-col gap-4 sm:gap-6') : (data.character.trim().includes(' ') ? 'break-words max-w-[90%] tracking-normal' : 'whitespace-nowrap max-w-full tracking-normal')}
               `}
               >
                 {(isChinese(data.character) && (isLandscape || !isLandscape)) ? (

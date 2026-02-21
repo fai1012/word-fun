@@ -3,7 +3,7 @@
     "name": "認字繽紛樂",
     "icons": [
         {
-            "src": "https://gen-lang-client-0834078301.web.app/assets_panda-fav_favicon-200x200.png",
+            "src": "https://gen-lang-client-0834078301.web.app/v1/assets_panda-fav_favicon-200x200.png",
             "sizes": "200x200",
             "type": "image/png",
             "purpose": "any maskable"

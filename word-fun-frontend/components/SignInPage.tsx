@@ -9,7 +9,7 @@ interface SignInPageProps {
     onLoginError: () => void;
 }
 
-const PANDA_LOGO_URL = 'https://gen-lang-client-0834078301.web.app/assets_panda-logo.png';
+const PANDA_LOGO_URL = 'https://gen-lang-client-0834078301.firebaseapp.com/v1/assets_panda-logo.png';
 
 export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess, onLoginError }) => {
     const { t } = useI18n();
