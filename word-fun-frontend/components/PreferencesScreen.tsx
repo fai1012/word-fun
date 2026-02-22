@@ -4,6 +4,8 @@ import { getEnv } from '../constants';
 import { useI18n } from '../services/i18nService';
 import { LearningPace } from '../services/learningPaceConfig';
 import { User } from '../types';
+import { useTour } from './TourProvider';
+import { useEffect } from 'react';
 
 interface PreferencesScreenProps {
     user: User | null;
@@ -25,7 +27,12 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
     onLogout
 }) => {
     const { t, language } = useI18n();
+    const { runTourForPage } = useTour();
     const usage = user?.rateUsage?.exampleGeneration;
+
+    useEffect(() => {
+        runTourForPage('preferences');
+    }, [runTourForPage]);
     const count = usage?.count || 0;
     const limit = 50;
     const usagePercentage = Math.min((count / limit) * 100, 100);
@@ -65,7 +72,7 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                 </div>
 
                 {/* Learning Pace Setting */}
-                <div className="bg-white rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee overflow-hidden p-5">
+                <div id="tour-learning-pace" className="bg-white rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee overflow-hidden p-5">
                     <div className="flex items-center gap-4 mb-5">
                         <div className="p-3 rounded-2xl bg-salmon/10 text-salmon border-2 border-salmon/20">
                             <Zap className="w-6 h-6 stroke-[3]" />
@@ -126,7 +133,7 @@ export const PreferencesScreen: React.FC<PreferencesScreenProps> = ({
                 </div>
 
                 {/* Usage Stats Section */}
-                <div className="bg-white rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee overflow-hidden p-5">
+                <div id="tour-daily-limit" className="bg-white rounded-3xl shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] border-2 border-coffee overflow-hidden p-5">
                     <div className="flex items-center gap-4 mb-3">
                         <div className="p-3 rounded-2xl bg-indigo-100 text-indigo-600 border-2 border-indigo-200">
                             <Zap className="w-6 h-6 stroke-[3]" />

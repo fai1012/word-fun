@@ -22,6 +22,7 @@ import { AddWordsScreen } from './components/AddWordsScreen';
 import { BottomNav } from './components/BottomNav';
 import { SummaryScreen } from './components/SummaryScreen';
 import { PreferencesScreen } from './components/PreferencesScreen';
+import { TourProvider } from './components/TourProvider';
 import { getLevelInfo, EXP_SOURCES } from './services/levelService';
 import { ArrowLeft, Check, X, Repeat, Trophy, Home, RotateCcw, Star, Zap, AlertTriangle } from 'lucide-react';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
@@ -1343,7 +1344,6 @@ const App: React.FC = () => {
                 title={cooldownTitle}
                 buttonText={cooldownButtonText}
             />
-            <PWAInstallPrompt />
             {/* ... Global States ... */}
 
             <main className="flex-1 flex flex-col w-full max-w-lg mx-auto relative min-h-0 overflow-y-auto overflow-x-hidden">
@@ -1358,215 +1358,218 @@ const App: React.FC = () => {
                         </button>
                     </div>
                 )}
-                <Routes>
-                    <Route
-                        path="/login"
-                        element={
-                            !user ? (
-                                <SignInPage
-                                    onLoginSuccess={handleLoginSuccess}
-                                    onLoginError={handleLoginError}
-                                />
-                            ) : (
-                                <Navigate to="/profiles" replace />
-                            )
-                        }
-                    />
+                <TourProvider>
+                    <PWAInstallPrompt />
+                    <Routes>
+                        <Route
+                            path="/login"
+                            element={
+                                !user ? (
+                                    <SignInPage
+                                        onLoginSuccess={handleLoginSuccess}
+                                        onLoginError={handleLoginError}
+                                    />
+                                ) : (
+                                    <Navigate to="/profiles" replace />
+                                )
+                            }
+                        />
 
-                    <Route
-                        path="/profiles"
-                        element={
-                            user ? (
-                                <ProfileSelectionPage
-                                    onProfileSelect={handleProfileSelect}
-                                    onLogout={handleLogout}
-                                    profiles={profiles}
-                                    onProfilesChange={loadAllProfiles}
-                                    isLoading={isProfilesLoading}
-                                    user={user}
-                                />
-                            ) : (
-                                <Navigate to="/login" replace />
-                            )
-                        }
-                    />
+                        <Route
+                            path="/profiles"
+                            element={
+                                user ? (
+                                    <ProfileSelectionPage
+                                        onProfileSelect={handleProfileSelect}
+                                        onLogout={handleLogout}
+                                        profiles={profiles}
+                                        onProfilesChange={loadAllProfiles}
+                                        isLoading={isProfilesLoading}
+                                        user={user}
+                                    />
+                                ) : (
+                                    <Navigate to="/login" replace />
+                                )
+                            }
+                        />
 
-                    {/* DYNAMIC PROFILE ROUTES */}
-                    <Route
-                        path="/profiles/:profileId/study"
-                        element={
-                            user ? (
-                                <ProfileGuard
-                                    profiles={profiles}
-                                    isLoading={isLoading || isInitializing || isProfilesLoading}
-                                    currentProfile={currentProfile}
-                                    onProfileSwitch={handleProfileSync}
-                                >
-                                    <div className="flex-1 overflow-y-auto">
-                                        <HomeScreen
-                                            profileId={currentProfile?.id || ''}
-                                            cardCountZh={flashcards.filter(c => c && (c.language === 'zh' || !c.language)).length}
-                                            cardCountEn={flashcards.filter(c => c && c.language === 'en').length}
-                                            onStart={startStudySession}
-                                            onManage={() => navigate(`/profiles/${currentProfile?.id}/add`)}
-                                            isSyncing={isLoading}
-                                            onSync={() => currentProfile && loadWords(currentProfile.id)}
+                        {/* DYNAMIC PROFILE ROUTES */}
+                        <Route
+                            path="/profiles/:profileId/study"
+                            element={
+                                user ? (
+                                    <ProfileGuard
+                                        profiles={profiles}
+                                        isLoading={isLoading || isInitializing || isProfilesLoading}
+                                        currentProfile={currentProfile}
+                                        onProfileSwitch={handleProfileSync}
+                                    >
+                                        <div className="flex-1 overflow-y-auto">
+                                            <HomeScreen
+                                                profileId={currentProfile?.id || ''}
+                                                cardCountZh={flashcards.filter(c => c && (c.language === 'zh' || !c.language)).length}
+                                                cardCountEn={flashcards.filter(c => c && c.language === 'en').length}
+                                                onStart={startStudySession}
+                                                onManage={() => navigate(`/profiles/${currentProfile?.id}/add`)}
+                                                isSyncing={isLoading}
+                                                onSync={() => currentProfile && loadWords(currentProfile.id)}
+                                                profileName={currentProfile?.displayName}
+                                                avatarId={currentProfile?.avatarId}
+                                                masteredCount={flashcards.filter(c => c && (c.correctCount || 0) >= masteryThreshold).length}
+                                                reviewedCount={flashcards.reduce((acc, curr) => acc + (curr ? (curr.revisedCount || 0) : 0), 0)}
+                                                masteredToday={masteredToday}
+                                                reviewedToday={reviewedToday}
+                                                masteredThisWeek={masteredThisWeek}
+                                                reviewedThisWeek={reviewedThisWeek}
+                                                exp={currentProfile?.exp || 0}
+                                            />
+                                        </div>
+                                        <BottomNav
                                             profileName={currentProfile?.displayName}
-                                            avatarId={currentProfile?.avatarId}
-                                            masteredCount={flashcards.filter(c => c && (c.correctCount || 0) >= masteryThreshold).length}
-                                            reviewedCount={flashcards.reduce((acc, curr) => acc + (curr ? (curr.revisedCount || 0) : 0), 0)}
-                                            masteredToday={masteredToday}
-                                            reviewedToday={reviewedToday}
-                                            masteredThisWeek={masteredThisWeek}
-                                            reviewedThisWeek={reviewedThisWeek}
-                                            exp={currentProfile?.exp || 0}
+                                            profiles={profiles}
+                                            currentProfileId={currentProfile?.id}
+                                            onProfileSelect={handleProfileSelect}
                                         />
-                                    </div>
-                                    <BottomNav
-                                        profileName={currentProfile?.displayName}
-                                        profiles={profiles}
-                                        currentProfileId={currentProfile?.id}
-                                        onProfileSelect={handleProfileSelect}
-                                    />
-                                </ProfileGuard>
-                            ) : (
-                                <Navigate to="/login" replace />
-                            )
-                        }
-                    />
+                                    </ProfileGuard>
+                                ) : (
+                                    <Navigate to="/login" replace />
+                                )
+                            }
+                        />
 
-                    <Route
-                        path="/profiles/:profileId/stats"
-                        element={
-                            user ? (
-                                <ProfileGuard
-                                    profiles={profiles}
-                                    isLoading={isLoading || isInitializing || isProfilesLoading}
-                                    currentProfile={currentProfile}
-                                    onProfileSwitch={handleProfileSync}
-                                >
-                                    <div className="flex-1 overflow-y-auto">
-                                        <SummaryScreen
-                                            profileId={currentProfile?.id || ''}
-                                            cards={flashcards}
-                                            masteryThreshold={masteryThreshold}
-                                            onUpdateWord={async (wordId: string, updates: any) => {
-                                                // Optimistic update
-                                                const updatedCards = (flashcards || []).map(c => (c && c.id === wordId) ? { ...c, ...updates } : c);
-                                                saveCards(updatedCards);
-                                                // Backend sync
-                                                if (currentProfile) {
-                                                    await updateWord(currentProfile.id, wordId, updates);
-                                                }
-                                            }}
-                                            onDeleteWord={async (wordId: string) => {
-                                                // Optimistic update
-                                                const updatedCards = (flashcards || []).filter(c => c && c.id !== wordId);
-                                                saveCards(updatedCards);
-                                                // Backend sync
-                                                if (currentProfile) {
-                                                    await deleteWord(currentProfile.id, wordId);
-                                                }
-                                            }}
+                        <Route
+                            path="/profiles/:profileId/stats"
+                            element={
+                                user ? (
+                                    <ProfileGuard
+                                        profiles={profiles}
+                                        isLoading={isLoading || isInitializing || isProfilesLoading}
+                                        currentProfile={currentProfile}
+                                        onProfileSwitch={handleProfileSync}
+                                    >
+                                        <div className="flex-1 overflow-y-auto">
+                                            <SummaryScreen
+                                                profileId={currentProfile?.id || ''}
+                                                cards={flashcards}
+                                                masteryThreshold={masteryThreshold}
+                                                onUpdateWord={async (wordId: string, updates: any) => {
+                                                    // Optimistic update
+                                                    const updatedCards = (flashcards || []).map(c => (c && c.id === wordId) ? { ...c, ...updates } : c);
+                                                    saveCards(updatedCards);
+                                                    // Backend sync
+                                                    if (currentProfile) {
+                                                        await updateWord(currentProfile.id, wordId, updates);
+                                                    }
+                                                }}
+                                                onDeleteWord={async (wordId: string) => {
+                                                    // Optimistic update
+                                                    const updatedCards = (flashcards || []).filter(c => c && c.id !== wordId);
+                                                    saveCards(updatedCards);
+                                                    // Backend sync
+                                                    if (currentProfile) {
+                                                        await deleteWord(currentProfile.id, wordId);
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                        <BottomNav
+                                            profileName={currentProfile?.displayName}
+                                            profiles={profiles}
+                                            currentProfileId={currentProfile?.id}
+                                            onProfileSelect={handleProfileSelect}
                                         />
-                                    </div>
-                                    <BottomNav
-                                        profileName={currentProfile?.displayName}
-                                        profiles={profiles}
-                                        currentProfileId={currentProfile?.id}
-                                        onProfileSelect={handleProfileSelect}
-                                    />
-                                </ProfileGuard>
-                            ) : (
-                                <Navigate to="/login" replace />
-                            )
-                        }
-                    />
+                                    </ProfileGuard>
+                                ) : (
+                                    <Navigate to="/login" replace />
+                                )
+                            }
+                        />
 
-                    <Route
-                        path="/profiles/:profileId/add"
-                        element={
-                            user ? (
-                                <ProfileGuard
-                                    profiles={profiles}
-                                    isLoading={isLoading || isInitializing || isProfilesLoading}
-                                    currentProfile={currentProfile}
-                                    onProfileSwitch={handleProfileSync}
-                                >
-                                    <div className="flex-1 overflow-hidden h-full pb-20">
-                                        <AddWordsScreen
-                                            profileId={currentProfile?.id || ''}
-                                            onBack={() => { }}
-                                            onWordsAdded={() => loadWords(currentProfile?.id || '', false)}
+                        <Route
+                            path="/profiles/:profileId/add"
+                            element={
+                                user ? (
+                                    <ProfileGuard
+                                        profiles={profiles}
+                                        isLoading={isLoading || isInitializing || isProfilesLoading}
+                                        currentProfile={currentProfile}
+                                        onProfileSwitch={handleProfileSync}
+                                    >
+                                        <div className="flex-1 overflow-hidden h-full pb-20">
+                                            <AddWordsScreen
+                                                profileId={currentProfile?.id || ''}
+                                                onBack={() => { }}
+                                                onWordsAdded={() => loadWords(currentProfile?.id || '', false)}
+                                            />
+                                        </div>
+                                        <BottomNav
+                                            profileName={currentProfile?.displayName}
+                                            profiles={profiles}
+                                            currentProfileId={currentProfile?.id}
+                                            onProfileSelect={handleProfileSelect}
                                         />
-                                    </div>
-                                    <BottomNav
-                                        profileName={currentProfile?.displayName}
-                                        profiles={profiles}
-                                        currentProfileId={currentProfile?.id}
-                                        onProfileSelect={handleProfileSelect}
-                                    />
-                                </ProfileGuard>
-                            ) : (
-                                <Navigate to="/login" replace />
-                            )
-                        }
-                    />
+                                    </ProfileGuard>
+                                ) : (
+                                    <Navigate to="/login" replace />
+                                )
+                            }
+                        />
 
-                    <Route
-                        path="/profiles/:profileId/settings"
-                        element={
-                            user ? (
-                                <ProfileGuard
-                                    profiles={profiles}
-                                    isLoading={isLoading || isInitializing || isProfilesLoading}
-                                    currentProfile={currentProfile}
-                                    onProfileSwitch={handleProfileSync}
-                                >
-                                    <div className="flex-1 overflow-y-auto">
-                                        <PreferencesScreen
-                                            user={user}
-                                            autoPlaySound={autoPlaySound}
-                                            onToggleAutoPlaySound={handleToggleAutoPlay}
-                                            learningPace={learningPace}
-                                            onUpdateLearningPace={handleUpdateLearningPace}
-                                            onUpdateLanguage={handleUpdateLanguage}
-                                            onLogout={handleLogout}
+                        <Route
+                            path="/profiles/:profileId/settings"
+                            element={
+                                user ? (
+                                    <ProfileGuard
+                                        profiles={profiles}
+                                        isLoading={isLoading || isInitializing || isProfilesLoading}
+                                        currentProfile={currentProfile}
+                                        onProfileSwitch={handleProfileSync}
+                                    >
+                                        <div className="flex-1 overflow-y-auto">
+                                            <PreferencesScreen
+                                                user={user}
+                                                autoPlaySound={autoPlaySound}
+                                                onToggleAutoPlaySound={handleToggleAutoPlay}
+                                                learningPace={learningPace}
+                                                onUpdateLearningPace={handleUpdateLearningPace}
+                                                onUpdateLanguage={handleUpdateLanguage}
+                                                onLogout={handleLogout}
+                                            />
+                                        </div>
+                                        <BottomNav
+                                            profileName={currentProfile?.displayName}
+                                            profiles={profiles}
+                                            currentProfileId={currentProfile?.id}
+                                            onProfileSelect={handleProfileSelect}
                                         />
-                                    </div>
-                                    <BottomNav
-                                        profileName={currentProfile?.displayName}
+                                    </ProfileGuard>
+                                ) : (
+                                    <Navigate to="/login" replace />
+                                )
+                            }
+                        />
+
+                        <Route
+                            path="/profiles/:profileId/session"
+                            element={
+                                user ? (
+                                    <ProfileGuard
                                         profiles={profiles}
-                                        currentProfileId={currentProfile?.id}
-                                        onProfileSelect={handleProfileSelect}
-                                    />
-                                </ProfileGuard>
-                            ) : (
-                                <Navigate to="/login" replace />
-                            )
-                        }
-                    />
+                                        isLoading={isLoading || isInitializing || isProfilesLoading}
+                                        currentProfile={currentProfile}
+                                        onProfileSwitch={handleProfileSync}
+                                    >
+                                        {sessionQueue.length > 0 || isSessionCompleted ? renderSession() : <Navigate to={`/profiles/${currentProfile?.id}/study`} replace />}
+                                    </ProfileGuard>
+                                ) : (
+                                    <Navigate to="/login" replace />
+                                )
+                            }
+                        />
 
-                    <Route
-                        path="/profiles/:profileId/session"
-                        element={
-                            user ? (
-                                <ProfileGuard
-                                    profiles={profiles}
-                                    isLoading={isLoading || isInitializing || isProfilesLoading}
-                                    currentProfile={currentProfile}
-                                    onProfileSwitch={handleProfileSync}
-                                >
-                                    {sessionQueue.length > 0 || isSessionCompleted ? renderSession() : <Navigate to={`/profiles/${currentProfile?.id}/study`} replace />}
-                                </ProfileGuard>
-                            ) : (
-                                <Navigate to="/login" replace />
-                            )
-                        }
-                    />
-
-                    <Route path="*" element={<Navigate to={user ? "/profiles" : "/login"} replace />} />
-                </Routes>
+                        <Route path="*" element={<Navigate to={user ? "/profiles" : "/login"} replace />} />
+                    </Routes>
+                </TourProvider>
             </main>
         </div>
     );

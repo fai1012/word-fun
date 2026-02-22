@@ -4,6 +4,7 @@ import { getLevelInfo } from '../services/levelService';
 import { AVATAR_MAP } from './AvatarPicker';
 import { fetchProfileTags } from '../services/profileService';
 import { useI18n } from '../services/i18nService';
+import { useTour } from './TourProvider';
 
 interface HomeScreenProps {
   profileId: string;
@@ -43,8 +44,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   exp = 0
 }) => {
   const { t } = useI18n();
+  const { runTourForPage } = useTour();
   const totalCards = cardCountZh + cardCountEn;
   const avatarSrc = avatarId ? AVATAR_MAP[avatarId] : null;
+
+  useEffect(() => {
+    runTourForPage('home');
+  }, [runTourForPage]);
 
   // Carousel State
   const [activeSlide, setActiveSlide] = useState(0);
@@ -343,6 +349,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </p>
 
               <button
+                id="tour-home-add-words"
                 onClick={onManage}
                 className="w-full py-4 bg-salmon text-white rounded-2xl font-bold text-lg border-2 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.4)] hover:shadow-[2px_2px_0px_0px_rgba(93,64,55,0.4)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 group-hover:bg-salmon/90"
               >

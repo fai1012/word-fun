@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Share, X, PlusSquare } from 'lucide-react';
 import { useI18n } from '../services/i18nService';
+import { useTour } from './TourProvider';
 
 export const PWAInstallPrompt: React.FC = () => {
     const { t } = useI18n();
+    const { isActive: isTourActive } = useTour();
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [isIOS, setIsIOS] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
@@ -62,7 +64,7 @@ export const PWAInstallPrompt: React.FC = () => {
         setIsVisible(false);
     };
 
-    if (!isVisible || isStandalone) return null;
+    if (!isVisible || isStandalone || isTourActive) return null;
 
     return (
         <>

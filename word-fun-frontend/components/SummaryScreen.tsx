@@ -5,6 +5,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { TrendingUp, Circle, Trophy, BookOpen, Sparkles, X, Trash2, Plus, GripVertical, Tag, Check } from 'lucide-react';
 import { fetchProfileTags } from '../services/profileService';
 import { useI18n } from '../services/i18nService';
+import { useTour } from './TourProvider';
 
 interface SummaryScreenProps {
     profileId: string;
@@ -18,9 +19,14 @@ type FilterTab = 'MASTERED' | 'LEARNING' | 'NEW';
 
 export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, masteryThreshold, onUpdateWord, onDeleteWord }) => {
     const { t } = useI18n();
+    const { runTourForPage } = useTour();
     const [activeTab, setActiveTab] = useState<FilterTab>('LEARNING');
     const [languageFilter, setLanguageFilter] = useState<'all' | 'zh' | 'en'>('all');
     const [filteredModalAttributes, setFilteredModalAttributes] = useState<{ title: string, cards: FlashcardData[] } | null>(null);
+
+    useEffect(() => {
+        runTourForPage('summary');
+    }, [runTourForPage]);
 
     // Editing State
     const [editingWordId, setEditingWordId] = useState<string | null>(null);
@@ -204,7 +210,7 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ profileId, cards, 
 
     return (
         <div className="w-full max-w-lg mx-auto px-4 pb-24 pt-8 font-rounded text-coffee">
-            <h1 className="text-2xl font-bold text-coffee mb-6 flex items-center justify-between">
+            <h1 id="tour-stats-overview" className="text-2xl font-bold text-coffee mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <TrendingUp className="w-7 h-7 text-salmon stroke-[3]" />
                     <span className="tracking-tight">{t('stats.title')}</span>

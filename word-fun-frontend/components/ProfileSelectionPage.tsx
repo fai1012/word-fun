@@ -5,6 +5,7 @@ import { createProfile, deleteProfile, updateProfile } from '../services/profile
 import { getLevelInfo } from '../services/levelService';
 import { AvatarPicker, AVATAR_MAP } from './AvatarPicker';
 import { useI18n } from '../services/i18nService';
+import { useTour } from './TourProvider';
 
 interface ProfileSelectionPageProps {
     onProfileSelect: (profile: Profile) => void;
@@ -24,6 +25,11 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
     user
 }) => {
     const { t } = useI18n();
+    const { runTourForPage } = useTour();
+
+    useEffect(() => {
+        runTourForPage('profiles');
+    }, [runTourForPage]);
 
 
     const [isLocalLoading, setIsLocalLoading] = useState(false);
@@ -236,6 +242,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                     ))}
 
                     <button
+                        id="tour-add-profile"
                         onClick={() => setIsCreating(true)}
                         className="bg-coffee/5 p-4 rounded-3xl border-2 border-dashed border-coffee/30 flex items-center gap-4 hover:bg-white hover:border-salmon hover:text-salmon transition-all text-left text-coffee/60 group"
                     >
@@ -286,6 +293,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                 <div className="mb-6">
                                     <label className="block text-sm font-bold text-coffee/70 mb-2">{t('common.name')}</label>
                                     <input
+                                        id="tour-profile-name"
                                         autoFocus
                                         type="text"
                                         value={newProfileName}
@@ -303,6 +311,7 @@ export const ProfileSelectionPage: React.FC<ProfileSelectionPageProps> = ({
                                         {t('common.cancel')}
                                     </button>
                                     <button
+                                        id="tour-profile-avatar"
                                         type="submit"
                                         disabled={!newProfileName.trim() || isLoading}
                                         className="flex-1 py-3 bg-salmon text-white rounded-xl font-bold border-b-4 border-salmon/50 hover:border-salmon/70 hover:translate-y-[1px] active:border-b-0 active:translate-y-[4px] transition-all disabled:opacity-50 disabled:active:translate-y-0 disabled:active:border-b-4 shadow-sm"

@@ -59,6 +59,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, cur
         </Link>
 
         <Link
+          id="tour-nav-stats"
           to={getPath('/stats')}
           className={`flex flex-col items-center gap-1 w-16 transition-colors ${isStats ? 'text-salmon font-bold' : 'text-coffee/40 hover:text-coffee/70'
             }`}
@@ -69,6 +70,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, cur
 
         {/* ADD WORDS BUTTON */}
         <Link
+          id="tour-nav-add"
           to={getPath('/add')}
           className="flex flex-col items-center justify-center -mt-8 w-16 h-16 bg-salmon rounded-full border-4 border-coffee shadow-[4px_4px_0px_0px_rgba(93,64,55,0.2)] text-white hover:bg-salmon hover:scale-105 active:scale-95 active:shadow-none active:translate-y-1 transition-all z-50"
         >
@@ -78,6 +80,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ profileName, profiles, cur
         </Link>
 
         <Link
+          id="tour-nav-settings"
           to={getPath('/settings')}
           className={`flex flex-col items-center gap-1 w-16 transition-colors ${isSettings ? 'text-salmon font-bold' : 'text-coffee/40 hover:text-coffee/70'
             }`}
