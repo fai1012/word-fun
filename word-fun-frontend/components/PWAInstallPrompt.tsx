@@ -66,7 +66,7 @@ export const PWAInstallPrompt: React.FC = () => {
 
     return (
         <>
-            <div className="bg-[#f8f9fa] border-t border-gray-200 p-4 fixed bottom-0 left-0 right-0 z-50 animate-in fade-in slide-in-from-bottom-2 duration-500 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            <div className="bg-white/70 backdrop-blur-md border-b border-white/20 p-4 fixed top-0 left-0 right-0 z-50 animate-in fade-in slide-in-from-top-2 duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
                 <div className="max-w-md mx-auto flex items-center gap-3">
                     <div className="shrink-0 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
                         <img
