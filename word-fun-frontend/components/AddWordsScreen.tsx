@@ -376,14 +376,6 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="bg-matcha/10 border-2 border-matcha/20 p-4 rounded-2xl flex items-start gap-3">
-                                        <div className="w-8 h-8 bg-matcha/20 rounded-full flex items-center justify-center shrink-0">
-                                            <Check className="w-5 h-5 text-matcha" />
-                                        </div>
-                                        <p className="text-xs font-bold text-matcha/80 leading-relaxed">
-                                            {t('add.import_success_note')}
-                                        </p>
-                                    </div>
                                 </div>
                             ) : packs.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-20 opacity-30">
