@@ -373,11 +373,6 @@ export const AddWordsScreen: React.FC<AddWordsScreenProps> = ({ profileId, onBac
                                         {selectedPackForPreview.words.map((w, idx) => (
                                             <div key={idx} className="bg-cream/40 border-2 border-coffee/5 p-2 rounded-2xl flex flex-col items-center justify-center gap-1 group">
                                                 <span className="text-base font-bold text-coffee">{w.character}</span>
-                                                <div className="flex flex-wrap gap-1 justify-center">
-                                                    {w.tags.map(t => (
-                                                        <span key={t} className="text-[10px] font-bold text-salmon/60 uppercase tracking-tight">#{t}</span>
-                                                    ))}
-                                                </div>
                                             </div>
                                         ))}
                                     </div>
