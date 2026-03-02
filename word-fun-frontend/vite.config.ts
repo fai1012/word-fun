@@ -25,6 +25,9 @@ export default defineConfig(({ mode }) => {
       port: 8080,
       strictPort: true,
       allowedHosts: true,
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      },
     }
   }
 })
