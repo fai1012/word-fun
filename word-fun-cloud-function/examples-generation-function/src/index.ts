@@ -246,7 +246,7 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
 
         const prompt = getPromptForLanguage(language, allowedWordTexts, preferredWords, Array.from(allowedCharSet));
         const result = await getGenAI().models.generateContent({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",

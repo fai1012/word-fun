@@ -103,7 +103,7 @@ class AIService {
                 console.log(`[AI] Generating Content for ${lang} (Prompt length: ${prompt.length})`);
 
                 const aiResponse = await this.client.models.generateContent({
-                    model: 'gemini-2.0-flash',
+                    model: 'gemini-3.5-flash',
                     contents: prompt,
                     config: {
                         responseMimeType: "application/json",
@@ -193,7 +193,7 @@ class AIService {
                 console.log(`[AI] Generating Session Content for ${lang} (Prompt length: ${prompt.length})`);
 
                 const aiResponse = await this.client.models.generateContent({
-                    model: 'gemini-2.0-flash',
+                    model: 'gemini-3.5-flash',
                     contents: prompt,
                     config: {
                         responseMimeType: "application/json",
@@ -305,7 +305,7 @@ class AIService {
             console.log(`[AI] Generating Single Example (Prompt length: ${prompt.length})`);
 
             const aiResponse = await this.client.models.generateContent({
-                model: 'gemini-3-flash-preview',
+                model: 'gemini-3.5-flash',
                 contents: prompt,
             });
 
@@ -326,7 +326,7 @@ class AIService {
         try {
             const prompt = this.getPromptForLanguage(lang, [word], []);
             const aiResponse = await this.client.models.generateContent({
-                model: 'gemini-3-flash-preview',
+                model: 'gemini-3.5-flash',
                 contents: prompt,
                 config: {
                     responseMimeType: "application/json",
@@ -389,7 +389,7 @@ class AIService {
 
         try {
             const aiResponse = await this.client.models.generateContent({
-                model: 'gemini-3-flash-preview',
+                model: 'gemini-3.5-flash',
                 contents: prompt,
                 config: {
                     responseMimeType: "application/json",
