@@ -276,9 +276,28 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
         const generatedData = JSON.parse(result.text || '[]') as any[];
         const generatedMap = new Map(generatedData.map(d => [d.character, d]));
 
+        // Check document existence before preparing updates
+        const wordRefs = allowedItems.map(item =>
+            db.collection('users').doc(item.userId).collection('profiles').doc(item.profileId).collection('words').doc(item.wordId)
+        );
+
+        let wordSnapshots: any[] = [];
+        if (wordRefs.length > 0) {
+            wordSnapshots = await db.getAll(...wordRefs);
+        }
+
         const batch = db.batch();
 
-        for (const item of allowedItems) {
+        for (let i = 0; i < allowedItems.length; i++) {
+            const item = allowedItems[i];
+            const wordExists = wordSnapshots[i]?.exists || false;
+
+            if (!wordExists) {
+                console.warn(`[CloudFunc] Word ${item.wordText} (${item.wordId}) not found for update, likely deleted. Removing from queue.`);
+                batch.delete(db.collection('example_generation_queue').doc(item.id));
+                continue;
+            }
+
             const gen = generatedMap.get(item.wordText);
             if (gen && gen.examples) {
                 // VALIDATION START
@@ -304,7 +323,7 @@ async function processLangBatch(language: 'zh' | 'en', items: any[]) {
                     english: ''
                 }));
 
-                const wordRef = db.collection('users').doc(item.userId).collection('profiles').doc(item.profileId).collection('words').doc(item.wordId);
+                const wordRef = wordRefs[i];
                 batch.update(wordRef, { examples });
                 batch.delete(db.collection('example_generation_queue').doc(item.id));
 
